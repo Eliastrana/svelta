@@ -222,7 +222,10 @@ const UserProfile = () => {
                 {userRecipes.map((recipe) => (
                     <div
                         key={recipe.id}
-                        className="p-4 rounded-lg dark-purple-bg white-text"
+                        className="p-4 rounded-lg dark-purple-bg white-text cursor-pointer"
+                        onClick={() => {
+                            window.location.href = `/recipe/${recipe.id}`;
+                        }}
                     >
                         <div className="flex justify-between items-center">
 

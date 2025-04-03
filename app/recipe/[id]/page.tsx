@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
@@ -27,6 +26,9 @@ interface Recipe {
     bgColor: string;
     fontStyle: string;
     cookingSteps: CookingStep[];
+    ingredients?: string[]; // New
+    temperature?: string;   // New
+    cookingTime?: string;   // New
     userId: string; // Must exist in Firestore
 }
 
@@ -37,8 +39,6 @@ const RecipeDetail = () => {
     const [recipe, setRecipe] = useState<Recipe | null>(null);
     const [loading, setLoading] = useState(true);
     const [pageIndex, setPageIndex] = useState(0);
-
-    // We'll store the creator's user doc here
     const [creatorDoc, setCreatorDoc] = useState<UserDoc | null>(null);
 
     // Swipe handlers
@@ -97,50 +97,30 @@ const RecipeDetail = () => {
         return <div className="p-4">Recipe not found.</div>;
     }
 
-    // Grab creator's name/photo (if they exist)
     const userName = creatorDoc?.name || "Ukjent brukernavn";
     const userPhoto = creatorDoc?.photoURL || "";
 
-    // Build slides array: page 0 for the "intro," then each step
+    // Build slides array: page 0 for the "intro," then each cooking step
     const slides = [
         <div key="intro" className="w-full h-full px-4">
-            {/* The SVG "image" for the recipe */}
             <div
                 className="w-64 h-64 md:w-64 md:h-64 overflow-hidden flex items-center justify-center"
-                style={{filter: "invert(1)"}}
+                style={{ filter: "invert(1)" }}
                 dangerouslySetInnerHTML={{
                     __html: recipe.image
                         .replace(/class="[^"]*bg-white[^"]*"/, 'class=""')
                         .replace(/fill="white"/, 'fill="none"')
-                        .replace(/width="\+"/, '')
-                        .replace(/height="\d+"/, '')
+                        .replace(/width="\+"/, "")
+                        .replace(/height="\d+"/, "")
                         .replace(
                             /<svg([^>]*?)>/,
                             `<svg$1 viewBox="0 0 400 400" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
                         ),
                 }}
             />
-
             <h1 className="md:text-8xl text-5xl font-bold mb-2 ">{recipe.title}</h1>
             <p className="mb-4 text-lg">{recipe.description}</p>
-
-
-
-            {/* The creator info: photo + name */}
-            <div className="flex space-x-2 items-center">
-                <div className="h-10 w-10 rounded-full overflow-hidden">
-                    {userPhoto && (
-                        <img
-                            src={userPhoto}
-                            alt="Creator Photo"
-                            className="w-full h-full object-cover"
-                        />
-                    )}
-                </div>
-                <p className="text-2xl">{userName}</p>
-            </div>
         </div>,
-
         ...recipe.cookingSteps.map((step, i) => (
             <div key={`step-${i}`} className="w-full h-full px-4">
                 <h1 className="md:text-6xl text-4xl font-bold mb-2">
@@ -155,7 +135,6 @@ const RecipeDetail = () => {
 
     return (
         <div>
-
             <div
                 style={{backgroundColor: recipe.bgColor, fontFamily: recipe.fontStyle}}
                 className="max-w-4xl md:mx-auto m-2 p-4 rounded-lg"
@@ -163,10 +142,11 @@ const RecipeDetail = () => {
                 <button onClick={() => router.back()} className="mb-4">
                     <span className="material-symbols-outlined">close</span>
                 </button>
-
-
                 {/* Swipeable container */}
-                <div {...handlers} className="overflow-hidden relative w-full h-[32rem] md:h-full">
+                <div
+                    {...handlers}
+                    className="overflow-hidden relative w-full h-[32rem] md:h-full"
+                >
                     <div
                         className="flex transition-transform duration-300 ease-in-out w-full h-full"
                         style={{
@@ -183,18 +163,64 @@ const RecipeDetail = () => {
 
             </div>
 
+            <div className="flex justify-center space-x-2 mt-4">
+                {slides.map((_, idx) => (
+                    <div
+                        key={idx}
+                        onClick={() => setPageIndex(idx)}
+                        className={`w-3 h-3 rounded-full cursor-pointer ${idx === pageIndex ? "dark-purple-bg" : "bg-gray-300"}`}
+                    />
+                ))}
+            </div>
 
 
-                <div className="max-w-4xl mx-auto p-2 ">
-
-                <LikeButton recipeId={recipe.id}/>
-
-                    <CommentSection recipeId={recipe.id}/>
-
+            <div className="flex space-x-2 items-center max-w-4xl mx-auto p-2">
+                <div className="h-16 w-16 rounded-full overflow-hidden">
+                    {userPhoto && (
+                        <img
+                            src={userPhoto}
+                            alt="Creator Photo"
+                            className="w-full h-full object-cover"
+                        />
+                    )}
                 </div>
+                <p className="text-2xl">{userName}</p>
+            </div>
+
+            {/* New Section: Ingredient List, Temperature, and Cooking Time */}
+            <div className="max-w-4xl mx-auto p-4 md:flex md:justify-between">
+                <div>
+                    {recipe.ingredients && recipe.ingredients.length > 0 && (
+                        <div>
+                            <h2 className="text-xl font-bold">Ingredienser</h2>
+                            <ul className="list-disc pl-5">
+                                {recipe.ingredients.map((ing, idx) => (
+                                    <li key={idx}>{ing}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+                <div>
+                    {recipe.temperature && (
+                        <p className="mt-2">
+                            <strong>Temperatur:</strong> {recipe.temperature}
+                        </p>
+                    )}
+                    {recipe.cookingTime && (
+                        <p className="mt-2">
+                            <strong>Koketid:</strong> {recipe.cookingTime}
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            {/* Like button and Comment section */}
+            <div className="max-w-4xl mx-auto p-2">
+                <LikeButton recipeId={recipe.id}/>
+                <CommentSection recipeId={recipe.id}/>
+            </div>
         </div>
-
-
     );
 };
 

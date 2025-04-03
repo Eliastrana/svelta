@@ -9,16 +9,21 @@ import {
     serverTimestamp,
     doc,
     getDoc, Timestamp,
-
 } from "firebase/firestore";
 import { auth, firestore } from "@/firebase";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/nb";
+
+// Extend dayjs with the relativeTime plugin and set the locale to Norwegian
+dayjs.extend(relativeTime);
+dayjs.locale("nb");
 
 interface Comment {
     id: string;
     text: string;
     userId: string;
     createdAt: Timestamp;
-
 }
 
 interface UserDoc {
@@ -56,7 +61,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
             const newUsers: Record<string, UserDoc> = {};
             await Promise.all(
                 uniqueUserIds.map(async (uid) => {
-                    // Only fetch if we don't have the user's data already
                     if (!usersMap[uid]) {
                         const userDocRef = doc(firestore, "users", uid);
                         const docSnap = await getDoc(userDocRef);
@@ -74,7 +78,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
         if (comments.length > 0) {
             fetchUserData();
         }
-    }, [comments]);
+    }, [comments, usersMap]);
 
     const handleAddComment = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -99,30 +103,27 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
         <div className="mt-4 w-full">
             <h2 className="text-xl font-bold mb-2">Kommentarer</h2>
 
-
             <form onSubmit={handleAddComment} className="mb-4 flex items-center space-x-2">
                 <input
                     type="text"
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder="Skriv en kommentar..."
-                    className="w-full  p-2 rounded"
+                    className="w-full p-2 rounded"
                 />
                 <button type="submit" className="px-2 pt-1 confirm-button rounded-lg">
-                    <span className="material-symbols-outlined">
-                        send
-                    </span>
+                    <span className="material-symbols-outlined">send</span>
                 </button>
             </form>
 
             <div>
-            {comments.length === 0 ? (
-                    <p>No comments yet.</p>
+                {comments.length === 0 ? (
+                    <p>Vær den første til å kommentere!</p>
                 ) : (
                     comments.map((comment) => {
                         const userInfo = usersMap[comment.userId];
                         return (
-                            <div key={comment.id} className=" py-4">
+                            <div key={comment.id} className="py-4">
                                 <div className="flex items-center space-x-2">
                                     {userInfo?.photoURL ? (
                                         <img
@@ -131,26 +132,22 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                                             className="w-16 h-16 rounded-full"
                                         />
                                     ) : (
-                                        <div className="w-16 h-16 rounded-full bg-gray-400"/>
+                                        <div className="w-16 h-16 rounded-full bg-gray-400" />
                                     )}
                                     <div>
                                         <h1 className="text-2xl">{userInfo?.name || "Ukjent bruker"}</h1>
                                         <p className="text-xs text-gray-500">
                                             {comment.createdAt && comment.createdAt.toDate
-                                                ? comment.createdAt.toDate().toLocaleString()
-                                                : "Just now"}
+                                                ? dayjs(comment.createdAt.toDate()).fromNow()
+                                                : "Akkurat nå"}
                                         </p>
                                         <p className="mt-1">{comment.text}</p>
-
                                     </div>
-
                                 </div>
-
-
                             </div>
                         );
                     })
-            )}
+                )}
             </div>
         </div>
     );
