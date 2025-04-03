@@ -1,103 +1,221 @@
-import Image from "next/image";
+// pages/index.tsx
+"use client";
+import { useEffect, useState } from "react";
+import { firestore, auth } from "@/firebase";
+import {
+    collection,
+    query,
+    where,
+    onSnapshot,
+    doc,
+    getDoc
+} from "firebase/firestore";
+import UserSearchModal from "@/app/components/UserSearchModal";
+import { useRouter } from "next/navigation";
+import { onAuthStateChanged, User } from "firebase/auth";
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+interface CookingStep {
+    title: string;
+    description: string;
 }
+
+interface Recipe {
+    id: string;
+    title: string;
+    description: string;
+    image: string;
+    bgColor: string;
+    fontStyle: string;
+    cookingSteps: CookingStep[];
+    userId: string; // Must exist in Firestore
+}
+
+interface UserDoc {
+    name?: string;
+    following?: string[];
+    photoURL?: string;
+}
+
+const Home = () => {
+    const [recipes, setRecipes] = useState<Recipe[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState<User | null>(null);
+    const [following, setFollowing] = useState<string[]>([]);
+    const [showModal, setShowModal] = useState(false);
+    const [usersMap, setUsersMap] = useState<Record<string, UserDoc>>({});
+
+    const router = useRouter();
+
+    // 1. Auth state
+    useEffect(() => {
+        const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+        });
+        return () => unsubscribeAuth();
+    }, []);
+
+    // 2. Fetch "following" for current user
+    useEffect(() => {
+        if (!user) {
+            setFollowing([]);
+            return;
+        }
+        const currentUserRef = doc(firestore, "users", user.uid);
+        getDoc(currentUserRef).then((docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data() as { following: string[] };
+                setFollowing(data.following || []);
+            } else {
+                setFollowing([]);
+            }
+        });
+    }, [user]);
+
+    // 3. Once we have recipes, gather userIds => fetch user docs
+    useEffect(() => {
+        const uniqueUserIds = Array.from(new Set(recipes.map((r) => r.userId)));
+        if (uniqueUserIds.length === 0) return;
+
+        const fetchUsers = async () => {
+            const dataMap: Record<string, UserDoc> = {};
+            await Promise.all(
+                uniqueUserIds.map(async (uid) => {
+                    const userDocRef = doc(firestore, "users", uid);
+                    const docSnap = await getDoc(userDocRef);
+                    if (docSnap.exists()) {
+                        dataMap[uid] = docSnap.data() as UserDoc;
+                    }
+                })
+            );
+            setUsersMap(dataMap);
+        };
+
+        fetchUsers();
+    }, [recipes]);
+
+    // 4. Query recipes from followed users
+    useEffect(() => {
+        if (!user) {
+            setRecipes([]);
+            setLoading(false);
+            return;
+        }
+        if (following.length === 0) {
+            setRecipes([]);
+            setLoading(false);
+            return;
+        }
+        const recipesQuery = query(
+            collection(firestore, "recipes"),
+            where("userId", "in", following)
+        );
+        const unsubscribeRecipes = onSnapshot(recipesQuery, (snapshot) => {
+            const recipesData: Recipe[] = snapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...(doc.data() as Omit<Recipe, "id">)
+            }));
+            setRecipes(recipesData);
+            setLoading(false);
+        });
+        return () => unsubscribeRecipes();
+    }, [user, following]);
+
+    if (loading) return <div className="p-4">Loading...</div>;
+
+    return (
+        <div className="max-w-4xl mx-auto p-4">
+            <div className="flex items-center justify-between mb-4">
+                <h1 className="text-3xl font-bold mb-4">Nyeste oppskrifter</h1>
+                <div
+                    onClick={() => {
+                        if (user) {
+                            router.push(`/user/${user.uid}`);
+                        } else {
+                            alert("No user logged in");
+                        }
+                    }}
+                    className="flex items-center justify-between mb-4 cursor-pointer"
+                >
+                    {/* Possibly a user icon or "Search" button */}
+                </div>
+            </div>
+
+            <div className="h-2">
+                {recipes.length === 0 ? (
+                    <p>Ingen tilgjengelige oppskrifter. Prøv å følg noen for å se oppskrifter!</p>
+                ) : (
+                    <div className="snap-y snap-mandatory h-[40rem]">
+                        <div className="grid grid-cols-1 gap-16">
+                            {recipes.map((recipe) => {
+                                // -----------
+                                // THIS is the important part:
+                                // We get the creator's doc from usersMap
+                                const userDoc = usersMap[recipe.userId];
+
+                                const userName = userDoc?.name || "Ukjent brukernavn";
+
+                                const userPhoto = userDoc?.photoURL;
+
+
+                                return (
+                                    <div
+                                        key={recipe.id}
+                                        onClick={() => router.push(`/recipe/${recipe.id}`)}
+                                        className="cursor-pointer"
+                                    >
+                                        <div className="flex items-center">
+                                            {/* The recipe's SVG */}
+                                            <div
+                                                className="h-32 w-32 rounded-full overflow-hidden"
+                                                style={{ filter: "invert(1)" }}
+                                                dangerouslySetInnerHTML={{
+                                                    __html: recipe.image
+                                                        .replace(/class="[^"]*bg-white[^"]*"/g, 'class=""')
+                                                        .replace(/fill="white"/g, 'fill="none"')
+                                                        .replace(/width="\d+"/, "")
+                                                        .replace(/height="\d+"/, "")
+                                                        .replace(
+                                                            /<svg([^>]*?)>/,
+                                                            `<svg$1 viewBox="0 0 300 200" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
+                                                        )
+                                                }}
+                                            />
+
+                                            <div>
+
+                                                <div className="flex space-x-2 items-center">
+
+                                                    <div className="h-10 w-10 rounded-full overflow-hidden">
+                                                        {userPhoto && (
+                                                            <img
+                                                                src={userPhoto}
+                                                                alt="Creator Photo"
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        )}
+                                                    </div>
+
+
+                                                    <p className="text-xl font-semibold">{userName}</p>
+                                                </div>
+
+                                                <h1 className="md:text-8xl text-5xl font-bold">
+                                                    {recipe.title}
+                                                </h1>
+                                                <p className="text-lg">{recipe.description}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {showModal && <UserSearchModal onClose={() => setShowModal(false)} />}
+        </div>
+    );
+};
+
+export default Home;
