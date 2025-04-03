@@ -1,11 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  --background: #171717;
-  --foreground: #ffffff;
+  --background: #CBC5EA;
+  --foreground: #73628A;
 }
 
 
+.white-text {
+  color: #EAEAEA;
+}
+
+.light-purple {
+  color: #CBC5EA;
+}
+
+.dark-purple {
+  color: #73628A;
+}
+
+.confirm-button {
+  background-color: #73628A;
+  color: #CBC5EA;
+}
+.confirm-button:hover {
+  background-color: #8a6e98;
+  color: #ada8c6;
+
+}
 
 h1 {
   font-family: Righteous, sans-serif;

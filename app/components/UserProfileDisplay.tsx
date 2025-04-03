@@ -14,7 +14,12 @@ const UserProfileDisplay = () => {
     }, []);
 
     if (!user) {
-        return <div className="p-4">You are not logged in.</div>;
+        return <div className="p-4 items-center">
+            <a href="/login" className="hover:underline">
+                Logg inn
+            </a>
+
+        </div>;
     }
 
     return (

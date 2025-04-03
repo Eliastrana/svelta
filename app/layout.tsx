@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/app/components/Navbar";
 import AuthSync from "@/app/components/AuthSync";
+import Footer from "@/app/components/footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,36 +26,34 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-    <head>
-        <link rel="icon" href="/favicon.ico"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-        <meta name="description" content="A simple recipe app."/>
-        <meta name="keywords" content="recipe, app, cooking, food"/>
-        <meta name="author" content="Your Name"/>
+      <html lang="en">
+      <head>
+          <link rel="icon" href="/favicon.ico"/>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+          <meta name="description" content="A simple recipe app."/>
+          <meta name="keywords" content="recipe, app, cooking, food"/>
+          <meta name="author" content="Your Name"/>
 
-        <link rel="stylesheet"
-              href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=search"/>
+          <link rel="stylesheet"
+                href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=search"/>
 
-        <link rel="preconnect" href="https://fonts.googleapis.com"/>
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
-        <link
-            href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&family=Righteous&display=swap"
-            rel="stylesheet"/>
+          <link rel="preconnect" href="https://fonts.googleapis.com"/>
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
+          <link
+              href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&family=Righteous&display=swap"
+              rel="stylesheet"/>
 
-        <link
-            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
-            rel="stylesheet"
-        />
+          <link
+              href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+              rel="stylesheet"
+          />
 
-    </head>
-    <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-    >
-    <AuthSync />
-    <Navbar/>
-    {children}
-    </body>
-    </html>
+      </head>
+      <body className="flex flex-col min-h-screen">
+      <AuthSync/>
+      <Navbar/>
+      {children}
+      </body>
+      </html>
   );
 }

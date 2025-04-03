@@ -110,21 +110,21 @@ const UserSearchModal = ({ onClose }: UserSearchModalProps) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-[#121212] rounded-lg p-6 w-full max-w-md">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold">Søk etter kokker</h2>
-                    <button onClick={onClose} className="text-gray-600 hover:text-gray-800 text-2xl">&times;</button>
+        <div className="bg-[#CBC5EA] fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
+            <div className="rounded-lg p-6 w-full max-w-md bg-[#73628A] text-[#CBC5EA]">
+                <div className="flex justify-between items-center mb-4 ">
+                    <h1 className="text-2xl font-bold">Søk etter kokker</h1>
+                    <button onClick={onClose} className="cursor-pointer text-2xl">&times;</button>
                 </div>
                 <input
                     type="text"
                     placeholder="Søk etter navn..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded mb-4"
+                    className="w-full p-2  rounded mb-4"
                 />
                 {loading ? (
-                    <p>Loading...</p>
+                    <p>Laster...</p>
                 ) : (
                     <div className="max-h-60 overflow-y-auto">
                         {results.length === 0 ? (
@@ -137,11 +137,11 @@ const UserSearchModal = ({ onClose }: UserSearchModalProps) => {
                                 >
                                     <span>{user.name}</span>
                                     {currentUser && currentUser.uid === user.uid ? (
-                                        <span className="text-gray-500 text-sm">Deg</span>
+                                        <span className="text-sm">Deg</span>
                                     ) : (
                                         <button
                                             onClick={() => handleFollow(user.uid)}
-                                            className="text-white px-3 py-1 rounded text-sm cursor-pointer"
+                                            className=" px-3 py-1 rounded text-sm cursor-pointer"
                                         >
                                             {currentFollowing.includes(user.uid) ?
                                                 <span className="material-symbols-outlined">

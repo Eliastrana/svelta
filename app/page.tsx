@@ -13,6 +13,8 @@ import {
 import UserSearchModal from "@/app/components/UserSearchModal";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
+import { Timestamp } from "firebase/firestore";
+
 
 interface CookingStep {
     title: string;
@@ -28,6 +30,7 @@ interface Recipe {
     fontStyle: string;
     cookingSteps: CookingStep[];
     userId: string; // Must exist in Firestore
+    createdAt: Date; // Added createdAt field
 }
 
 interface UserDoc {
@@ -120,12 +123,12 @@ const Home = () => {
         return () => unsubscribeRecipes();
     }, [user, following]);
 
-    if (loading) return <div className="p-4">Loading...</div>;
+    if (loading) return <div className="p-4">Laster...</div>;
 
     return (
-        <div className="max-w-4xl mx-auto p-4">
+        <div className="max-w-4xl md:w-2/3 mx-auto md:mb-20 p-2">
             <div className="flex items-center justify-between mb-4">
-                <h1 className="text-3xl font-bold mb-4">Nyeste oppskrifter</h1>
+                <h1 className="md:text-6xl text-4xl font-bold mb-4">Nyeste oppskrifter</h1>
                 <div
                     onClick={() => {
                         if (user) {
@@ -142,48 +145,58 @@ const Home = () => {
 
             <div className="h-2">
                 {recipes.length === 0 ? (
-                    <p>Ingen tilgjengelige oppskrifter. Prøv å følg noen for å se oppskrifter!</p>
+
+                    <div>
+                    <p className="text-2xl">Ingen tilgjengelige oppskrifter. Prøv å følg noen for å se oppskrifter!</p>
+
+                    <button
+                        onClick={() => setShowModal(true)}
+                        className="confirm-button mt-4 p-2 rounded-lg cursor-pointer hover:underline"
+                        >
+                        Søk etter kokker
+                    </button>
+                    </div>
                 ) : (
-                    <div className="snap-y snap-mandatory h-[40rem]">
-                        <div className="grid grid-cols-1 gap-16">
+                    <div className="snap-y snap-mandatory h-[40rem] md:mt-20 mt-8 white-text">
+                        <div className="grid grid-cols-1 md:gap-24 gap-8">
                             {recipes.map((recipe) => {
-                                // -----------
-                                // THIS is the important part:
-                                // We get the creator's doc from usersMap
+
                                 const userDoc = usersMap[recipe.userId];
-
                                 const userName = userDoc?.name || "Ukjent brukernavn";
-
                                 const userPhoto = userDoc?.photoURL;
 
-
                                 return (
-                                    <div
-                                        key={recipe.id}
-                                        onClick={() => router.push(`/recipe/${recipe.id}`)}
-                                        className="cursor-pointer"
-                                    >
-                                        <div className="flex items-center">
-                                            {/* The recipe's SVG */}
+
+                                        <div key={recipe.id} className="flex items-center">
+
                                             <div
-                                                className="h-32 w-32 rounded-full overflow-hidden"
-                                                style={{ filter: "invert(1)" }}
-                                                dangerouslySetInnerHTML={{
-                                                    __html: recipe.image
-                                                        .replace(/class="[^"]*bg-white[^"]*"/g, 'class=""')
-                                                        .replace(/fill="white"/g, 'fill="none"')
-                                                        .replace(/width="\d+"/, "")
-                                                        .replace(/height="\d+"/, "")
-                                                        .replace(
-                                                            /<svg([^>]*?)>/,
-                                                            `<svg$1 viewBox="0 0 300 200" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
-                                                        )
-                                                }}
-                                            />
+                                                onClick={() => router.push(`/recipe/${recipe.id}`)}
+                                                className="bg-[#73628A] md:p-12 p-4 rounded-lg w-full cursor-pointer"
+                                            >
+                                                <div
+                                                    className="h-48 w-48 overflow-hidden"
+                                                    style={{filter: "invert(1)"}}
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: recipe.image
+                                                            .replace(/class="[^"]*bg-white[^"]*"/g, 'class=""')
+                                                            .replace(/fill="white"/g, 'fill="none"')
+                                                            .replace(/width="\d+"/, "")
+                                                            .replace(/height="\d+"/, "")
+                                                            .replace(
+                                                                /<svg([^>]*?)>/,
+                                                                `<svg$1 viewBox="0 0 450 450" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
+                                                            )
+                                                    }}
+                                                />
 
-                                            <div>
 
-                                                <div className="flex space-x-2 items-center">
+                                                <h1 className="md:text-8xl text-5xl font-bold">
+                                                    {recipe.title}
+                                                </h1>
+
+                                                <p className="text-lg mt-2">{recipe.description}</p>
+
+                                                <div className="flex space-x-2 items-center mt-4">
 
                                                     <div className="h-10 w-10 rounded-full overflow-hidden">
                                                         {userPhoto && (
@@ -196,16 +209,29 @@ const Home = () => {
                                                     </div>
 
 
-                                                    <p className="text-xl font-semibold">{userName}</p>
+                                                    <div>
+                                                        <p className="text-xl font-semibold">{userName}</p>
+
+                                                        <p className="text-xs">
+                                                            {
+                                                                recipe.createdAt
+                                                                    ? (recipe.createdAt as unknown as Timestamp).toDate().toLocaleString("nb-NO", {
+                                                                        timeZone: "Europe/Oslo",
+                                                                        day: "2-digit",
+                                                                        month: "2-digit",
+                                                                        year: "numeric",
+                                                                        hour: "2-digit",
+                                                                        minute: "2-digit",
+                                                                    })
+                                                                    : "Ingen dato funnet"
+                                                            }
+                                                        </p>
+
+                                                    </div>
                                                 </div>
 
-                                                <h1 className="md:text-8xl text-5xl font-bold">
-                                                    {recipe.title}
-                                                </h1>
-                                                <p className="text-lg">{recipe.description}</p>
                                             </div>
                                         </div>
-                                    </div>
                                 );
                             })}
                         </div>
@@ -213,7 +239,7 @@ const Home = () => {
                 )}
             </div>
 
-            {showModal && <UserSearchModal onClose={() => setShowModal(false)} />}
+            {showModal && <UserSearchModal onClose={() => setShowModal(false)}/>}
         </div>
     );
 };

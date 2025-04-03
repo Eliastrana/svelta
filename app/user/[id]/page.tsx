@@ -16,7 +16,9 @@ import {
     where
 } from "firebase/firestore";
 import { auth, firestore } from "@/firebase";
-import { User } from "firebase/auth";
+import { User, signOut } from "firebase/auth";
+
+
 
 interface UserData {
     name?: string;
@@ -56,6 +58,16 @@ auth.onAuthStateChanged(async (user) => {
         await createUserDocumentIfNotExists(user);
     }
 });
+
+const logout = async () => {
+    try {
+        await signOut(auth);
+        window.location.href = "/login"; // or use router.push('/login') if using next/navigation
+    } catch (error) {
+        console.error("Error logging out:", error);
+    }
+};
+
 
 const UserProfile = () => {
     const params = useParams();
@@ -145,7 +157,31 @@ const UserProfile = () => {
 
     return (
         <div className="max-w-xl mx-auto p-4">
-            <h1 className="text-4xl font-bold">{userData.name || "User Profile"}</h1>
+
+            <div className="flex justify-between items-center">
+            <div className="flex items-center">
+                {userData.photoURL && (
+                    <img
+                        src={userData.photoURL}
+                        alt="User Avatar"
+                        className="h-16 w-16 rounded-full mr-4"
+                    />
+                )}
+                <h1 className="text-4xl font-bold">{userData.name || "User Profile"}</h1>
+            </div>
+
+                {isOwner && (
+                    <button
+                        className="confirm-button p-2 rounded-lg cursor-pointer hover:underline ml-4"
+                        onClick={logout}
+                    >
+                        Logg ut
+                    </button>
+                )}
+
+            </div>
+
+
             {auth.currentUser && auth.currentUser.uid !== id && (
                 <button
                     onClick={handleFollow}
@@ -157,7 +193,26 @@ const UserProfile = () => {
 
             <h1 className="text-xl font-bold mt-8">Mine oppskrifter</h1>
             <div className="grid grid-cols-1 gap-4 mt-4">
-                {userRecipes.length === 0 && <p>Ingen oppskrifter funnet.</p>}
+                {userRecipes.length === 0 &&
+
+                    <div className=" ">
+                        <p className="">Ingen oppskrifter funnet.</p>
+
+                        {isOwner && (
+                            <button
+                                className="confirm-button py-2 px-4 rounded mt-4"
+                                onClick={() => {
+                                    window.location.href = "/create-recipe";
+                                }}
+                            >
+                                Lag ny oppskrift
+                            </button>
+                        )}
+
+                    </div>
+
+
+                }
                 {userRecipes.map((recipe) => (
                     <div
                         key={recipe.id}

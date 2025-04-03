@@ -20,11 +20,11 @@ const Navbar = () => {
     }, []);
 
     return (
-        <div className="flex justify-between items-center p-4">
+        <div className="flex justify-between items-center ">
             {/* Navigation brand */}
             <div className="flex items-center ">
                 <h1
-                    className="text-2xl font-bold cursor-pointer"
+                    className="text-4xl font-bold cursor-pointer ml-4"
                     onClick={() => router.push('/')}
                 >
                     Cooked
@@ -51,8 +51,6 @@ const Navbar = () => {
                     onClick={() => {
                         if (user) {
                             router.push(`/user/${user.uid}`);
-                        } else {
-                            alert("No user logged in");
                         }
                     }}
                     className="cursor-pointer"

@@ -89,7 +89,7 @@ const RecipeDetail = () => {
     }, [recipe]);
 
     if (loading) {
-        return <div className="p-4">Loading...</div>;
+        return <div className="p-4">Laster...</div>;
     }
     if (!recipe) {
         return <div className="p-4">Recipe not found.</div>;
@@ -104,7 +104,7 @@ const RecipeDetail = () => {
         <div key="intro" className="w-full h-full px-4">
             {/* The SVG "image" for the recipe */}
             <div
-                className="h-64 w-64 md:h-96 md:w-96 rounded-full overflow-hidden"
+                className="h-32 w-32 md:h-96 md:w-96 rounded-full overflow-hidden"
                 style={{ filter: "invert(1)" }}
                 dangerouslySetInnerHTML={{
                     __html: recipe.image
@@ -114,13 +114,13 @@ const RecipeDetail = () => {
                         .replace(/height="\d+"/, "")
                         .replace(
                             /<svg([^>]*?)>/,
-                            `<svg$1 viewBox="0 0 300 200" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
+                            `<svg$1 viewBox="0 0 450 450" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
                         ),
                 }}
             />
 
-            <h1 className="md:text-8xl text-6xl font-bold mb-2">{recipe.title}</h1>
-            <p className="mb-4 text-3xl">{recipe.description}</p>
+            <h1 className="md:text-8xl text-5xl font-bold mb-2 ">{recipe.title}</h1>
+            <p className="mb-4 text-2xl">{recipe.description}</p>
 
             {/* The creator info: photo + name */}
             <div className="flex space-x-2 items-center">
