@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #CBC5EA;
+  --background: rgba(203, 197, 234, 0.58);
   --foreground: #73628A;
 }
 
@@ -12,10 +12,15 @@
 
 .light-purple {
   color: #CBC5EA;
+  opacity: 50%;
 }
 
 .dark-purple {
   color: #73628A;
+}
+
+.dark-purple-bg {
+  background-color: #73628A;
 }
 
 .confirm-button {

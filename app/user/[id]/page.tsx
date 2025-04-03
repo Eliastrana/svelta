@@ -13,7 +13,7 @@ import {
     collection,
     query,
     onSnapshot,
-    where
+    where, deleteDoc
 } from "firebase/firestore";
 import { auth, firestore } from "@/firebase";
 import { User, signOut } from "firebase/auth";
@@ -40,6 +40,7 @@ interface Recipe {
     fontStyle: string;
     cookingSteps: CookingStep[];
 }
+
 
 const createUserDocumentIfNotExists = async (user: User) => {
     const userDocRef = doc(firestore, "users", user.uid);
@@ -77,6 +78,10 @@ const UserProfile = () => {
     const [userData, setUserData] = useState<UserData | null>(null);
     const [isFollowing, setIsFollowing] = useState(false);
     const [userRecipes, setUserRecipes] = useState<Recipe[]>([]);
+
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
 
     useEffect(() => {
         if (!id) return;
@@ -156,7 +161,7 @@ const UserProfile = () => {
     const isOwner = auth.currentUser?.uid === id;
 
     return (
-        <div className="max-w-xl mx-auto p-4">
+        <div className="md:w-1/2 w-full mx-auto p-4">
 
             <div className="md:flex justify-between items-center">
             <div className="flex items-center">
@@ -217,8 +222,7 @@ const UserProfile = () => {
                 {userRecipes.map((recipe) => (
                     <div
                         key={recipe.id}
-                        style={{ backgroundColor: recipe.bgColor, fontFamily: recipe.fontStyle }}
-                        className="p-4 rounded-lg"
+                        className="p-4 rounded-lg dark-purple-bg white-text"
                     >
                         <div className="flex justify-between items-center">
 
@@ -226,14 +230,14 @@ const UserProfile = () => {
                             <div className="rounded-lg overflow-hidden">
 
                                 <div
-                                    className="h-32 w-32 rounded-full overflow-hidden"
+                                    className="w-64 h-64 md:w-64 md:h-64 overflow-hidden flex items-center justify-center"
                                     style={{filter: "invert(1)"}}
                                     dangerouslySetInnerHTML={{
                                         __html: recipe.image
                                             .replace(/class="[^"]*bg-white[^"]*"/g, 'class=""')
                                             .replace(/fill="white"/g, 'fill="none"')
-                                            .replace(/width="\d+"/, "")
-                                            .replace(/height="\d+"/, "")
+                                            .replace(/width="\+"/, '')
+                                            .replace(/height="\d+"/, '')
                                             .replace(
                                                 /<svg([^>]*?)>/,
                                                 `<svg$1 viewBox="0 0 400 400" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
@@ -247,6 +251,8 @@ const UserProfile = () => {
 
                         </div>
 
+                        <div className="flex justify-between">
+
                         {isOwner && (
                             <button
                                 className="relative text-white cursor-pointer"
@@ -259,6 +265,56 @@ const UserProfile = () => {
                                 </span>
                             </button>
                         )}
+
+                            {isOwner && (
+                                <button
+                                    className="relative text-white cursor-pointer"
+                                    onClick={() => {
+                                        setPendingDeleteId(recipe.id);
+                                        setShowConfirm(true);
+                                    }}
+                                >
+                                    <span className="material-symbols-outlined">delete</span>
+                                </button>
+                            )}
+
+
+                            {showConfirm && (
+                                <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
+                                    <div className="dark-purple-bg  p-6 rounded shadow-lg max-w-sm w-full">
+                                        <h2 className="text-xl font-semibold mb-4">Vil du slette denne oppskriften?</h2>
+                                        <div className="flex justify-end gap-2">
+                                            <button
+                                                className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
+                                                onClick={() => setShowConfirm(false)}
+                                            >
+                                                Avbryt
+                                            </button>
+                                            <button
+                                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+                                                onClick={async () => {
+                                                    if (!pendingDeleteId) return;
+                                                    try {
+                                                        await deleteDoc(doc(firestore, "recipes", pendingDeleteId));
+                                                        setUserRecipes(prev => prev.filter(r => r.id !== pendingDeleteId));
+                                                        setShowConfirm(false);
+                                                        setPendingDeleteId(null);
+                                                    } catch (err) {
+                                                        console.error("Feil ved sletting:", err);
+                                                        // Optional: show custom error message
+                                                    }
+                                                }}
+                                            >
+                                                Slett
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+
+                        </div>
+
                     </div>
                 ))}
             </div>

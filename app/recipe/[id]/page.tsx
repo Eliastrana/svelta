@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { firestore } from "@/firebase";
 import { useSwipeable } from "react-swipeable";
+import LikeButton from "@/app/components/LikeButton";
+import CommentSection from "@/app/components/CommentSection";
 
 interface CookingStep {
     title: string;
@@ -104,23 +106,25 @@ const RecipeDetail = () => {
         <div key="intro" className="w-full h-full px-4">
             {/* The SVG "image" for the recipe */}
             <div
-                className="h-64 w-64 md:h-96 md:w-96 rounded-full overflow-hidden"
-                style={{ filter: "invert(1)" }}
+                className="w-64 h-64 md:w-64 md:h-64 overflow-hidden flex items-center justify-center"
+                style={{filter: "invert(1)"}}
                 dangerouslySetInnerHTML={{
                     __html: recipe.image
-                        .replace(/class="[^"]*bg-white[^"]*"/g, 'class=""')
-                        .replace(/fill="white"/g, 'fill="none"')
-                        .replace(/width="\d+"/, "")
-                        .replace(/height="\d+"/, "")
+                        .replace(/class="[^"]*bg-white[^"]*"/, 'class=""')
+                        .replace(/fill="white"/, 'fill="none"')
+                        .replace(/width="\+"/, '')
+                        .replace(/height="\d+"/, '')
                         .replace(
                             /<svg([^>]*?)>/,
-                            `<svg$1 viewBox="0 0 300 300" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
+                            `<svg$1 viewBox="0 0 400 400" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
                         ),
                 }}
             />
 
             <h1 className="md:text-8xl text-5xl font-bold mb-2 ">{recipe.title}</h1>
-            <p className="mb-4 text-2xl">{recipe.description}</p>
+            <p className="mb-4 text-lg">{recipe.description}</p>
+
+
 
             {/* The creator info: photo + name */}
             <div className="flex space-x-2 items-center">
@@ -150,30 +154,47 @@ const RecipeDetail = () => {
     const totalPages = slides.length;
 
     return (
-        <div
-            style={{ backgroundColor: recipe.bgColor, fontFamily: recipe.fontStyle }}
-            className="max-w-4xl md:mx-auto m-2 p-4 rounded-lg"
-        >
-            <button onClick={() => router.back()} className="mb-4">
-                <span className="material-symbols-outlined">close</span>
-            </button>
+        <div>
 
-            {/* Swipeable container */}
-            <div {...handlers} className="overflow-hidden relative w-full h-[32rem] md:h-full">
-                <div
-                    className="flex transition-transform duration-300 ease-in-out w-full h-full"
-                    style={{
-                        transform: `translateX(-${pageIndex * 100}%)`,
-                    }}
-                >
-                    {slides.map((slide) => (
-                        <div className="w-full flex-shrink-0 h-full" key={slide.key}>
-                            {slide}
-                        </div>
-                    ))}
+            <div
+                style={{backgroundColor: recipe.bgColor, fontFamily: recipe.fontStyle}}
+                className="max-w-4xl md:mx-auto m-2 p-4 rounded-lg"
+            >
+                <button onClick={() => router.back()} className="mb-4">
+                    <span className="material-symbols-outlined">close</span>
+                </button>
+
+
+                {/* Swipeable container */}
+                <div {...handlers} className="overflow-hidden relative w-full h-[32rem] md:h-full">
+                    <div
+                        className="flex transition-transform duration-300 ease-in-out w-full h-full"
+                        style={{
+                            transform: `translateX(-${pageIndex * 100}%)`,
+                        }}
+                    >
+                        {slides.map((slide) => (
+                            <div className="w-full flex-shrink-0 h-full" key={slide.key}>
+                                {slide}
+                            </div>
+                        ))}
+                    </div>
                 </div>
+
             </div>
+
+
+
+                <div className="max-w-4xl mx-auto p-2 ">
+
+                <LikeButton recipeId={recipe.id}/>
+
+                    <CommentSection recipeId={recipe.id}/>
+
+                </div>
         </div>
+
+
     );
 };
 

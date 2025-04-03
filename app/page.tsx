@@ -126,7 +126,7 @@ const Home = () => {
     if (loading) return <div className="p-4">Laster...</div>;
 
     return (
-        <div className="max-w-4xl md:w-2/3 mx-auto md:mb-20 p-2">
+        <div className="max-w-4xl md:w-2/3 mx-auto md:mb-20 p-2 ">
             <div className="flex items-center justify-between mb-4">
                 <h1 className="md:text-6xl text-4xl font-bold mb-4">Nyeste oppskrifter</h1>
                 <div
@@ -157,7 +157,7 @@ const Home = () => {
                     </button>
                     </div>
                 ) : (
-                    <div className="snap-y snap-mandatory h-[40rem] md:mt-20 mt-8 white-text">
+                    <div className="snap-y snap-mandatory h-[40rem] md:mt-20  mt-8 white-text">
                         <div className="grid grid-cols-1 md:gap-24 gap-8">
                             {recipes.map((recipe) => {
 
@@ -165,27 +165,29 @@ const Home = () => {
                                 const userName = userDoc?.name || "Ukjent brukernavn";
                                 const userPhoto = userDoc?.photoURL;
 
+
+
                                 return (
 
-                                        <div key={recipe.id} className="flex items-center">
+                                        <div key={recipe.id} className="flex items-center ">
 
                                             <div
                                                 onClick={() => router.push(`/recipe/${recipe.id}`)}
-                                                className="bg-[#73628A] md:p-12 p-4 rounded-lg w-full cursor-pointer"
+                                                className="bg-[#73628A] md:p-12 p-4 rounded-lg w-full cursor-pointer shadow-lg"
                                             >
                                                 <div
-                                                    className="h-64 w-64 overflow-hidden"
+                                                    className="w-64 h-64 md:w-64 md:h-64 overflow-hidden flex items-center justify-center"
                                                     style={{filter: "invert(1)"}}
                                                     dangerouslySetInnerHTML={{
                                                         __html: recipe.image
-                                                            .replace(/class="[^"]*bg-white[^"]*"/g, 'class=""')
-                                                            .replace(/fill="white"/g, 'fill="none"')
-                                                            .replace(/width="\d+"/, "")
-                                                            .replace(/height="\d+"/, "")
+                                                            .replace(/class="[^"]*bg-white[^"]*"/, 'class=""')
+                                                            .replace(/fill="white"/, 'fill="none"')
+                                                            .replace(/width="\+"/, '')
+                                                            .replace(/height="\d+"/, '')
                                                             .replace(
                                                                 /<svg([^>]*?)>/,
-                                                                `<svg$1 viewBox="0 0 300 300" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
-                                                            )
+                                                                `<svg$1 viewBox="0 0 400 400" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
+                                                            ),
                                                     }}
                                                 />
 
@@ -195,6 +197,7 @@ const Home = () => {
                                                 </h1>
 
                                                 <p className="text-lg mt-2">{recipe.description}</p>
+
 
                                                 <div className="flex space-x-2 items-center mt-4">
 
