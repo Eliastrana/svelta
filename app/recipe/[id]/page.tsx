@@ -104,7 +104,7 @@ const RecipeDetail = () => {
         <div key="intro" className="w-full h-full px-4">
             {/* The SVG "image" for the recipe */}
             <div
-                className="h-32 w-32 md:h-96 md:w-96 rounded-full overflow-hidden"
+                className="h-64 w-64 md:h-96 md:w-96 rounded-full overflow-hidden"
                 style={{ filter: "invert(1)" }}
                 dangerouslySetInnerHTML={{
                     __html: recipe.image
@@ -114,7 +114,7 @@ const RecipeDetail = () => {
                         .replace(/height="\d+"/, "")
                         .replace(
                             /<svg([^>]*?)>/,
-                            `<svg$1 viewBox="0 0 450 450" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
+                            `<svg$1 viewBox="0 0 300 300" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
                         ),
                 }}
             />
@@ -139,10 +139,10 @@ const RecipeDetail = () => {
 
         ...recipe.cookingSteps.map((step, i) => (
             <div key={`step-${i}`} className="w-full h-full px-4">
-                <h1 className="md:text-6xl text-5xl font-bold mb-2">
+                <h1 className="md:text-6xl text-4xl font-bold mb-2">
                     {i + 1}: {step.title}
                 </h1>
-                <p className="text-3xl">{step.description}</p>
+                <p className="text-3xl mt-2">{step.description}</p>
             </div>
         )),
     ];
@@ -159,7 +159,7 @@ const RecipeDetail = () => {
             </button>
 
             {/* Swipeable container */}
-            <div {...handlers} className="overflow-hidden relative w-full h-[38rem]">
+            <div {...handlers} className="overflow-hidden relative w-full h-[32rem] md:h-full">
                 <div
                     className="flex transition-transform duration-300 ease-in-out w-full h-full"
                     style={{

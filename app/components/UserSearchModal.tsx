@@ -111,7 +111,7 @@ const UserSearchModal = ({ onClose }: UserSearchModalProps) => {
 
     return (
         <div className="bg-[#CBC5EA] fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
-            <div className="rounded-lg p-6 w-full max-w-md bg-[#73628A] text-[#CBC5EA]">
+            <div className="rounded-lg m-2 md:m-0 p-6 w-full max-w-md bg-[#73628A] text-[#CBC5EA]">
                 <div className="flex justify-between items-center mb-4 ">
                     <h1 className="text-2xl font-bold">Søk etter kokker</h1>
                     <button onClick={onClose} className="cursor-pointer text-2xl">&times;</button>

@@ -34,19 +34,31 @@ const Navbar = () => {
             <div className="flex items-center space-x-4">
 
                 <h2
-                    onClick={() => router.push('/create-recipe')}
-                    className="cursor-pointer">
-                <span className="material-symbols-outlined">
-                add
-                </span>
+                    onClick={() => {
+                        if (user) {
+                            router.push('/create-recipe');
+                        } else {
+                            alert("Du må være innlogget for å lage en oppskrift.");
+                        }
+                    }}
+                    className={`cursor-pointer ${!user ? 'opacity-50 pointer-events-none' : ''}`}
+                >
+                    <span className="material-symbols-outlined">outdoor_grill</span>
                 </h2>
 
                 <h2
-                    onClick={() => setShowModal(true)}
-                    className="cursor-pointer"
+                    onClick={() => {
+                        if (user) {
+                            setShowModal(true);
+                        } else {
+                            alert("Du må være innlogget for å søke etter brukere.");
+                        }
+                    }}
+                    className={`cursor-pointer ${!user ? 'opacity-50 pointer-events-none' : ''}`}
                 >
-                    <span className="material-symbols-outlined">search</span>
+                    <span className="material-symbols-outlined">person_add</span>
                 </h2>
+
                 <div
                     onClick={() => {
                         if (user) {
@@ -60,7 +72,7 @@ const Navbar = () => {
             </div>
 
             {showModal && (
-                <UserSearchModal onClose={() => setShowModal(false)} />
+                <UserSearchModal onClose={() => setShowModal(false)}/>
             )}
         </div>
     );

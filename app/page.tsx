@@ -174,7 +174,7 @@ const Home = () => {
                                                 className="bg-[#73628A] md:p-12 p-4 rounded-lg w-full cursor-pointer"
                                             >
                                                 <div
-                                                    className="h-48 w-48 overflow-hidden"
+                                                    className="h-64 w-64 overflow-hidden"
                                                     style={{filter: "invert(1)"}}
                                                     dangerouslySetInnerHTML={{
                                                         __html: recipe.image
@@ -184,7 +184,7 @@ const Home = () => {
                                                             .replace(/height="\d+"/, "")
                                                             .replace(
                                                                 /<svg([^>]*?)>/,
-                                                                `<svg$1 viewBox="0 0 450 450" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
+                                                                `<svg$1 viewBox="0 0 300 300" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
                                                             )
                                                     }}
                                                 />

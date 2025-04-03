@@ -158,7 +158,7 @@ const UserProfile = () => {
     return (
         <div className="max-w-xl mx-auto p-4">
 
-            <div className="flex justify-between items-center">
+            <div className="md:flex justify-between items-center">
             <div className="flex items-center">
                 {userData.photoURL && (
                     <img
@@ -172,7 +172,7 @@ const UserProfile = () => {
 
                 {isOwner && (
                     <button
-                        className="confirm-button p-2 rounded-lg cursor-pointer hover:underline ml-4"
+                        className="confirm-button  mt-4 md:mt-0 p-2 rounded-lg cursor-pointer hover:underline md:ml-4"
                         onClick={logout}
                     >
                         Logg ut
@@ -192,6 +192,7 @@ const UserProfile = () => {
             )}
 
             <h1 className="text-xl font-bold mt-8">Mine oppskrifter</h1>
+
             <div className="grid grid-cols-1 gap-4 mt-4">
                 {userRecipes.length === 0 &&
 
@@ -220,26 +221,30 @@ const UserProfile = () => {
                         className="p-4 rounded-lg"
                     >
                         <div className="flex justify-between items-center">
+
+
                             <div className="rounded-lg overflow-hidden">
+
+                                <div
+                                    className="h-32 w-32 rounded-full overflow-hidden"
+                                    style={{filter: "invert(1)"}}
+                                    dangerouslySetInnerHTML={{
+                                        __html: recipe.image
+                                            .replace(/class="[^"]*bg-white[^"]*"/g, 'class=""')
+                                            .replace(/fill="white"/g, 'fill="none"')
+                                            .replace(/width="\d+"/, "")
+                                            .replace(/height="\d+"/, "")
+                                            .replace(
+                                                /<svg([^>]*?)>/,
+                                                `<svg$1 viewBox="0 0 400 400" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
+                                            ),
+                                    }}
+                                />
                                 <h1 className="text-2xl font-bold mt-2">{recipe.title}</h1>
                                 <p>{recipe.description}</p>
                             </div>
 
-                            <div
-                                className="h-32 w-32 rounded-full overflow-hidden"
-                                style={{ filter: "invert(1)" }}
-                                dangerouslySetInnerHTML={{
-                                    __html: recipe.image
-                                        .replace(/class="[^"]*bg-white[^"]*"/g, 'class=""')
-                                        .replace(/fill="white"/g, 'fill="none"')
-                                        .replace(/width="\d+"/, "")
-                                        .replace(/height="\d+"/, "")
-                                        .replace(
-                                            /<svg([^>]*?)>/,
-                                            `<svg$1 viewBox="0 0 300 200" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
-                                        ),
-                                }}
-                            />
+
                         </div>
 
                         {isOwner && (
