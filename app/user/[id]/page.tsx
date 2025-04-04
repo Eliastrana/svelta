@@ -184,17 +184,19 @@ const UserProfile = () => {
                     </button>
                 )}
 
+                {auth.currentUser && auth.currentUser.uid !== id && (
+                    <button
+                        onClick={handleFollow}
+                        className="mt-4 md:mt-0 confirm-button py-2 px-4 rounded"
+                    >
+                        {isFollowing ? "Slutt å følge" : "Følg"}
+                    </button>
+                )}
+
             </div>
 
 
-            {auth.currentUser && auth.currentUser.uid !== id && (
-                <button
-                    onClick={handleFollow}
-                    className="mt-4 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
-                >
-                    {isFollowing ? "Unfollow" : "Follow"}
-                </button>
-            )}
+
 
             <h1 className="text-xl font-bold mt-8">Mine oppskrifter</h1>
 

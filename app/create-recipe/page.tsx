@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { auth, firestore } from "@/firebase";
 import DrawingCanvas from "@/app/components/DrawingCanvas";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/firebase";
 
 interface CookingStep {
     title: string;
@@ -17,6 +19,8 @@ const CreateRecipe = () => {
     const [bgColor, setBgColor] = useState("#ffffff");
     const [fontStyle, setFontStyle] = useState("sans-serif");
     const [cookingSteps, setCookingSteps] = useState<CookingStep[]>([]);
+    const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+
 
     // New states for ingredients, temperature, and cooking time
     const [ingredients, setIngredients] = useState<string[]>([]);
@@ -68,13 +72,28 @@ const CreateRecipe = () => {
         setIngredients(ingredients.filter((_, idx) => idx !== index));
     };
 
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) setCoverImageFile(file);
+    };
+
     // Submit the recipe with all fields
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+
         console.log("Submitting SVG data:", svgData);
 
         const user = auth.currentUser;
         if (!user) return alert("Please sign in first.");
+
+        let coverImageUrl = "";
+
+        if (coverImageFile) {
+            const imageRef = ref(storage, `recipe-covers/${user.uid}-${Date.now()}-${coverImageFile.name}`);
+            const snapshot = await uploadBytes(imageRef, coverImageFile);
+            coverImageUrl = await getDownloadURL(snapshot.ref);
+        }
 
         try {
             await addDoc(collection(firestore, "recipes"), {
@@ -89,6 +108,8 @@ const CreateRecipe = () => {
                 cookingTime,      // New cooking time field
                 userId: user.uid,
                 createdAt: serverTimestamp(),
+                coverImage: coverImageUrl,
+
             });
             router.push("/");
         } catch (error) {
@@ -128,6 +149,12 @@ const CreateRecipe = () => {
                     />
                 </div>
 
+                <div>
+                    <label className="block mb-1 text-xl">Forsidebilde</label>
+                    <input type="file" accept="image/*" onChange={handleImageChange}/>
+                </div>
+
+
                 {/* Background color */}
                 <div>
                     <h1 className="block mb-1 text-xl">Bakgrunnsfarge</h1>
@@ -146,7 +173,7 @@ const CreateRecipe = () => {
                                     className={`w-12 h-12 border-2 rounded-full transition ${
                                         bgColor === color ? "ring-2" : ""
                                     }`}
-                                    style={{ backgroundColor: color }}
+                                    style={{backgroundColor: color}}
                                 />
                             </label>
                         ))}
@@ -160,10 +187,10 @@ const CreateRecipe = () => {
                         value={fontStyle}
                         onChange={(e) => setFontStyle(e.target.value)}
                         className="w-full border-2 p-2 rounded"
-                        style={{ fontFamily: fontStyle }}
+                        style={{fontFamily: fontStyle}}
                     >
                         {fontOptions.map((font) => (
-                            <option key={font.name} value={font.value} style={{ fontFamily: font.value }}>
+                            <option key={font.name} value={font.value} style={{fontFamily: font.value}}>
                                 {font.name}
                             </option>
                         ))}
@@ -181,7 +208,8 @@ const CreateRecipe = () => {
                             onChange={(e) => setNewIngredient(e.target.value)}
                             className="flex-grow border p-2 rounded"
                         />
-                        <button type="button" onClick={handleAddIngredient} className="px-4 py-2 confirm-button rounded">
+                        <button type="button" onClick={handleAddIngredient}
+                                className="px-4 py-2 confirm-button rounded">
                             Legg til
                         </button>
                     </div>
@@ -256,7 +284,6 @@ const CreateRecipe = () => {
                         </button>
                     </div>
                 </div>
-
 
 
                 {/* Submit button */}
