@@ -2,41 +2,38 @@
 
 :root {
   --background: rgba(203, 197, 234, 0.58);
-  --foreground: #73628A;
+  --foreground: #73628a;
 }
 
-
 .white-text {
-  color: #EAEAEA;
+  color: #eaeaea;
 }
 
 .light-purple {
-  color: #CBC5EA;
+  color: #cbc5ea;
   opacity: 50%;
 }
 
 .dark-purple {
-  color: #73628A;
+  color: #73628a;
 }
 
 .dark-purple-bg {
-  background-color: #73628A;
+  background-color: #73628a;
 }
 
 .confirm-button {
-  background-color: #73628A;
-  color: #CBC5EA;
+  background-color: #73628a;
+  color: #cbc5ea;
 }
 .confirm-button:hover {
   background-color: #8a6e98;
   color: #ada8c6;
-
 }
 
 h1 {
   font-family: Righteous, sans-serif;
 }
-
 
 body {
   background: var(--background);
