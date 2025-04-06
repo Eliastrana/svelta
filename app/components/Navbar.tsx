@@ -11,7 +11,6 @@ const Navbar = () => {
     const [showModal, setShowModal] = useState(false);
     const [user, setUser] = useState<User | null>(null);
 
-    // Listen for Firebase auth state changes
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);

@@ -2,8 +2,8 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Timestamp } from 'firebase/firestore';
-import { Recipe } from '@/hooks/useFollowedRecipes';
 import Image from 'next/image';
+import { Recipe } from '@/app/types/Recipe';
 
 interface RecipeCardProps {
     recipe: Recipe;
@@ -49,15 +49,17 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                 style={{ minHeight: '24rem' }}
             >
                 {recipe.coverImage && (
-                    <Image
-                        src={recipe.coverImage}
-                        height={1000}
-                        width={2000}
-                        alt="Cover"
-                        className="absolute top-0 left-0 w-full h-full object-cover rounded-lg"
-                    />
+                    <div>
+                        <Image
+                            src={recipe.coverImage}
+                            height={1000}
+                            width={2000}
+                            alt="Cover"
+                            className="absolute top-0 left-0 w-full h-full object-cover rounded-lg"
+                        />
+                        <div className="absolute top-0 left-0 w-full h-full bg-black/30 opacity-100 group-hover:opacity-0 transition-opacity duration-300 z-10 rounded-lg" />
+                    </div>
                 )}
-                <div className="absolute top-0 left-0 w-full h-full bg-black/30 opacity-100 group-hover:opacity-0 transition-opacity duration-300 z-10 rounded-lg" />
                 <div className="relative z-10">
                     <div
                         className="w-64 h-64 md:w-64 md:h-64 overflow-hidden flex items-center justify-center"
@@ -133,7 +135,6 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                     </div>
                 </div>
             </div>
-            {/* Conditionally render edit and delete buttons if owner */}
             {isOwner && (
                 <div className="relative right-2 flex space-x-2 z-20 ">
                     <button

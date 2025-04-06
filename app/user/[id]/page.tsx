@@ -16,6 +16,7 @@ import { auth, firestore } from '@/firebase';
 import { User, signOut } from 'firebase/auth';
 import { useUserRecipes } from '@/hooks/useUserRecipes';
 import RecipeCard from '@/app/components/RecipeCard';
+import { useUserLikedRecipes } from '@/hooks/useLikedRecipes';
 
 interface UserData {
     name?: string;
@@ -53,7 +54,15 @@ const logout = async () => {
 const UserProfile = () => {
     const params = useParams();
     const id = Array.isArray(params.id) ? params.id[0] : params.id;
+
+    // Fetch user's own recipes
     const userRecipes = useUserRecipes(id || '');
+    // Fetch user's liked recipes
+    const userLikedRecipes = useUserLikedRecipes(id || '');
+
+    const [activeTab, setActiveTab] = useState<'myRecipes' | 'likedRecipes'>(
+        'myRecipes'
+    );
 
     const [userData, setUserData] = useState<UserData | null>(null);
     const [isFollowing, setIsFollowing] = useState(false);
@@ -73,6 +82,7 @@ const UserProfile = () => {
         };
         fetchUser();
 
+        // Check if current user is following this profile
         if (auth.currentUser) {
             const currentUserRef = doc(
                 firestore,
@@ -134,7 +144,7 @@ const UserProfile = () => {
 
     const isOwner = auth.currentUser?.uid === id;
 
-    // Instead of directly deleting, we show a confirmation modal.
+    // Instead of directly deleting, we show a confirmation modal:
     const handleDeleteRecipe = (recipeId: string) => {
         setPendingDeleteId(recipeId);
         setShowConfirm(true);
@@ -144,7 +154,6 @@ const UserProfile = () => {
         if (!pendingDeleteId) return;
         try {
             await deleteDoc(doc(firestore, 'recipes', pendingDeleteId));
-            // Optionally update local state or refetch recipes.
             setShowConfirm(false);
             setPendingDeleteId(null);
         } catch (error) {
@@ -156,6 +165,10 @@ const UserProfile = () => {
         setShowConfirm(false);
         setPendingDeleteId(null);
     };
+
+    // Decide which list of recipes to show based on activeTab
+    const displayedRecipes =
+        activeTab === 'myRecipes' ? userRecipes : userLikedRecipes;
 
     return (
         <div className="md:w-1/2 w-full mx-auto p-4">
@@ -192,12 +205,37 @@ const UserProfile = () => {
                     </button>
                 )}
             </div>
-            <h1 className="text-xl font-bold mt-8">Mine oppskrifter</h1>
+
+            {/* Toggle buttons for My Recipes vs Liked Recipes */}
+            <div className="flex space-x-4 mt-6">
+                <button
+                    onClick={() => setActiveTab('myRecipes')}
+                    className={`px-4 py-2 rounded ${
+                        activeTab === 'myRecipes'
+                            ? 'confirm-button'
+                            : 'bg-gray-300'
+                    }`}
+                >
+                    Mine Oppskrifter
+                </button>
+                <button
+                    onClick={() => setActiveTab('likedRecipes')}
+                    className={`px-4 py-2 rounded ${
+                        activeTab === 'likedRecipes'
+                            ? 'confirm-button'
+                            : 'bg-gray-300'
+                    }`}
+                >
+                    Likte Oppskrifter
+                </button>
+            </div>
+
+            {/* Display whichever list is active */}
             <div className="grid grid-cols-1 gap-4 mt-4">
-                {userRecipes.length === 0 ? (
+                {displayedRecipes.length === 0 ? (
                     <div>
                         <p>Ingen oppskrifter funnet.</p>
-                        {isOwner && (
+                        {isOwner && activeTab === 'myRecipes' && (
                             <button
                                 className="confirm-button py-2 px-4 rounded mt-4"
                                 onClick={() =>
@@ -209,26 +247,31 @@ const UserProfile = () => {
                         )}
                     </div>
                 ) : (
-                    userRecipes.map((recipe) => (
+                    displayedRecipes.map((recipe) => (
                         <RecipeCard
                             key={recipe.id}
                             recipe={recipe}
-                            isOwner={isOwner}
-                            creator={userData}
+                            isOwner={isOwner && activeTab === 'myRecipes'}
+                            creator={
+                                activeTab === 'myRecipes'
+                                    ? userData
+                                    : recipe.creator
+                            }
                             onDelete={handleDeleteRecipe}
                         />
                     ))
                 )}
             </div>
+
             {/* Confirmation Modal for Deletion */}
             {showConfirm && (
                 <div className="fixed inset-0 dark-purple-bg flex justify-center items-center z-50 white-text">
-                    <div className=" p-6 rounded-lg max-w-sm w-full">
+                    <div className="p-6 rounded-lg max-w-sm w-full">
                         <h1 className="text-4xl font-semibold mb-4">
                             Vil du slette denne oppskriften?
                         </h1>
                         <p>Var den ikke noe god?</p>
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 mt-4">
                             <button
                                 onClick={cancelDelete}
                                 className="confirm-button px-4 py-2 rounded-lg"

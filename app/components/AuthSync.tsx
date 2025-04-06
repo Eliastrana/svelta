@@ -13,14 +13,12 @@ export default function AuthSync() {
                 const docSnap = await getDoc(userDocRef);
 
                 if (!docSnap.exists()) {
-                    // Create the user doc
                     await setDoc(userDocRef, {
                         name: user.displayName || 'Unnamed User',
                         photoURL: user.photoURL || '',
                         following: [],
                     });
                 } else {
-                    // Optionally merge a new photo if changed
                     await setDoc(
                         userDocRef,
                         { photoURL: user.photoURL || '' },

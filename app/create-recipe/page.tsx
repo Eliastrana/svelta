@@ -5,11 +5,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, firestore, storage } from '@/firebase';
 import DrawingCanvas from '@/app/components/DrawingCanvas';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-
-interface CookingStep {
-    title: string;
-    description: string;
-}
+import { CookingStep } from '@/app/types/CookingStep';
 
 const CreateRecipe = () => {
     const [title, setTitle] = useState('');
@@ -187,20 +183,30 @@ const CreateRecipe = () => {
                 <div>
                     <h2 className="text-xl font-bold mb-2">Ingredienser</h2>
                     <div className="flex space-x-2 mb-2">
-                        <input
-                            type="text"
-                            placeholder="Legg til ingrediens..."
-                            value={newIngredient}
-                            onChange={(e) => setNewIngredient(e.target.value)}
-                            className="flex-grow border p-2 rounded"
-                        />
-                        <button
-                            type="button"
-                            onClick={handleAddIngredient}
-                            className="px-4 py-2 confirm-button rounded"
-                        >
-                            Legg til
-                        </button>
+                        <div className="flex space-x-2 mb-2">
+                            <input
+                                type="text"
+                                placeholder="Legg til ingrediens..."
+                                value={newIngredient}
+                                onChange={(e) =>
+                                    setNewIngredient(e.target.value)
+                                }
+                                className="flex-grow border p-2 rounded"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleAddIngredient();
+                                    }
+                                }}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleAddIngredient}
+                                className="px-4 py-2 confirm-button rounded"
+                            >
+                                Legg til
+                            </button>
+                        </div>
                     </div>
                     {ingredients.length > 0 && (
                         <ul className="list-disc pl-5 mb-4">

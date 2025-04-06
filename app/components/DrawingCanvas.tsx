@@ -10,21 +10,18 @@ const DrawingCanvas = ({ onChange }: DrawingCanvasProps) => {
     const [currentPath, setCurrentPath] = useState<string>('');
     const svgRef = useRef<SVGSVGElement>(null);
 
-    // Start a new path when pointer is pressed
     const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
         const point = getRelativePoint(e);
         const newPath = `M ${point.x} ${point.y}`;
         setCurrentPath(newPath);
     };
 
-    // Append to the current path when pointer moves
     const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
         if (e.buttons !== 1) return; // Only draw if pointer is pressed
         const point = getRelativePoint(e);
         setCurrentPath((prev) => prev + ` L ${point.x} ${point.y}`);
     };
 
-    // End the current path on pointer up/leave
     const handlePointerUp = () => {
         if (currentPath) {
             setPaths((prev) => [...prev, currentPath]);
@@ -42,7 +39,6 @@ const DrawingCanvas = ({ onChange }: DrawingCanvasProps) => {
         };
     };
 
-    // Whenever paths change, generate the SVG markup and pass it to onChange
     useEffect(() => {
         if (svgRef.current) {
             const svgString = svgRef.current.outerHTML;

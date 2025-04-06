@@ -8,7 +8,7 @@ export function useUserFollowing(uid: string): string[] {
 
     useEffect(() => {
         if (!uid) {
-            setFollowing([]); // Ensure state is empty if no uid
+            setFollowing([]);
             return;
         }
         const fetchFollowing = async () => {

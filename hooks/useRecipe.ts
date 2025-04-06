@@ -2,22 +2,7 @@
 import { useEffect, useState } from 'react';
 import { firestore } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { CookingStep } from './useFollowedRecipes';
-
-export interface RecipeDetail {
-    id: string;
-    title: string;
-    description: string;
-    image: string;
-    bgColor: string;
-    fontStyle: string;
-    cookingSteps: CookingStep[];
-    ingredients?: string[];
-    temperature?: string;
-    cookingTime?: string;
-    userId: string;
-    coverImage?: string;
-}
+import { RecipeDetail } from '@/app/types/RecipeDetail';
 
 export function useRecipe(recipeId: string): [RecipeDetail | null, boolean] {
     const [recipe, setRecipe] = useState<RecipeDetail | null>(null);

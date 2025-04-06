@@ -54,9 +54,7 @@ const RecipeDetail = () => {
                     />
                 </div>
             )}
-            {/* Overlay to darken the image */}
             <div className="absolute inset-0 bg-black/30 z-10 rounded-lg" />
-            {/* Text content positioned on top */}
             <div className="relative z-20 flex flex-col  justify-center h-full p-4">
                 <div
                     className="w-64 h-64 md:w-64 md:h-64 overflow-hidden flex items-center justify-center"
@@ -73,17 +71,17 @@ const RecipeDetail = () => {
                             ),
                     }}
                 />
-                <h1 className="md:text-8xl text-5xl font-bold mb-2 text-white">
+                <h2 className="md:text-8xl text-5xl font-bold mb-2 text-white">
                     {recipe.title}
-                </h1>
+                </h2>
                 <p className="mb-4 text-lg text-white">{recipe.description}</p>
             </div>
         </div>,
         ...recipe.cookingSteps.map((step, i) => (
             <div key={`step-${i}`} className="w-full h-full md:p-14 p-8 ">
-                <h1 className="md:text-6xl text-4xl font-bold mb-2">
+                <h2 className="md:text-6xl text-4xl font-bold mb-2">
                     {i + 1}: {step.title}
-                </h1>
+                </h2>
                 <p className="text-3xl mt-2">{step.description}</p>
             </div>
         )),
@@ -100,7 +98,6 @@ const RecipeDetail = () => {
                 <button onClick={() => router.back()} className="mb-4">
                     <span className="material-symbols-outlined">close</span>
                 </button>
-                {/* Swipeable container */}
                 <div
                     {...handlers}
                     className="overflow-hidden relative w-full  rounded-lg shadow-lg "
@@ -154,7 +151,6 @@ const RecipeDetail = () => {
                 </div>
             </div>
 
-            {/* Ingredient, Temperature, and Cooking Time */}
             <div className="max-w-4xl mx-auto p-4 md:flex md:justify-between">
                 <div>
                     {recipe.ingredients && recipe.ingredients.length > 0 && (
