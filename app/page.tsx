@@ -59,7 +59,7 @@ const Home = () => {
     if (loading) return <div className="p-4">Laster...</div>;
 
     return (
-        <div className="max-w-4xl md:w-2/3 mx-auto md:mb-20 p-2">
+        <div className="p-2 md:max-w-4xl md:w-2/3 md:mx-auto md:mb-20 ">
             <div className="md:flex items-center justify-between mb-4">
                 <h1 className="md:text-6xl text-4xl font-bold mb-4">
                     Nyeste oppskrifter
@@ -76,7 +76,7 @@ const Home = () => {
                         onClick={() => setActiveFeed('popular')}
                         className={`px-4 py-2 rounded ${activeFeed === 'popular' ? 'confirm-button' : 'bg-gray-300'}`}
                     >
-                        Chef de Cuisine
+                        Populære
                     </button>
                 </div>
             </div>

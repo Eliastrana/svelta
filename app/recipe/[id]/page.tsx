@@ -55,9 +55,9 @@ const RecipeDetail = () => {
                 </div>
             )}
             <div className="absolute inset-0 bg-black/30 z-10 rounded-lg" />
-            <div className="relative z-20 flex flex-col  justify-center h-full p-4">
+            <div className="relative z-20 flex flex-col justify-end h-full p-4">
                 <div
-                    className="w-64 h-64 md:w-64 md:h-64 overflow-hidden flex items-center justify-center"
+                    className="w-64 h-64 md:w-64 md:h-64 overflow-hidden flex items-center justify-center hidden md:block"
                     style={{ filter: 'invert(1)' }}
                     dangerouslySetInnerHTML={{
                         __html: recipe.image
@@ -82,7 +82,7 @@ const RecipeDetail = () => {
                 <h2 className="md:text-6xl text-4xl font-bold mb-2">
                     {i + 1}: {step.title}
                 </h2>
-                <p className="text-3xl mt-2">{step.description}</p>
+                <p className="text-lg mt-2">{step.description}</p>
             </div>
         )),
     ];
@@ -98,29 +98,28 @@ const RecipeDetail = () => {
                 <button onClick={() => router.back()} className="mb-4">
                     <span className="material-symbols-outlined">close</span>
                 </button>
+
+
                 <div
                     {...handlers}
-                    className="overflow-hidden relative w-full  rounded-lg shadow-lg "
-                    style={{
-                        backgroundColor: recipe.bgColor,
-                    }}
+                    className="overflow-hidden relative w-full rounded-lg shadow-lg"
+                    style={{ backgroundColor: recipe.bgColor }}
                 >
                     <div
-                        className="flex transition-transform duration-300 ease-in-out w-full h-full"
+                        className="flex transition-transform duration-300 ease-in-out w-full"
                         style={{
                             transform: `translateX(-${pageIndex * 100}%)`,
                         }}
                     >
                         {slides.map((slide, idx) => (
-                            <div
-                                key={idx}
-                                className="w-full flex-shrink-0 h-full"
-                            >
+                            <div key={idx} className="w-full flex-shrink-0">
                                 {slide}
                             </div>
                         ))}
                     </div>
                 </div>
+
+
                 {/* Dot indicator */}
                 <div className="flex justify-center space-x-2 mt-4">
                     {slides.map((_, idx) => (

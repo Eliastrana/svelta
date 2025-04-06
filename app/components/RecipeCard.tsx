@@ -11,17 +11,16 @@ interface RecipeCardProps {
         name?: string;
         photoURL?: string;
     };
-
     isOwner?: boolean;
     onDelete?: (recipeId: string) => void;
 }
 
 const RecipeCard: React.FC<RecipeCardProps> = ({
-    recipe,
-    creator,
-    isOwner = false,
-    onDelete,
-}) => {
+                                                   recipe,
+                                                   creator,
+                                                   isOwner = false,
+                                                   onDelete,
+                                               }) => {
     const router = useRouter();
     const userName = creator?.name || 'Ukjent brukernavn';
     const userPhoto = creator?.photoURL;
@@ -45,11 +44,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     return (
         <div className="relative" onClick={handleCardClick}>
             <div
-                className="relative group bg-[#73628A] md:p-12 p-4 rounded-lg w-full cursor-pointer shadow-lg overflow-hidden white-text"
-                style={{ minHeight: '24rem' }}
+                className="relative group bg-[#73628A]  rounded-lg w-full cursor-pointer shadow-lg overflow-hidden white-text"
+                style={{ minHeight: '40rem' }}
             >
+                {/* Background image and overlay */}
                 {recipe.coverImage && (
-                    <div>
+                    <>
                         <Image
                             src={recipe.coverImage}
                             height={1000}
@@ -58,18 +58,17 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                             className="absolute top-0 left-0 w-full h-full object-cover rounded-lg"
                         />
                         <div className="absolute top-0 left-0 w-full h-full bg-black/30 opacity-100 group-hover:opacity-0 transition-opacity duration-300 z-10 rounded-lg" />
-                    </div>
+                    </>
                 )}
-                <div className="relative z-10">
+
+                {/* Absolute container pinned to bottom */}
+                <div className="absolute bottom-0 left-0 right-0 z-20 md:p-10 p-4">
                     <div
-                        className="w-64 h-64 md:w-64 md:h-64 overflow-hidden flex items-center justify-center"
+                        className="w-64 h-64 md:w-64 md:h-64 overflow-hidden flex items-center justify-center hidden md:block"
                         style={{ filter: 'invert(1)' }}
                         dangerouslySetInnerHTML={{
                             __html: recipe.image
-                                .replace(
-                                    /class="[^"]*bg-white[^"]*"/,
-                                    'class=""'
-                                )
+                                .replace(/class="[^"]*bg-white[^"]*"/, 'class=""')
                                 .replace(/fill="white"/, 'fill="none"')
                                 .replace(/width="\+"/, '')
                                 .replace(/height="\d+"/, '')
@@ -79,11 +78,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                                 ),
                         }}
                     />
-                    <h1 className="md:text-8xl text-5xl font-bold">
+                    <h1 className="md:text-8xl text-5xl font-bold mt-4">
                         {recipe.title}
                     </h1>
                     <p className="text-lg mt-2">{recipe.description}</p>
-                    <div className="flex justify-between mt-4">
+
+                    <div className="flex justify-between mt-4 w-full">
                         <div className="flex space-x-2 items-center">
                             <div className="h-10 w-10 rounded-full overflow-hidden">
                                 {userPhoto && (
@@ -101,22 +101,22 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                                 <p className="text-xs">
                                     {recipe.createdAt
                                         ? (
-                                              recipe.createdAt as unknown as Timestamp
-                                          )
-                                              .toDate()
-                                              .toLocaleString('nb-NO', {
-                                                  timeZone: 'Europe/Oslo',
-                                                  day: '2-digit',
-                                                  month: '2-digit',
-                                                  year: 'numeric',
-                                                  hour: '2-digit',
-                                                  minute: '2-digit',
-                                              })
+                                            recipe.createdAt as unknown as Timestamp
+                                        )
+                                            .toDate()
+                                            .toLocaleString('nb-NO', {
+                                                timeZone: 'Europe/Oslo',
+                                                day: '2-digit',
+                                                month: '2-digit',
+                                                year: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            })
                                         : 'Ingen dato funnet'}
                                 </p>
                             </div>
                         </div>
-                        <div className="flex space-x-4 mt-4 text-sm">
+                        <div className="flex space-x-4 text-sm">
                             <div className="flex items-center space-x-1">
                                 <img
                                     src="/icons/chef_white.png"
@@ -135,23 +135,23 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* Edit/Delete Buttons (Owner) */}
             {isOwner && (
-                <div className="relative right-2 flex space-x-2 z-20 ">
+                <div className="relative right-2 flex space-x-2 z-20">
                     <button
                         onClick={handleEdit}
-                        className=" p-1 rounded  h-12 cursor-pointer "
+                        className="p-1 rounded h-12 cursor-pointer"
                         title="Edit recipe"
                     >
                         <span className="material-symbols-outlined">edit</span>
                     </button>
                     <button
                         onClick={handleDelete}
-                        className=" p-1 rounded  cursor-pointer"
+                        className="p-1 rounded cursor-pointer"
                         title="Delete recipe"
                     >
-                        <span className="material-symbols-outlined">
-                            delete
-                        </span>
+                        <span className="material-symbols-outlined">delete</span>
                     </button>
                 </div>
             )}
