@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 :root {
-    --background: rgb(248, 247, 255);
+    --background: rgba(255, 255, 255, 0.99);
     --foreground: #73628a;
 }
 
@@ -24,16 +24,17 @@
 
 .confirm-button {
     background-color: #73628a;
-    color: #cbc5ea;
+    color: #fffffa;
 }
 .confirm-button:hover {
     background-color: #8a6e98;
-    color: #ada8c6;
+    color: #fffffa;
 }
 
 h1 {
     font-family: Righteous, sans-serif;
 }
+
 
 body {
     background: var(--background);

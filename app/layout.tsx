@@ -26,6 +26,8 @@ export default function RootLayout({
                 <meta name="keywords" content="recipe, app, cooking, food" />
                 <meta name="author" content="Your Name" />
 
+
+
                 <link
                     rel="stylesheet"
                     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=search"

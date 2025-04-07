@@ -61,24 +61,34 @@ const Home = () => {
     return (
         <div className="p-2 md:max-w-4xl md:w-2/3 md:mx-auto md:mb-20 ">
             <div className="md:flex items-center justify-between mb-4">
-                <h1 className="md:text-6xl text-4xl font-bold mb-4">
+                <h2 className="md:text-4xl text-2xl font-bold mb-4">
                     Nyeste oppskrifter
-                </h1>
+                </h2>
 
-                <div className=" space-x-2 ">
+                <div className="relative inline-flex bg-gray-300 rounded overflow-hidden rounded-full">
+                    {/* Sliding focus indicator */}
+                    <div
+                        className="absolute top-0 left-0 h-full w-1/2 dark-purple-bg  transition-transform duration-300"
+                        style={{ transform: activeFeed === 'popular' ? 'translateX(100%)' : 'translateX(0)' }}
+                    ></div>
+
+                    {/* Button for 'Følger' */}
                     <button
                         onClick={() => setActiveFeed('following')}
-                        className={`px-4 py-2 rounded ${activeFeed === 'following' ? 'confirm-button' : 'bg-gray-300'}`}
+                        className={`relative px-6 py-1 w-1/2 focus:outline-none ${activeFeed === 'following' ? 'text-white' : 'text-gray-700'}`}
                     >
                         Følger
                     </button>
+
+                    {/* Button for 'Populære' */}
                     <button
                         onClick={() => setActiveFeed('popular')}
-                        className={`px-4 py-2 rounded ${activeFeed === 'popular' ? 'confirm-button' : 'bg-gray-300'}`}
+                        className={`relative px-6 py-1 w-1/2 focus:outline-none ${activeFeed === 'popular' ? 'text-white' : 'text-gray-700'}`}
                     >
                         Populære
                     </button>
                 </div>
+
             </div>
 
             <div
@@ -95,9 +105,9 @@ const Home = () => {
             <div className="mb-40">
                 {recipes.length === 0 ? (
                     <div>
-                        <p className="text-2xl">
+                        <p className="">
                             Ingen tilgjengelige oppskrifter. Prøv å følg noen
-                            for å se oppskrifter!
+                            for å se oppskrifter, eller sjekk ut populære oppskrifter!
                         </p>
                         <button
                             onClick={() => setShowModal(true)}

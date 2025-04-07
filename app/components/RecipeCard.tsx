@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Timestamp } from 'firebase/firestore';
 import Image from 'next/image';
@@ -25,6 +25,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     const userName = creator?.name || 'Ukjent brukernavn';
     const userPhoto = creator?.photoURL;
 
+    // State for fade-in effect
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const handleCardClick = () => {
         router.push(`/recipe/${recipe.id}`);
     };
@@ -42,9 +48,14 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     };
 
     return (
-        <div className="relative" onClick={handleCardClick}>
+        <div
+            className={`relative transition-opacity duration-500 ${
+                mounted ? 'opacity-100' : 'opacity-0'
+            }`}
+            onClick={handleCardClick}
+        >
             <div
-                className="relative group bg-[#73628A]  rounded-lg w-full cursor-pointer shadow-lg overflow-hidden white-text"
+                className="relative group bg-gradient-to-t from-[#73628A] to-[#d89cf6] rounded-lg w-full cursor-pointer shadow-lg overflow-hidden white-text"
                 style={{ minHeight: '40rem' }}
             >
                 {/* Background image and overlay */}
@@ -57,7 +68,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                             alt="Cover"
                             className="absolute top-0 left-0 w-full h-full object-cover rounded-lg"
                         />
-                        <div className="absolute top-0 left-0 w-full h-full bg-black/30 opacity-100 group-hover:opacity-0 transition-opacity duration-300 z-10 rounded-lg" />
+                        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-[#000000] to-[#000000/100] opacity-100 group-hover:opacity-0 transition-opacity duration-300 z-10 rounded-lg" />
                     </>
                 )}
 
@@ -95,14 +106,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                                 )}
                             </div>
                             <div>
-                                <p className="text-xl font-semibold">
-                                    {userName}
-                                </p>
+                                <p className="text-xl font-semibold">{userName}</p>
                                 <p className="text-xs">
                                     {recipe.createdAt
-                                        ? (
-                                            recipe.createdAt as unknown as Timestamp
-                                        )
+                                        ? (recipe.createdAt as unknown as Timestamp)
                                             .toDate()
                                             .toLocaleString('nb-NO', {
                                                 timeZone: 'Europe/Oslo',
@@ -126,9 +133,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                                 <span>{recipe.likeCount ?? 0}</span>
                             </div>
                             <div className="flex items-center space-x-1">
-                                <span className="material-symbols-outlined">
-                                    chat_bubble
-                                </span>
+                <span className="material-symbols-outlined">
+                  chat_bubble
+                </span>
                                 <span>{recipe.commentCount ?? 0}</span>
                             </div>
                         </div>

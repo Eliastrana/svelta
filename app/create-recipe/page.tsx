@@ -1,11 +1,13 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, firestore, storage } from '@/firebase';
 import DrawingCanvas from '@/app/components/DrawingCanvas';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { CookingStep } from '@/app/types/CookingStep';
+
+const LOCAL_STORAGE_KEY = 'createRecipeForm';
 
 const CreateRecipe = () => {
     const [title, setTitle] = useState('');
@@ -15,6 +17,7 @@ const CreateRecipe = () => {
     const [fontStyle, setFontStyle] = useState('sans-serif');
     const [cookingSteps, setCookingSteps] = useState<CookingStep[]>([]);
     const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+    const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
     const [ingredients, setIngredients] = useState<string[]>([]);
     const [newIngredient, setNewIngredient] = useState('');
     const [temperature, setTemperature] = useState('');
@@ -37,6 +40,41 @@ const CreateRecipe = () => {
         '#d89cf6',
         '#f6c3e5',
     ];
+
+    useEffect(() => {
+        const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (savedData) {
+            const formData = JSON.parse(savedData);
+            setTitle(formData.title || '');
+            setDescription(formData.description || '');
+            setSvgData(formData.svgData || '');
+            setBgColor(formData.bgColor || '#ffffff');
+            setFontStyle(formData.fontStyle || 'sans-serif');
+            setCookingSteps(formData.cookingSteps || []);
+            setIngredients(formData.ingredients || []);
+            setNewIngredient(formData.newIngredient || '');
+            setTemperature(formData.temperature || '');
+            setCookingTime(formData.cookingTime || '');
+            setCoverImagePreview(formData.coverImagePreview || null);
+        }
+    }, []);
+
+    useEffect(() => {
+        const formData = {
+            title,
+            description,
+            svgData,
+            bgColor,
+            fontStyle,
+            cookingSteps,
+            ingredients,
+            newIngredient,
+            temperature,
+            cookingTime,
+            coverImagePreview,
+        };
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(formData));
+    }, [title, description, svgData, bgColor, fontStyle, cookingSteps, ingredients, newIngredient, temperature, cookingTime, coverImagePreview]);
 
     const handleAddStep = () => {
         setCookingSteps([...cookingSteps, { title: '', description: '' }]);
@@ -70,8 +108,20 @@ const CreateRecipe = () => {
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) setCoverImageFile(file);
+        if (file) {
+            setCoverImageFile(file);
+            const previewUrl = URL.createObjectURL(file);
+            setCoverImagePreview(previewUrl);
+        }
     };
+
+    useEffect(() => {
+        return () => {
+            if (coverImagePreview) {
+                URL.revokeObjectURL(coverImagePreview);
+            }
+        };
+    }, [coverImagePreview]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -103,6 +153,7 @@ const CreateRecipe = () => {
                 createdAt: serverTimestamp(),
                 coverImage: coverImageUrl,
             });
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
             router.push('/');
         } catch (error) {
             console.error('Error adding recipe:', error);
@@ -111,7 +162,7 @@ const CreateRecipe = () => {
 
     return (
         <div className="max-w-lg mx-auto p-4">
-            <h1 className="text-4xl font-bold mb-4">Lag oppskrift</h1>
+            <h2 className="text-3xl font-bold mb-4">Lag oppskrift</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <input
                     type="text"
@@ -129,19 +180,43 @@ const CreateRecipe = () => {
                     required
                 />
                 <div>
-                    <h1 className="block text-xl mb-1">Tegn maten 👨‍🎨</h1>
+                    <h2 className="block font-bold text-xl mb-1">Tegn maten 👨‍🎨</h2>
                     <DrawingCanvas onChange={(svg) => setSvgData(svg)} />
                 </div>
                 <div>
-                    <label className="block mb-1 text-xl">Forsidebilde</label>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                    />
+                    <label className="block mb-2 text-xl font-bold">Forsidebilde</label>
+                    <div className="flex items-center justify-center w-full">
+                        <label
+                            className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#73628A] transition-all duration-200"
+                        >
+                            <span className="material-symbols-outlined">
+                                upload
+                            </span>
+                            <p className="mt-2 text-sm text-gray-600">
+                                Klikk eller dra og slipp bildet ditt her
+                            </p>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleImageChange}
+                            />
+                        </label>
+                    </div>
+                    {/* Image Preview */}
+                    {coverImagePreview && (
+                        <div className="mt-4">
+                            <img
+                                src={coverImagePreview}
+                                alt="Image Preview"
+                                className="w-full max-h-60 object-contain rounded"
+                            />
+                        </div>
+                    )}
                 </div>
+
                 <div>
-                    <h1 className="block mb-1 text-xl">Bakgrunnsfarge</h1>
+                    <h2 className="block mb-1 text-xl font-bold">Bakgrunnsfarge</h2>
                     <div className="flex flex-wrap gap-4">
                         {colorOptions.map((color) => (
                             <label key={color} className="cursor-pointer">
@@ -162,7 +237,7 @@ const CreateRecipe = () => {
                     </div>
                 </div>
                 <div>
-                    <h1 className="block mb-1 text-xl">Font</h1>
+                    <h2 className="block mb-1 text-xl font-bold">Font</h2>
                     <select
                         value={fontStyle}
                         onChange={(e) => setFontStyle(e.target.value)}
@@ -181,7 +256,7 @@ const CreateRecipe = () => {
                     </select>
                 </div>
                 <div>
-                    <h2 className="text-xl font-bold mb-2">Ingredienser</h2>
+                    <h2 className="text-xl mb-2 font-bold">Ingredienser</h2>
                     <div className="flex space-x-2 mb-2">
                         <div className="flex space-x-2 mb-2">
                             <input
@@ -231,7 +306,7 @@ const CreateRecipe = () => {
                         </ul>
                     )}
                     <div className="mb-4">
-                        <label className="block mb-1 text-xl">Temperatur</label>
+                        <label className="block mb-1 text-xl font-bold">Temperatur</label>
                         <input
                             type="text"
                             placeholder="f.eks. 200°C"
@@ -241,7 +316,7 @@ const CreateRecipe = () => {
                         />
                     </div>
                     <div className="mb-4">
-                        <label className="block mb-1 text-xl">Koketid</label>
+                        <label className="block mb-1 text-xl font-bold">Koketid</label>
                         <input
                             type="text"
                             placeholder="f.eks. 45 minutter"
@@ -252,7 +327,7 @@ const CreateRecipe = () => {
                     </div>
                 </div>
                 <div>
-                    <h2 className="text-xl font-bold mb-2">Steg</h2>
+                    <h2 className="text-xl mb-2">Steg</h2>
                     {cookingSteps.map((step, index) => (
                         <div key={index} className="border-2 p-2 mb-2 rounded">
                             <input

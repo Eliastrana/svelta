@@ -206,29 +206,30 @@ const UserProfile = () => {
                 )}
             </div>
 
-            {/* Toggle buttons for My Recipes vs Liked Recipes */}
-            <div className="flex space-x-4 mt-6">
+            <div className="relative inline-flex bg-gray-300 rounded overflow-hidden rounded-full  mt-6">
+                {/* Sliding focus indicator */}
+                <div
+                    className="absolute top-0 left-0 h-full w-1/2 dark-purple-bg  transition-transform duration-300"
+                    style={{ transform: activeTab === 'likedRecipes' ? 'translateX(100%)' : 'translateX(0)' }}
+                ></div>
+
+                {/* Button for 'Følger' */}
                 <button
                     onClick={() => setActiveTab('myRecipes')}
-                    className={`px-4 py-2 rounded ${
-                        activeTab === 'myRecipes'
-                            ? 'confirm-button'
-                            : 'bg-gray-300'
-                    }`}
+                    className={`relative px-6 py-1 w-1/2 focus:outline-none ${activeTab === 'myRecipes' ? 'text-white' : 'text-gray-700'}`}
                 >
-                    Mine Oppskrifter
+                    Oppskrifter
                 </button>
+
+                {/* Button for 'Populære' */}
                 <button
                     onClick={() => setActiveTab('likedRecipes')}
-                    className={`px-4 py-2 rounded ${
-                        activeTab === 'likedRecipes'
-                            ? 'confirm-button'
-                            : 'bg-gray-300'
-                    }`}
+                    className={`relative px-8 py-1 w-1/2 focus:outline-none ${activeTab === 'likedRecipes' ? 'text-white' : 'text-gray-700'}`}
                 >
-                    Likte Oppskrifter
+                    Likte
                 </button>
             </div>
+
 
             {/* Display whichever list is active */}
             <div className="grid grid-cols-1 gap-4 mt-4">
