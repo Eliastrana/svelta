@@ -3,6 +3,12 @@
 :root {
     --background: rgba(255, 255, 255, 0.99);
     --foreground: #73628a;
+
+}
+
+body {
+    font-family: Urbanist, sans-serif;
+
 }
 
 .white-text {
@@ -32,7 +38,7 @@
 }
 
 h1 {
-    font-family: Righteous, sans-serif;
+    font-family: Urbanist, sans-serif;
 }
 
 

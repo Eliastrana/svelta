@@ -26,7 +26,7 @@ const Navbar = () => {
                     className="text-4xl font-bold cursor-pointer ml-4"
                     onClick={() => router.push('/')}
                 >
-                    Cooked
+                    Svelta
                 </h1>
             </div>
 

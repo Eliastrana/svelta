@@ -26,7 +26,7 @@ const Login = () => {
         <div className="min-h-screen flex items-center justify-center md:p-40 p-4">
             <div>
                 <h1 className="md:text-9xl text-5xl font-bold mb-8">
-                    Vis resten hvor Cooked de er
+                    Del dine beste oppskrifter
                 </h1>
                 <button
                     onClick={signIn}
