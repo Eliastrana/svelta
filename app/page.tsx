@@ -1,142 +1,150 @@
 'use client';
 import React from 'react';
 import { useRouter } from 'next/navigation';
+
 import UserSearchModal from '@/app/components/UserSearchModal';
-import { useAuthUser } from '@/hooks/useAuthUser';
-import { useUserFollowing } from '@/hooks/useUserFollowing';
+import RecipeCard       from '@/app/components/RecipeCard';
+
+import { useAuthUser }        from '@/hooks/useAuthUser';
+import { useUserFollowing }   from '@/hooks/useUserFollowing';
 import { useFollowedRecipes } from '@/hooks/useFollowedRecipes';
-import { usePopularRecipes } from '@/hooks/usePopularRecipes';
-import { fetchUserData } from '@/helpers/fetchUserData';
-import RecipeCard from '@/app/components/RecipeCard';
-import { UserDoc } from '@/hooks/useUserData';
+import { usePopularRecipes }  from '@/hooks/usePopularRecipes';
+import { UserDoc }            from '@/hooks/useUserData';
+
+import { fetchManyUsers } from '@/helpers/fetchManyUsers';
 
 const Home = () => {
-    const router = useRouter();
-    const user = useAuthUser();
-    const following = useUserFollowing(user?.uid || '');
+    const router    = useRouter();
+    const user      = useAuthUser();
+    const following = useUserFollowing(user?.uid ?? '');
 
-    // Toggle state: "following" feed vs. "popular" feed.
-    const [activeFeed, setActiveFeed] = React.useState<'following' | 'popular'>(
-        'following'
-    );
+    /* ───────────────────────── TOGGLES ───────────────────────── */
+    const [activeFeed, setActiveFeed] =
+        React.useState<'following' | 'popular'>('following');
 
-    // Get recipes from followed users (only for logged-in users) and from the popular feed.
+    const [showModal, setShowModal] = React.useState<boolean>(false);
+
+    /* ───────────────────────── FETCH RECIPES ──────────────────── */
     const [followedRecipes, loadingFollowed] = useFollowedRecipes(
-        user?.uid || '',
-        following
+        user?.uid ?? '',
+        following,
     );
-    const [popularRecipes, loadingPopular] = usePopularRecipes();
+    const [popularRecipes,  loadingPopular]  = usePopularRecipes();
 
-    // Select the appropriate data and loading state based on activeFeed.
     const recipes =
         activeFeed === 'following' ? followedRecipes : popularRecipes;
     const loading =
-        activeFeed === 'following' ? loadingFollowed : loadingPopular;
+        activeFeed === 'following' ? loadingFollowed  : loadingPopular;
 
-    const [showModal, setShowModal] = React.useState(false);
-    const [usersMap, setUsersMap] = React.useState<Record<string, UserDoc>>({});
+    /* ───────────────────────── FETCH CREATORS ─────────────────── */
+    const [usersMap, setUsersMap] =
+        React.useState<Record<string, UserDoc>>({});
 
-    // Get unique user IDs from the displayed recipes and fetch the user data.
-    const uniqueUserIds = React.useMemo(() => {
-        return Array.from(new Set(recipes.map((r) => r.userId)));
-    }, [recipes]);
+    const uniqueUserIds = React.useMemo(
+        () => [...new Set(recipes.map((r) => r.userId))],
+        [recipes],
+    );
 
     React.useEffect(() => {
-        if (uniqueUserIds.length === 0) return;
-        const fetchUsers = async () => {
-            const dataMap: Record<string, UserDoc> = {};
-            await Promise.all(
-                uniqueUserIds.map(async (uid) => {
-                    const userDoc = await fetchUserData(uid);
-                    if (userDoc) dataMap[uid] = userDoc;
-                })
-            );
-            setUsersMap(dataMap);
-        };
-        fetchUsers();
-    }, [uniqueUserIds.join(',')]);
+        // clear previous map to avoid stale usernames
+        setUsersMap({});
 
-    if (loading) return <div className="p-4">Laster...</div>;
+        if (!uniqueUserIds.length) return;
+
+        (async () => {
+            const map = await fetchManyUsers(uniqueUserIds);
+            setUsersMap(map);
+        })();
+    }, [uniqueUserIds]);
+
+    /* ───────────────────────── RENDER ─────────────────────────── */
+    if (loading) return <div className="p-4">Laster…</div>;
 
     return (
-        <div className="p-2 md:max-w-4xl md:w-2/3 md:mx-auto md:mb-20 ">
+        <div className="p-2 md:max-w-4xl md:w-2/3 md:mx-auto md:mb-20">
+            {/* Header & feed toggle */}
             <div className="md:flex items-center justify-between mb-4">
-                <h2 className="md:text-4xl text-2xl font-bold mb-4">
-                    Nyeste oppskrifter
-                </h2>
+                <h2 className="md:text-4xl text-2xl font-bold mb-4">Oppskrifter</h2>
 
-                <div className="relative inline-flex bg-gray-300 rounded overflow-hidden rounded-full">
-                    {/* Sliding focus indicator */}
+                <div className="relative inline-flex rounded overflow-hidden">
+                    {/* sliding indicator */}
                     <div
-                        className="absolute top-0 left-0 h-full w-1/2 dark-purple-bg  transition-transform duration-300"
-                        style={{ transform: activeFeed === 'popular' ? 'translateX(100%)' : 'translateX(0)' }}
-                    ></div>
+                        className="absolute top-0 left-0 h-full w-1/2 transition-transform duration-300"
+                        style={{
+                            transform:
+                                activeFeed === 'popular' ? 'translateX(100%)' : undefined,
+                        }}
+                    />
 
-                    {/* Button for 'Følger' */}
                     <button
                         onClick={() => setActiveFeed('following')}
-                        className={`relative px-6 py-1 w-1/2 focus:outline-none ${activeFeed === 'following' ? 'text-white' : 'text-gray-700'}`}
+                        className={`relative px-6 py-1 w-1/2 focus:outline-none ${
+                            activeFeed === 'following'
+                                ? 'text-black bg-white rounded-full'
+                                : 'text-gray-200'
+                        }`}
                     >
                         Følger
                     </button>
 
-                    {/* Button for 'Populære' */}
                     <button
                         onClick={() => setActiveFeed('popular')}
-                        className={`relative px-6 py-1 w-1/2 focus:outline-none ${activeFeed === 'popular' ? 'text-white' : 'text-gray-700'}`}
+                        className={`relative px-6 py-1 w-1/2 focus:outline-none ${
+                            activeFeed === 'popular'
+                                ? 'text-black bg-white rounded-full'
+                                : 'text-gray-200'
+                        }`}
                     >
                         Populære
                     </button>
                 </div>
-
             </div>
 
+            {/* link to own profile */}
             <div
-                onClick={() => {
-                    if (user) {
-                        router.push(`/user/${user.uid}`);
-                    } else {
-                        alert('No user logged in');
-                    }
-                }}
+                onClick={() =>
+                    user ? router.push(`/user/${user.uid}`) : alert('No user logged in')
+                }
                 className="flex items-center justify-between mb-4 cursor-pointer"
-            ></div>
+            />
 
+            {/* recipe list / empty state */}
             <div className="mb-40">
                 {recipes.length === 0 ? (
-                    <div>
-                        <p className="">
-                            Ingen tilgjengelige oppskrifter. Prøv å følg noen
-                            for å se oppskrifter, eller sjekk ut populære oppskrifter!
+                    <>
+                        <p>
+                            Ingen tilgjengelige oppskrifter. Prøv å følg noen for å se
+                            oppskrifter, eller sjekk ut populære oppskrifter!
                         </p>
                         <button
                             onClick={() => setShowModal(true)}
-                            className="confirm-button mt-4 p-2 rounded-lg cursor-pointer hover:underline"
+                            className="confirm-button mt-4 p-2 rounded-lg hover:underline"
                         >
                             Søk etter kokker
                         </button>
-                    </div>
+
+                        <img
+                            src="/images/empty-recipes.png"
+                            alt="No recipes"
+                            className="w-full h-auto mt-8"
+                        />
+                    </>
                 ) : (
                     <div className="mt-8 white-text">
-                        <div className="grid grid-cols-1 md:gap-24 gap-8">
-                            {recipes.map((recipe) => {
-                                const creator = usersMap[recipe.userId];
-                                return (
-                                    <RecipeCard
-                                        key={recipe.id}
-                                        recipe={recipe}
-                                        creator={creator}
-                                    />
-                                );
-                            })}
+                        <div className="grid grid-cols-1 md:gap-24 gap-20">
+                            {recipes.map((recipe) => (
+                                <RecipeCard
+                                    key={recipe.id}
+                                    recipe={recipe}
+                                    creator={usersMap[recipe.userId]}  // may be undefined while loading
+                                />
+                            ))}
                         </div>
                     </div>
                 )}
             </div>
 
-            {showModal && (
-                <UserSearchModal onClose={() => setShowModal(false)} />
-            )}
+            {showModal && <UserSearchModal onClose={() => setShowModal(false)} />}
         </div>
     );
 };

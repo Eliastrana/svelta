@@ -1,8 +1,8 @@
 @import 'tailwindcss';
 
 :root {
-    --background: rgba(255, 255, 255, 0.99);
-    --foreground: #73628a;
+    --background: #111111;
+    --foreground: #c1c1c1;
 
 }
 
@@ -11,9 +11,7 @@ body {
 
 }
 
-.white-text {
-    color: #eaeaea;
-}
+
 
 .light-purple {
     color: #cbc5ea;
@@ -24,16 +22,16 @@ body {
     color: #73628a;
 }
 
-.dark-purple-bg {
-    background-color: #73628a;
+.bg-color {
+    background-color: #373737;
 }
 
 .confirm-button {
-    background-color: #73628a;
+    background-color: #232323;
     color: #fffffa;
 }
 .confirm-button:hover {
-    background-color: #8a6e98;
+    background-color: #373737;
     color: #fffffa;
 }
 
@@ -41,6 +39,9 @@ h1 {
     font-family: Urbanist, sans-serif;
 }
 
+h2 {
+    font-family: Urbanist, sans-serif;
+}
 
 body {
     background: var(--background);

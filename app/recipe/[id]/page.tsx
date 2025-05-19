@@ -90,20 +90,20 @@ const RecipeDetail = () => {
     return (
         <div>
             <div
-                style={{
-                    fontFamily: recipe.fontStyle,
-                }}
+                // style={{
+                //     fontFamily: recipe.fontStyle,
+                // }}
                 className="max-w-4xl md:mx-auto m-2 p-4 rounded-lg"
             >
-                <button onClick={() => router.back()} className="mb-4">
+                <button onClick={() => router.back()} className="mb-4 hover:cursor-pointer">
                     <span className="material-symbols-outlined">close</span>
                 </button>
 
 
                 <div
                     {...handlers}
-                    className="overflow-hidden relative w-full rounded-lg shadow-lg"
-                    style={{ backgroundColor: recipe.bgColor }}
+                    className="overflow-hidden relative w-full rounded-lg shadow-lg bg-color"
+                    // style={{ backgroundColor: recipe.bgColor }}
                 >
                     <div
                         className="flex transition-transform duration-300 ease-in-out w-full"
@@ -126,7 +126,7 @@ const RecipeDetail = () => {
                         <div
                             key={idx}
                             onClick={() => setPageIndex(idx)}
-                            className={`w-3 h-3 rounded-full cursor-pointer ${idx === pageIndex ? 'dark-purple-bg' : 'bg-gray-300'}`}
+                            className={`w-3 h-3 rounded-full cursor-pointer ${idx === pageIndex ? 'bg-[#373737]' : 'bg-gray-300'}`}
                         />
                     ))}
                 </div>

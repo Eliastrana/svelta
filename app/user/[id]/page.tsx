@@ -206,17 +206,17 @@ const UserProfile = () => {
                 )}
             </div>
 
-            <div className="relative inline-flex bg-gray-300 rounded overflow-hidden rounded-full  mt-6">
+            <div className="relative inline-flex rounded overflow-hidden  mt-6">
                 {/* Sliding focus indicator */}
                 <div
-                    className="absolute top-0 left-0 h-full w-1/2 dark-purple-bg  transition-transform duration-300"
+                    className="absolute top-0 left-0 h-full w-1/2  transition-transform duration-300"
                     style={{ transform: activeTab === 'likedRecipes' ? 'translateX(100%)' : 'translateX(0)' }}
                 ></div>
 
                 {/* Button for 'Følger' */}
                 <button
                     onClick={() => setActiveTab('myRecipes')}
-                    className={`relative px-6 py-1 w-1/2 focus:outline-none ${activeTab === 'myRecipes' ? 'text-white' : 'text-gray-700'}`}
+                    className={`relative px-6 py-1 w-1/2  focus:outline-none ${activeTab === 'myRecipes' ? 'text-black bg-white rounded-full' : 'text-gray-200'}`}
                 >
                     Oppskrifter
                 </button>
@@ -224,7 +224,7 @@ const UserProfile = () => {
                 {/* Button for 'Populære' */}
                 <button
                     onClick={() => setActiveTab('likedRecipes')}
-                    className={`relative px-8 py-1 w-1/2 focus:outline-none ${activeTab === 'likedRecipes' ? 'text-white' : 'text-gray-700'}`}
+                    className={`relative px-8 py-1 w-1/2 focus:outline-none ${activeTab === 'likedRecipes' ? 'text-black bg-white rounded-full' : 'text-gray-200'}`}
                 >
                     Likte
                 </button>
