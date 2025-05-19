@@ -123,11 +123,11 @@ const Home = () => {
                             Søk etter kokker
                         </button>
 
-                        <img
-                            src="/images/empty-recipes.png"
-                            alt="No recipes"
-                            className="w-full h-auto mt-8"
-                        />
+                        {/*<img*/}
+                        {/*    src="/images/empty-recipes.png"*/}
+                        {/*    alt="No recipes"*/}
+                        {/*    className="w-full h-auto mt-8"*/}
+                        {/*/>*/}
                     </>
                 ) : (
                     <div className="mt-8 white-text">
