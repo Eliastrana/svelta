@@ -1,63 +1,82 @@
 'use client';
+
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 
 import UserSearchModal from '@/app/components/UserSearchModal';
-import RecipeCard       from '@/app/components/RecipeCard';
+import RecipeCard      from '@/app/components/RecipeCard';
 
-import { useAuthUser }        from '@/hooks/useAuthUser';
-import { useUserFollowing }   from '@/hooks/useUserFollowing';
-import { useFollowedRecipes } from '@/hooks/useFollowedRecipes';
-import { usePopularRecipes }  from '@/hooks/usePopularRecipes';
-import { UserDoc }            from '@/hooks/useUserData';
+import { useAuthUser }       from '@/hooks/useAuthUser';
+import { useUserFollowing }  from '@/hooks/useUserFollowing';
 
-import { fetchManyUsers } from '@/helpers/fetchManyUsers';
+import { fetchManyUsers }      from '@/helpers/fetchManyUsers';
 
-const Home = () => {
-    const router    = useRouter();
-    const user      = useAuthUser();
-    const following = useUserFollowing(user?.uid ?? '');
 
-    /* ───────────────────────── TOGGLES ───────────────────────── */
-    const [activeFeed, setActiveFeed] =
-        React.useState<'following' | 'popular'>('following');
+import { Recipe }  from '@/app/types/Recipe';      // make sure this path matches your project
+import { UserDoc } from '@/hooks/useUserData';
+import { fetchFollowedRecipes } from '@/helpers/fetchFollowedRecipies';
+import { fetchPopularRecipes } from '@/helpers/fetchPopularRecipies';
 
-    const [showModal, setShowModal] = React.useState<boolean>(false);
+/**
+ * Make sure your RootLayout wraps children with <ReactQueryProvider>,
+ * which itself wraps <QueryClientProvider>. See earlier messages for the
+ * tiny provider component.
+ */
 
-    /* ───────────────────────── FETCH RECIPES ──────────────────── */
-    const [followedRecipes, loadingFollowed] = useFollowedRecipes(
-        user?.uid ?? '',
-        following,
-    );
-    const [popularRecipes,  loadingPopular]  = usePopularRecipes();
+type Feed = 'following' | 'popular';
 
-    const recipes =
+const Home: React.FC = () => {
+    const router = useRouter();
+    const user   = useAuthUser();
+
+    /* ─────────── Toggles ─────────── */
+    const [activeFeed, setActiveFeed] = React.useState<Feed>('following');
+    const [showModal,  setShowModal]  = React.useState(false);
+
+    /* ─────────── Logged‑in user’s following list ─────────── */
+    const following = useUserFollowing(user?.uid ?? ''); // string[]
+
+    /* ─────────── Recipes ─────────── */
+    const {
+        data: followedRecipes = [],
+        isLoading: loadingFollowed,
+    } = useQuery<Recipe[], Error>({
+        queryKey: ['followedRecipes', following],
+        queryFn : () => fetchFollowedRecipes(following),
+        enabled : !!user?.uid && activeFeed === 'following' && following.length > 0,
+        placeholderData: (prev) => prev ?? [],
+    });
+
+    const {
+        data: popularRecipes = [],
+        isLoading: loadingPopular,
+    } = useQuery<Recipe[], Error>({
+        queryKey: ['popularRecipes'],
+        queryFn : () => fetchPopularRecipes(),   // call with no ctx param
+        enabled : activeFeed === 'popular',
+        placeholderData: (prev) => prev ?? [],
+    });
+
+    const recipes: Recipe[] =
         activeFeed === 'following' ? followedRecipes : popularRecipes;
-    const loading =
-        activeFeed === 'following' ? loadingFollowed  : loadingPopular;
+    const loading = activeFeed === 'following' ? loadingFollowed : loadingPopular;
 
-    /* ───────────────────────── FETCH CREATORS ─────────────────── */
-    const [usersMap, setUsersMap] =
-        React.useState<Record<string, UserDoc>>({});
+    /* ─────────── Creator map (uid → UserDoc) ─────────── */
+    const uniqueUserIds = React.useMemo(() => {
+        const set = new Set<string>();
+        recipes.forEach((r) => set.add(r.userId));
+        return Array.from(set);
+    }, [recipes]);
 
-    const uniqueUserIds = React.useMemo(
-        () => [...new Set(recipes.map((r) => r.userId))],
-        [recipes],
-    );
+    const { data: usersMap = {} } = useQuery<Record<string, UserDoc>, Error>({
+        queryKey: ['usersMap', uniqueUserIds],
+        queryFn : () => fetchManyUsers(uniqueUserIds),
+        enabled : uniqueUserIds.length > 0,
+        placeholderData: (prev) => prev ?? {},
+    });
 
-    React.useEffect(() => {
-        // clear previous map to avoid stale usernames
-        setUsersMap({});
-
-        if (!uniqueUserIds.length) return;
-
-        (async () => {
-            const map = await fetchManyUsers(uniqueUserIds);
-            setUsersMap(map);
-        })();
-    }, [uniqueUserIds]);
-
-    /* ───────────────────────── RENDER ─────────────────────────── */
+    /* ─────────── Render ─────────── */
     if (loading) return <div className="p-4">Laster…</div>;
 
     return (
@@ -71,8 +90,7 @@ const Home = () => {
                     <div
                         className="absolute top-0 left-0 h-full w-1/2 transition-transform duration-300"
                         style={{
-                            transform:
-                                activeFeed === 'popular' ? 'translateX(100%)' : undefined,
+                            transform: activeFeed === 'popular' ? 'translateX(100%)' : undefined,
                         }}
                     />
 
@@ -122,12 +140,6 @@ const Home = () => {
                         >
                             Søk etter kokker
                         </button>
-
-                        {/*<img*/}
-                        {/*    src="/images/empty-recipes.png"*/}
-                        {/*    alt="No recipes"*/}
-                        {/*    className="w-full h-auto mt-8"*/}
-                        {/*/>*/}
                     </>
                 ) : (
                     <div className="mt-8 white-text">
@@ -136,7 +148,7 @@ const Home = () => {
                                 <RecipeCard
                                     key={recipe.id}
                                     recipe={recipe}
-                                    creator={usersMap[recipe.userId]}  // may be undefined while loading
+                                    creator={usersMap[recipe.userId]}
                                 />
                             ))}
                         </div>

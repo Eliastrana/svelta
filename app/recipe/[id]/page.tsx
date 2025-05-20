@@ -1,56 +1,53 @@
 'use client';
+
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSwipeable } from 'react-swipeable';
-import LikeButton from '@/app/components/LikeButton';
-import CommentSection from '@/app/components/CommentSection';
-import { useRecipe } from '@/hooks/useRecipe';
-import { useUserData } from '@/hooks/useUserData';
 import Image from 'next/image';
+import LikeButton       from '@/app/components/LikeButton';
+import CommentSection   from '@/app/components/CommentSection';
+import AddToCollectionModal from '@/app/components/AddToCollectionModal';
 
-const RecipeDetail = () => {
-    const { id } = useParams();
+import { useRecipe }   from '@/hooks/useRecipe';
+import { useUserData } from '@/hooks/useUserData';
+
+const RecipeDetail: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
     const router = useRouter();
-    const [pageIndex, setPageIndex] = useState(0);
+    const [pageIndex,   setPageIndex]   = useState(0);
+    const [showAddModal, setShowAddModal] = useState(false);
     const [recipe, loading] = useRecipe(id as string);
-    const creatorDoc = useUserData(recipe?.userId || '');
+    const creatorDoc        = useUserData(recipe?.userId || '');
 
     const handleNext = () => {
         if (!recipe) return;
-        if (pageIndex < slides.length - 1) {
-            setPageIndex((prev) => prev + 1);
-        }
+        if (pageIndex < slides.length - 1) setPageIndex((p) => p + 1);
     };
-
     const handlePrev = () => {
-        if (pageIndex > 0) {
-            setPageIndex((prev) => prev - 1);
-        }
+        if (pageIndex > 0) setPageIndex((p) => p - 1);
     };
-
     const handlers = useSwipeable({
-        onSwipedLeft: handleNext,
+        onSwipedLeft : handleNext,
         onSwipedRight: handlePrev,
-        trackMouse: true,
+        trackMouse   : true,
     });
 
-    if (loading) return <div className="p-4">Laster...</div>;
-    if (!recipe) return <div className="p-4">Recipe not found.</div>;
+    if (loading)   return <div className="p-4">Laster…</div>;
+    if (!recipe)   return <div className="p-4">Oppskrift ikke funnet.</div>;
 
-    const userName = creatorDoc?.name || 'Ukjent brukernavn';
+    const userName  = creatorDoc?.name     || 'Ukjent brukernavn';
     const userPhoto = creatorDoc?.photoURL || '';
+    const ingredients = recipe.ingredients ?? [];
 
     const slides = [
         <div key="intro" className="relative w-full h-full">
-            {/* Cover image fills entire slide */}
             {recipe.coverImage && (
                 <div className="absolute inset-0">
                     <Image
                         src={recipe.coverImage}
                         alt="Cover"
                         fill
-                        objectFit="cover"
-                        className="rounded-lg"
+                        className="object-cover rounded-lg"
                     />
                 </div>
             )}
@@ -63,11 +60,11 @@ const RecipeDetail = () => {
                         __html: recipe.image
                             .replace(/class="[^"]*bg-white[^"]*"/, 'class=""')
                             .replace(/fill="white"/, 'fill="none"')
-                            .replace(/width="\+"/, '')
+                            .replace(/width="\d+"/, '')
                             .replace(/height="\d+"/, '')
                             .replace(
                                 /<svg([^>]*?)>/,
-                                `<svg$1 viewBox="0 0 400 400" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">`
+                                '<svg$1 viewBox="0 0 400 400" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">',
                             ),
                     }}
                 />
@@ -78,7 +75,7 @@ const RecipeDetail = () => {
             </div>
         </div>,
         ...recipe.cookingSteps.map((step, i) => (
-            <div key={`step-${i}`} className="w-full h-full md:p-14 p-8 ">
+            <div key={`step-${i}`} className="w-full h-full md:p-14 p-8">
                 <h2 className="md:text-6xl text-4xl font-bold mb-2">
                     {i + 1}: {step.title}
                 </h2>
@@ -89,27 +86,30 @@ const RecipeDetail = () => {
 
     return (
         <div>
-            <div
-                // style={{
-                //     fontFamily: recipe.fontStyle,
-                // }}
-                className="max-w-4xl md:mx-auto m-2 p-4 rounded-lg"
-            >
-                <button onClick={() => router.back()} className="mb-4 hover:cursor-pointer">
-                    <span className="material-symbols-outlined">close</span>
-                </button>
+            <div className="max-w-4xl md:mx-auto m-2 rounded-lg">
+                {/* Top bar */}
+                <div className="flex justify-between">
+                    <button onClick={() => router.back()} className="mb-4">
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
 
+                    {/* Add to list */}
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="mb-4"
+                    >
+                        <span className="material-symbols-outlined">bookmark_add</span>
+                    </button>
+                </div>
 
+                {/* Swipeable slides */}
                 <div
                     {...handlers}
-                    className="overflow-hidden relative w-full rounded-lg shadow-lg bg-color"
-                    // style={{ backgroundColor: recipe.bgColor }}
+                    className="overflow-hidden relative w-full rounded-lg shadow-lg"
                 >
                     <div
                         className="flex transition-transform duration-300 ease-in-out w-full"
-                        style={{
-                            transform: `translateX(-${pageIndex * 100}%)`,
-                        }}
+                        style={{ transform: `translateX(-${pageIndex * 100}%)` }}
                     >
                         {slides.map((slide, idx) => (
                             <div key={idx} className="w-full flex-shrink-0">
@@ -119,68 +119,70 @@ const RecipeDetail = () => {
                     </div>
                 </div>
 
-
-                {/* Dot indicator */}
+                {/* Dots */}
                 <div className="flex justify-center space-x-2 mt-4">
                     {slides.map((_, idx) => (
                         <div
                             key={idx}
                             onClick={() => setPageIndex(idx)}
-                            className={`w-3 h-3 rounded-full cursor-pointer ${idx === pageIndex ? 'bg-[#373737]' : 'bg-gray-300'}`}
+                            className={`w-3 h-3 rounded-full cursor-pointer ${
+                                idx === pageIndex ? 'bg-[#373737]' : 'bg-gray-300'
+                            }`}
                         />
                     ))}
                 </div>
             </div>
 
+            {/* Creator */}
             <div
                 className="flex space-x-2 items-center max-w-4xl mx-auto p-2 cursor-pointer"
                 onClick={() => router.push(`/user/${recipe.userId}`)}
             >
                 <div className="h-16 w-16 rounded-full overflow-hidden">
                     {userPhoto && (
-                        <img
-                            src={userPhoto}
-                            alt="Creator Photo"
-                            className="w-full h-full object-cover"
-                        />
+                        <img src={userPhoto} alt="Creator" className="w-full h-full object-cover" />
                     )}
                 </div>
-                <div>
-                    <h1 className="text-2xl">{userName}</h1>
-                </div>
+                <h1 className="text-2xl">{userName}</h1>
             </div>
 
+            {/* Ingredients & meta */}
             <div className="max-w-4xl mx-auto p-4 md:flex md:justify-between">
                 <div>
-                    {recipe.ingredients && recipe.ingredients.length > 0 && (
-                        <div>
+                    {ingredients.length > 0 && (
+                        <>
                             <h2 className="text-xl font-bold">Ingredienser</h2>
                             <ul className="list-disc pl-5">
-                                {recipe.ingredients.map((ing, idx) => (
+                                {ingredients.map((ing, idx) => (
                                     <li key={idx}>{ing}</li>
                                 ))}
                             </ul>
-                        </div>
+                        </>
                     )}
                 </div>
                 <div>
                     {recipe.temperature && (
-                        <p className="mt-2">
-                            <strong>Temperatur:</strong> {recipe.temperature}
-                        </p>
+                        <p className="mt-2"><strong>Temperatur:</strong> {recipe.temperature}</p>
                     )}
                     {recipe.cookingTime && (
-                        <p className="mt-2">
-                            <strong>Koketid:</strong> {recipe.cookingTime}
-                        </p>
+                        <p className="mt-2"><strong>Koketid:</strong> {recipe.cookingTime}</p>
                     )}
                 </div>
             </div>
 
+            {/* Social */}
             <div className="max-w-4xl mx-auto p-2">
                 <LikeButton recipeId={recipe.id} />
                 <CommentSection recipeId={recipe.id} />
             </div>
+
+            {/* Add‑to‑list modal */}
+            {showAddModal && (
+                <AddToCollectionModal
+                    recipeId={recipe.id}
+                    onClose={() => setShowAddModal(false)}
+                />
+            )}
         </div>
     );
 };

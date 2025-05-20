@@ -24,7 +24,7 @@ const UserProfileDisplay = () => {
     }
 
     return (
-        <div className="flex items-center space-x-4 p-4">
+        <div className="flex items-center p-2 ">
             {user.photoURL && (
                 <img
                     src={user.photoURL}

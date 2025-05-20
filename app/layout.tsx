@@ -3,11 +3,16 @@ import './globals.css';
 import Navbar from '@/app/components/Navbar';
 import AuthSync from '@/app/components/AuthSync';
 import Footer from '@/app/components/footer';
+import ReactQueryProvider from '@/app/components/ReactQueryProvider';
+
 
 export const metadata: Metadata = {
     title: 'Svelta',
     description: 'Del dine beste oppskrifter',
 };
+
+
+
 
 export default function RootLayout({
     children,
@@ -66,8 +71,11 @@ export default function RootLayout({
         </head>
         <body className="flex flex-col min-h-screen">
         <AuthSync />
-        <Navbar />
-        {children}
+
+        <ReactQueryProvider>
+            <Navbar />
+            {children}
+        </ReactQueryProvider>
         <Footer />
         </body>
         </html>
