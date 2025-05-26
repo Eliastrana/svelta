@@ -39,7 +39,7 @@ const CollectionsModal: React.FC<CollectionsModalProps> = ({
             />
 
             <div
-                className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[90vw] max-w-md z-50
+                className="fixed md:bottom-30 bottom-24 left-1/2 -translate-x-1/2 w-[90vw] max-w-md z-50
                    p-4 rounded-2xl shadow-xl backdrop-blur
                    bg-[#2a2a2a]/90
                    border border-slate-600"

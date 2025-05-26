@@ -16,6 +16,7 @@ import {
     createCollection,
 } from '@/helpers/collectionHelpers';
 import CollectionsModal from '@/app/components/CollectionsModal';
+import RecommendModal from '@/app/components/RecommendModal';
 
 interface CollectionDoc {
     id: string;
@@ -31,6 +32,10 @@ const Navbar: React.FC = () => {
         const unsub = onAuthStateChanged(auth, (u) => setUser(u));
         return () => unsub();
     }, []);
+
+
+
+    const [showRecommend, setShowRecommend]         = useState(false); // ← new
 
     /* ─────────── UI toggles ─────────── */
     const [showModal, setShowModal]           = useState(false);
@@ -80,6 +85,12 @@ const Navbar: React.FC = () => {
 
             )}
 
+            {showRecommend && (
+                <RecommendModal
+                    onClose={() => setShowRecommend(false)}
+                />
+            )}
+
             {/* Floating bottom action bar */}
             {/* Floating bottom action bar */}
             <div
@@ -120,6 +131,17 @@ const Navbar: React.FC = () => {
                     <span className="material-symbols-outlined">person_add</span>
                 </h2>
 
+                <h2
+                    onClick={() =>
+                        user
+                            ? setShowRecommend(true)
+                            : alert('Du må logge inn')
+                    }
+                    className={`${iconBase} ${disabledIfNoUser}`}
+                >
+                    <span className="material-symbols-outlined">skillet</span>
+                </h2>
+
                 {/* Profile */}
                 <div
                     onClick={() => user && router.push(`/user/${user.uid}`)}
@@ -128,7 +150,6 @@ const Navbar: React.FC = () => {
                     <UserProfileDisplay />
                 </div>
             </div>
-
 
 
             {showModal && <UserSearchModal onClose={() => setShowModal(false)} />}

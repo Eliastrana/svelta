@@ -3,26 +3,15 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-
 import UserSearchModal from '@/app/components/UserSearchModal';
 import RecipeCard      from '@/app/components/RecipeCard';
-
 import { useAuthUser }       from '@/hooks/useAuthUser';
 import { useUserFollowing }  from '@/hooks/useUserFollowing';
-
 import { fetchManyUsers }      from '@/helpers/fetchManyUsers';
-
-
-import { Recipe }  from '@/app/types/Recipe';      // make sure this path matches your project
+import { Recipe }  from '@/app/types/Recipe';
 import { UserDoc } from '@/hooks/useUserData';
 import { fetchFollowedRecipes } from '@/helpers/fetchFollowedRecipies';
 import { fetchPopularRecipes } from '@/helpers/fetchPopularRecipies';
-
-/**
- * Make sure your RootLayout wraps children with <ReactQueryProvider>,
- * which itself wraps <QueryClientProvider>. See earlier messages for the
- * tiny provider component.
- */
 
 type Feed = 'following' | 'popular';
 
