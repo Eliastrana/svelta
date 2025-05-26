@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useCollections } from '@/hooks/collections/useCollections';
@@ -10,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getFirestore, collection, getCountFromServer } from 'firebase/firestore';
 import RecipeCard from '@/app/components/RecipeCard';
 import { Recipe } from '@/app/types/Recipe';
+import React from 'react';
 
 export default function CollectionPage() {
     const { id } = useParams<{ id: string }>();
@@ -18,9 +18,13 @@ export default function CollectionPage() {
     const user = useAuthUser();
     const uid = user?.uid ?? '';
 
+    // user's own collections
     const { data: collections = [], isLoading: collectionsLoading } = useCollections(uid);
+
+    // raw entries of recipes in this collection
     const { data: entries = [], isLoading: recipesLoading } = useCollectionRecipes(id);
 
+    // hydrate recipes with live counts
     const [hydrated, setHydrated] = React.useState<{ recipe: Recipe }[]>([]);
     React.useEffect(() => {
         if (!entries.length) {
@@ -37,16 +41,7 @@ export default function CollectionPage() {
                     const commentsSnap = await getCountFromServer(
                         collection(db, 'recipes', recipe.id, 'comments')
                     );
-                    // cast counts to string
-                    const likesCount = likesSnap.data().count.toString();
-                    const commentsCount = commentsSnap.data().count.toString();
-                    return {
-                        recipe: {
-                            ...recipe,
-                            likes: likesCount,
-                            comments: commentsCount,
-                        },
-                    };
+                    return { recipe: { ...recipe, likes: likesSnap.data().count, comments: commentsSnap.data().count } };
                 })
             );
             results.sort((a, b) => Number(b.recipe.createdAt) - Number(a.recipe.createdAt));

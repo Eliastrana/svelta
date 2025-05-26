@@ -67,6 +67,7 @@ export async function fetchFollowedRecipes(
         }),
     );
 
+
     // 3) Sort by creation date descending before returning
     return withCounts.sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
 }
