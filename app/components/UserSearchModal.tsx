@@ -117,7 +117,7 @@ const UserSearchModal: React.FC<UserSearchModalProps> = ({ onClose }) => {
             onClick={onClose}
         >
             <div
-                className="relative m-2 md:m-0 w-full max-w-md rounded-2xl overflow-hidden bg-white/10 backdrop-blur-lg border border-white/20 shadow-[0_0_12px_3px_rgba(255,255,255,0.35)] ring-1 ring-white/10"
+                className="relative m-2 md:m-0 w-full max-w-md rounded-2xl overflow-hidden bg-white/10 backdrop-blur-lg border border-white/20 border border-slab-200 ring-1 ring-white/10"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Inner content */}

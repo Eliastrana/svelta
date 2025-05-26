@@ -81,24 +81,24 @@ const Navbar: React.FC = () => {
             )}
 
             {/* Floating bottom action bar */}
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-8 px-6 rounded-full shadow-xl backdrop-blur-lg bg-white/30 dark:bg-[#373737]/30 border border-white/40 dark:border-slate-600/40">
+            {/* Floating bottom action bar */}
+            <div
+                className="
+    fixed md:bottom-6 bottom-2 inset-x-0 mx-auto z-50
+    flex items-center justify-between
+    max-w-sm gap-2 px-6 py-2
+    rounded-full shadow-xl backdrop-blur-lg
+    bg-[#373737]/30 border border-slate-600/40
+  "
+            >
                 {/* Home */}
-                <h2
-                    onClick={() => router.push('/')}
-                    className={`${iconBase} ${disabledIfNoUser}`}
-                >
+                <h2 onClick={() => router.push('/')} className={`${iconBase} ${disabledIfNoUser}`}>
                     <span className="material-symbols-outlined">home</span>
                 </h2>
 
                 {/* My lists */}
                 <h2
-                    onClick={() => {
-                        if (user) {
-                            setShowCollections((s) => !s);
-                        } else {
-                            alert('Du må være innlogget for å se dine lister.');
-                        }
-                    }}
+                    onClick={() => (user ? setShowCollections((s) => !s) : alert('Du må være innlogget for å se dine lister.'))}
                     className={`${iconBase} ${disabledIfNoUser}`}
                 >
                     <span className="material-symbols-outlined">list</span>
@@ -106,13 +106,7 @@ const Navbar: React.FC = () => {
 
                 {/* Create recipe */}
                 <h2
-                    onClick={() => {
-                        if (user) {
-                            router.push('/create-recipe');
-                        } else {
-                            alert('Du må være innlogget for å lage en oppskrift.');
-                        }
-                    }}
+                    onClick={() => (user ? router.push('/create-recipe') : alert('Du må være innlogget for å lage en oppskrift.'))}
                     className={`${iconBase} ${disabledIfNoUser}`}
                 >
                     <span className="material-symbols-outlined">outdoor_grill</span>
@@ -120,13 +114,7 @@ const Navbar: React.FC = () => {
 
                 {/* Search users */}
                 <h2
-                    onClick={() => {
-                        if (user) {
-                            setShowModal(true);
-                        } else {
-                            alert('Du må være innlogget for å søke etter brukere.');
-                        }
-                    }}
+                    onClick={() => (user ? setShowModal(true) : alert('Du må være innlogget for å søke etter brukere.'))}
                     className={`${iconBase} ${disabledIfNoUser}`}
                 >
                     <span className="material-symbols-outlined">person_add</span>
@@ -135,11 +123,13 @@ const Navbar: React.FC = () => {
                 {/* Profile */}
                 <div
                     onClick={() => user && router.push(`/user/${user.uid}`)}
-                    className={iconBase}
+                    className={`${iconBase} flex-shrink-0`}
                 >
                     <UserProfileDisplay />
                 </div>
             </div>
+
+
 
             {showModal && <UserSearchModal onClose={() => setShowModal(false)} />}
         </>
