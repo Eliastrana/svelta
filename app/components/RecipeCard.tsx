@@ -1,4 +1,5 @@
 'use client';
+
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Timestamp } from 'firebase/firestore';
@@ -6,7 +7,7 @@ import Image from 'next/image';
 import { Recipe } from '@/app/types/Recipe';
 import { RecipeDetail } from '@/app/types/RecipeDetail';
 
-
+// CombinedRecipe may include detail fields, but we primarily use Recipe fields
 type CombinedRecipe = Recipe & Partial<RecipeDetail>;
 
 interface RecipeCardProps {
@@ -43,6 +44,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     const handleEdit   = (e: React.MouseEvent) => { e.stopPropagation(); router.push(`/recipe/edit/${recipe.id}`); };
     const handleDelete = (e: React.MouseEvent) => { e.stopPropagation(); onDelete?.(recipe.id); };
 
+    /* compute display counts --------------------------------- */
+    const displayLikes    = recipe.likes    ?? (recipe.likeCount)    ?? 0;
+    const displayComments = recipe.comments ?? (recipe.commentCount) ?? 0;
+
     /* render -------------------------------------------------- */
     return (
         <div
@@ -52,7 +57,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             {/* visual frame */}
             <div
                 className={`relative group w-full cursor-pointer overflow-hidden
-          ${!recipe.coverImage ? 'bg-gradient-to-t from-[#73628A] to-[#d89cf6]' : ''}`}
+      ${!recipe.coverImage ? 'bg-gradient-to-t from-[#73628A] to-[#d89cf6]' : ''}`}
                 style={{ minHeight: '30rem' }}
                 onMouseEnter={handleEnter}
                 onMouseMove={handleMove}
@@ -81,13 +86,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                     className="fixed z-50 pointer-events-none bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1 shadow-xl text-sm font-medium text-black"
                     style={{ top: tip.y + 12, left: tip.x + 12 }}
                 >
-
                     <img
                         src="/icons/clock-gif.gif"
                         alt="Tid"
                         className="w-4 h-4 inline-block mr-1 mb-0.5"
                     />
-
                     {recipe.cookingTime ?? '?'}
                 </div>
             )}
@@ -119,15 +122,15 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                     </div>
                 </div>
 
-                {/* likes / comments (keep optional so the card renders for detail objects) */}
+                {/* likes / comments with fallback */}
                 <div className="flex space-x-4 text-sm">
                     <div className="flex items-center space-x-1">
                         <img src="/icons/chef_white.png" alt="Like" className="w-6 h-6" />
-                        <span>{(recipe as Recipe).likeCount ?? 0}</span>
+                        <span>{displayLikes}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                         <span className="material-symbols-outlined">chat_bubble</span>
-                        <span>{(recipe as Recipe).commentCount ?? 0}</span>
+                        <span>{displayComments}</span>
                     </div>
                 </div>
             </div>

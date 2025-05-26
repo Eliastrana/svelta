@@ -61,8 +61,13 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
     }, [recipeId]);
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center dark-purple-bg white-text z-50">
-            <div className="p-4 rounded-lg max-w-md w-full">
+        <div className="fixed inset-0 flex items-center justify-center  white-text z-50">
+            <div
+                className="relative   w-[90vw] max-w-md z-50
+                   p-4 rounded-2xl shadow-xl backdrop-blur
+                   bg-[#2a2a2a]/90
+                   border border-slate-600"
+                >
                 <h1 className="text-4xl mb-4">
                     Hvem som har tatt av seg hatten:
                 </h1>

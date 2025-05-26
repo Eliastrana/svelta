@@ -19,14 +19,11 @@ const Home: React.FC = () => {
     const router = useRouter();
     const user   = useAuthUser();
 
-    /* ─────────── Toggles ─────────── */
     const [activeFeed, setActiveFeed] = React.useState<Feed>('following');
     const [showModal,  setShowModal]  = React.useState(false);
 
-    /* ─────────── Logged‑in user’s following list ─────────── */
-    const following = useUserFollowing(user?.uid ?? ''); // string[]
+    const following = useUserFollowing(user?.uid ?? '');
 
-    /* ─────────── Recipes ─────────── */
     const {
         data: followedRecipes = [],
         isLoading: loadingFollowed,

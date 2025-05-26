@@ -13,6 +13,8 @@ export interface Recipe {
     image: string;
     coverImage?: string;
     createdAt?: Timestamp;
+    likes?: string;
+    comments?: string;
     likeCount?: number;
     commentCount?: number;
     bgColor: string;

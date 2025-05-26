@@ -117,11 +117,15 @@ const UserSearchModal: React.FC<UserSearchModalProps> = ({ onClose }) => {
             onClick={onClose}
         >
             <div
-                className="relative m-2 md:m-0 w-full max-w-md rounded-2xl overflow-hidden bg-white/10 backdrop-blur-lg border border-white/20 border border-slab-200 ring-1 ring-white/10"
+                    className="relative   w-[90vw] max-w-md z-50
+                    p-4 rounded-2xl shadow-xl backdrop-blur
+                    bg-[#2a2a2a]/90
+                    border border-slate-600"
+
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Inner content */}
-                <div className="relative p-6">
+                <div className="relative">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-2xl font-bold">Søk etter kokker</h2>
                         <button

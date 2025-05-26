@@ -5,10 +5,21 @@ import {
     where,
     orderBy,
     getDocs,
+    getCountFromServer,
     limit,
 } from 'firebase/firestore';
 import { Recipe } from '@/app/types/Recipe';
 
+// A RawRecipe includes the id but omits likes and comments
+type RawRecipe = Omit<Recipe, 'likes' | 'comments'> & { id: string };
+
+/**
+ * Fetch the latest recipes from users you follow, including live like/comment counts.
+ *
+ * @param followingIds - Array of user IDs you follow
+ * @param perChunkLimit - Max recipes to fetch per Firestore 'in' chunk (default 20)
+ * @returns Array of Recipe with up-to-date likes and comments counts
+ */
 export async function fetchFollowedRecipes(
     followingIds: string[],
     perChunkLimit = 20,
@@ -17,14 +28,14 @@ export async function fetchFollowedRecipes(
 
     const db = getFirestore();
 
-    // Firestore `in` supports ≤10 values
+    // Break the follow list into Firestore 'in' chunks of <=10
     const chunks: string[][] = [];
     for (let i = 0; i < followingIds.length; i += 10) {
         chunks.push(followingIds.slice(i, i + 10));
     }
 
-    const all: Recipe[] = [];
-
+    // 1) Fetch raw recipe data (with id) for each chunk
+    const raws: RawRecipe[] = [];
     for (const chunk of chunks) {
         const q = query(
             collection(db, 'recipes'),
@@ -34,13 +45,28 @@ export async function fetchFollowedRecipes(
         );
 
         const snap = await getDocs(q);
-
         snap.forEach((doc) => {
-            const data = doc.data() as Omit<Recipe, 'id'>;
-            all.push({ id: doc.id, ...data });
+            raws.push({ id: doc.id, ...(doc.data() as Omit<Recipe, 'id' | 'likes' | 'comments'>) });
         });
     }
 
-    // newest first
-    return all.sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
+    // 2) Hydrate each recipe with live like/comment counts
+    const withCounts: Recipe[] = await Promise.all(
+        raws.map(async ({ id, ...data }) => {
+            const [likesSnap, commentsSnap] = await Promise.all([
+                getCountFromServer(collection(db, 'recipes', id, 'likes')),
+                getCountFromServer(collection(db, 'recipes', id, 'comments')),
+            ]);
+
+            return {
+                id,
+                ...data,
+                likes:    likesSnap.data().count,
+                comments: commentsSnap.data().count,
+            } as Recipe;
+        }),
+    );
+
+    // 3) Sort by creation date descending before returning
+    return withCounts.sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
 }
