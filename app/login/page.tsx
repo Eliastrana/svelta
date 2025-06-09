@@ -1,22 +1,35 @@
-// pages/login.tsx
+// app/login/page.tsx
 'use client';
-import { signInWithPopup } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';      // ← App-Router import
+import { signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 import { auth, provider } from '@/firebase';
 
-const Login = () => {
+export default function LoginPage() {
     const router = useRouter();
 
+    // If Firebase already has a session, redirect immediately
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, user => {
+            if (user) {
+                router.replace('/');
+            }
+        });
+        return unsubscribe;
+    }, [router]);
+
+    // Google Sign-In flow
     const signIn = async () => {
         try {
             const result = await signInWithPopup(auth, provider);
+            const token = await result.user.getIdToken(true);
 
-            const user = result.user;
-            const token = await user.getIdToken(/* forceRefresh= */ true);
-
+            // Persist for middleware checks
             document.cookie = `yourAuthToken=${token}; path=/;`;
 
-            router.push('/');
+            // Navigate home, replacing history
+            router.replace('/');
         } catch (error) {
             console.error('Error during sign in', error);
         }
@@ -37,6 +50,4 @@ const Login = () => {
             </div>
         </div>
     );
-};
-
-export default Login;
+}

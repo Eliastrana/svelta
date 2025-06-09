@@ -17,7 +17,7 @@ const UserProfileDisplay = () => {
         return (
             <div className="p-4 items-center">
                 <a href="/login" className="hover:underline">
-                    Logg inn
+                    🧑‍🍳
                 </a>
             </div>
         );
