@@ -1,20 +1,10 @@
+// app/login/page.tsx
 'use client';
 
-import { useEffect } from 'react';
-import { signInWithPopup, onAuthStateChanged } from 'firebase/auth';
+import { signInWithPopup } from 'firebase/auth';
 import { auth, provider } from '@/firebase';
 
 export default function LoginPage() {
-    // If already signed in, do a full redirect off /login
-    useEffect(() => {
-        const unsub = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                window.location.href = '/';
-            }
-        });
-        return unsub;
-    }, []);
-
     const signIn = async () => {
         try {
             const result = await signInWithPopup(auth, provider);
@@ -23,12 +13,12 @@ export default function LoginPage() {
             document.cookie = [
                 `yourAuthToken=${token}`,
                 `Path=/`,
-                `Max-Age=${60 * 60}`,    // 1 hour
-                `SameSite=None`,         // allow it on client fetches
-                `Secure`,                // required on HTTPS
+                `Max-Age=${60 * 60}`,    // optional: keep it 1h
+                `SameSite=None`,         // ensure it’s sent on client fetches
+                `Secure`,                // required in production HTTPS
             ].join('; ');
 
-            // full reload so the middleware sees the cookie immediately
+            // full page load so the cookie is in the request headers
             window.location.href = '/';
         } catch (error) {
             console.error('Error during sign in', error);
