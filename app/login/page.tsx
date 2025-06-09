@@ -1,35 +1,39 @@
-// app/login/page.tsx
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';      // ← App-Router import
+import { useRouter } from 'next/navigation';
 import { signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 import { auth, provider } from '@/firebase';
 
 export default function LoginPage() {
-    const router = useRouter();
-
-    // If Firebase already has a session, redirect immediately
+    useRouter();
+// If we somehow still have a valid Firebase session,
+    // redirect off /login immediately
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, user => {
+        const unsub = onAuthStateChanged(auth, (user) => {
             if (user) {
-                router.replace('/');
+                window.location.href = '/';
             }
         });
-        return unsubscribe;
-    }, [router]);
+        return unsub;
+    }, []);
 
-    // Google Sign-In flow
     const signIn = async () => {
         try {
             const result = await signInWithPopup(auth, provider);
             const token = await result.user.getIdToken(true);
 
-            // Persist for middleware checks
-            document.cookie = `yourAuthToken=${token}; path=/;`;
+            // 1) Set the cookie so the middleware will see it
+            document.cookie = [
+                `yourAuthToken=${token}`,
+                `Path=/`,
+                `Max-Age=${60 * 60}`,    // expires in 1h
+                `SameSite=None`,         // allow it on client fetches
+                `Secure`,                // required on HTTPS
+            ].join('; ');
 
-            // Navigate home, replacing history
-            router.replace('/');
+            // 2) Force a real navigation so the cookie goes in the request headers
+            window.location.href = '/';
         } catch (error) {
             console.error('Error during sign in', error);
         }
@@ -43,7 +47,7 @@ export default function LoginPage() {
                 </h1>
                 <button
                     onClick={signIn}
-                    className="confirm-button text-black font-bold py-2 px-4 rounded cursor-pointer shadow-md transition duration-300 ease-in-out"
+                    className="confirm-button text-black font-bold py-2 px-4 rounded shadow-md transition duration-300"
                 >
                     Logg inn med Google
                 </button>
