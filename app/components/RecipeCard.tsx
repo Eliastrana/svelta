@@ -175,13 +175,13 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                 </div>
 
                 {/* likes / comments with fallback */}
-                <div className="flex space-x-4 text-sm text-slate-600">
+                <div className="flex space-x-4 text-sm ">
                     <div className="flex items-center space-x-1">
-                        <img src="/icons/chef_black.png" alt="Like" className="w-5 h-5" />
+                        <img src="/icons/chef_white.png" alt="Like" className="w-5 h-5 invert" />
                         <span>{displayLikes}</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                        <span className="material-symbols-outlined">chat_bubble</span>
+                        <span className="material-symbols-outlined">comment</span>
                         <span>{displayComments}</span>
                     </div>
                 </div>

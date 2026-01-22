@@ -159,7 +159,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId }) => {
             <button onClick={handleLikeToggle} className="flex items-center space-x-2 text-slate-900">
         <span className="h-8 w-8">
           {hasLiked ? (
-              <img src="/icons/chef_black.png" alt="liked" />
+              <img src="/icons/chef_white.png" alt="Like" className="invert" />
           ) : (
               <img src="/icons/chef.png" alt="not liked" />
           )}
