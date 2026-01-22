@@ -113,24 +113,24 @@ const UserSearchModal: React.FC<UserSearchModalProps> = ({ onClose }) => {
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30"
             onClick={onClose}
         >
             <div
                     className="relative   w-[90vw] max-w-md z-50
                     p-4 rounded-2xl shadow-xl backdrop-blur
-                    bg-[#2a2a2a]/90
-                    border border-slate-600"
+                    bg-white/95
+                    border border-slate-200"
 
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Inner content */}
                 <div className="relative">
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-2xl font-bold">Søk etter kokker</h2>
+                        <h2 className="text-2xl font-bold text-slate-900">Søk etter kokker</h2>
                         <button
                             onClick={onClose}
-                            className="cursor-pointer text-2xl leading-none"
+                            className="cursor-pointer text-2xl leading-none text-slate-500"
                             aria-label="Lukk"
                         >
                             &times;
@@ -143,31 +143,31 @@ const UserSearchModal: React.FC<UserSearchModalProps> = ({ onClose }) => {
                         placeholder="Søk etter navn..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full p-2 rounded mb-4 bg-white/20 backdrop-blur-sm focus:outline-none"
+                        className="w-full p-2 rounded-lg mb-4 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                     />
 
                     {/* Results list */}
                     {loading ? (
-                        <p>Laster…</p>
+                        <p className="text-slate-600">Laster…</p>
                     ) : (
                         <div className="max-h-60 overflow-y-auto">
                             {searchTerm.trim().length < 3 ? (
-                                <p>Søk etter vennene dine, hvis du har noen 🙄</p>
+                                <p className="text-slate-600">Søk etter vennene dine, hvis du har noen 🙄</p>
                             ) : results.length === 0 ? (
-                                <p>Ingen kokker funnet.</p>
+                                <p className="text-slate-600">Ingen kokker funnet.</p>
                             ) : (
                                 results.map((user) => (
                                     <div
                                         key={user.uid}
-                                        className="flex items-center justify-between py-2"
+                                        className="flex items-center justify-between py-2 text-slate-800"
                                     >
                                         <span>{user.name}</span>
                                         {currentUser && currentUser.uid === user.uid ? (
-                                            <span className="text-sm">Deg</span>
+                                            <span className="text-sm text-slate-500">Deg</span>
                                         ) : (
                                             <button
                                                 onClick={() => handleFollow(user.uid)}
-                                                className="px-3 py-1 rounded text-sm cursor-pointer"
+                                                className="px-3 py-1 rounded-full text-sm cursor-pointer bg-slate-100 text-slate-700 hover:bg-slate-200"
                                             >
                                                 {currentFollowing.includes(user.uid) ? (
                                                     <span className="material-symbols-outlined">close</span>

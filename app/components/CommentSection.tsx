@@ -108,7 +108,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
 
     return (
         <div className="mt-4 w-full mb-20">
-            <h2 className="text-xl font-bold mb-2">Kommentarer</h2>
+            <h2 className="text-lg font-semibold mb-2 text-slate-900">Kommentarer</h2>
             <form
                 onSubmit={handleAddComment}
                 className="mb-4 flex items-center space-x-2"
@@ -118,23 +118,23 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder="Skriv en kommentar..."
-                    className="w-full p-2 rounded"
+                    className="w-full p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
                 <button
                     type="submit"
-                    className="px-2 pt-1 confirm-button rounded-lg"
+                    className="px-3 py-2 confirm-button rounded-full"
                 >
                     <span className="material-symbols-outlined">send</span>
                 </button>
             </form>
             <div>
                 {comments.length === 0 ? (
-                    <p>Vær den første til å kommentere!</p>
+                    <p className="text-slate-600">Vær den første til å kommentere!</p>
                 ) : (
                     comments.map((comment) => {
                         const userInfo = usersMap[comment.userId];
                         return (
-                            <div key={comment.id} className="py-4">
+                            <div key={comment.id} className="py-4 border-b border-slate-100 last:border-b-0">
                                 <div className="flex items-center space-x-2">
                                     {userInfo?.photoURL ? (
                                         <img
@@ -146,10 +146,10 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                                         <div className="w-16 h-16 rounded-full bg-gray-400" />
                                     )}
                                     <div>
-                                        <h1 className="text-2xl">
+                                        <h1 className="text-base font-semibold text-slate-900">
                                             {userInfo?.name || 'Ukjent bruker'}
                                         </h1>
-                                        <p className="text-xs text-gray-500">
+                                        <p className="text-xs text-slate-500">
                                             {comment.createdAt &&
                                             comment.createdAt.toDate
                                                 ? dayjs(
@@ -157,7 +157,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                                                   ).fromNow()
                                                 : 'Akkurat nå'}
                                         </p>
-                                        <p className="mt-1">{comment.text}</p>
+                                        <p className="mt-1 text-sm text-slate-700">{comment.text}</p>
                                     </div>
                                 </div>
                             </div>

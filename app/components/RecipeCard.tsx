@@ -56,9 +56,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         >
             {/* visual frame */}
             <div
-                className={`relative group w-full cursor-pointer overflow-hidden
-      ${!recipe.coverImage ? 'bg-gradient-to-t from-[#73628A] to-[#d89cf6]' : ''}`}
-                style={{ minHeight: '30rem' }}
+                className="relative group w-full cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md"
+                style={{ minHeight: '18rem' }}
                 onMouseEnter={handleEnter}
                 onMouseMove={handleMove}
                 onMouseLeave={handleLeave}
@@ -69,13 +68,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                             src={recipe.coverImage}
                             alt="Cover"
                             fill
-                            className="object-cover w-full h-full rounded-lg transition-all duration-300 ease-out group-hover:scale-90 group-hover:rounded-3xl"
+                            className="object-cover w-full h-full transition-transform duration-300 ease-out group-hover:scale-105"
                         />
-                        {/* corner frames */}
-                        <div className="absolute top-0 left-0    w-8 h-8 border-t-4 border-l-4  opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="absolute top-0 right-0   w-8 h-8 border-t-4 border-r-4  opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4  opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4  opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </>
                 )}
             </div>
@@ -83,7 +77,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             {/* tooltip */}
             {tip.show && (
                 <div
-                    className="fixed z-50 pointer-events-none bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1 shadow-xl text-sm font-medium text-black"
+                    className="fixed z-50 pointer-events-none bg-white/95 backdrop-blur-sm rounded-lg px-3 py-1 shadow-xl text-sm font-medium text-slate-900"
                     style={{ top: tip.y + 12, left: tip.x + 12 }}
                 >
                     <img
@@ -96,8 +90,14 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             )}
 
             {/* text content */}
-            <h1 className="md:text-6xl text-4xl font-bold mt-4">{recipe.title}</h1>
-            <p className="text-lg mt-2">{recipe.description}</p>
+            <div className="mt-4">
+                <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">
+                    {recipe.title}
+                </h1>
+                <p className="text-base mt-1 text-slate-600 line-clamp-2">
+                    {recipe.description}
+                </p>
+            </div>
 
             <div className="flex justify-between mt-4 w-full">
                 {/* creator */}
@@ -123,9 +123,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                 </div>
 
                 {/* likes / comments with fallback */}
-                <div className="flex space-x-4 text-sm">
+                <div className="flex space-x-4 text-sm text-slate-600">
                     <div className="flex items-center space-x-1">
-                        <img src="/icons/chef_white.png" alt="Like" className="w-6 h-6" />
+                        <img src="/icons/chef_black.png" alt="Like" className="w-5 h-5" />
                         <span>{displayLikes}</span>
                     </div>
                     <div className="flex items-center space-x-1">

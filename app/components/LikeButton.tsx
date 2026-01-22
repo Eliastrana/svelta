@@ -61,14 +61,14 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
     }, [recipeId]);
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center  white-text z-50">
+        <div className="fixed inset-0 flex items-center justify-center z-50">
             <div
                 className="relative   w-[90vw] max-w-md z-50
                    p-4 rounded-2xl shadow-xl backdrop-blur
-                   bg-[#2a2a2a]/90
-                   border border-slate-600"
+                   bg-white/95
+                   border border-slate-200"
                 >
-                <h1 className="text-4xl mb-4">
+                <h1 className="text-2xl font-semibold mb-4 text-slate-900">
                     Hvem som har tatt av seg hatten:
                 </h1>
                 <ul>
@@ -87,16 +87,16 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
                                 ) : (
                                     <div className="w-8 h-8 rounded-full bg-gray-400" />
                                 )}
-                                <span>{user.name || user.userId}</span>
+                                <span className="text-slate-700">{user.name || user.userId}</span>
                             </li>
                         ))
                     ) : (
-                        <p>Ingen har likt denne oppskriften ennå.</p>
+                        <p className="text-slate-600">Ingen har likt denne oppskriften ennå.</p>
                     )}
                 </ul>
                 <button
                     onClick={onClose}
-                    className="mt-4 px-4 py-2 confirm-button text-white rounded"
+                    className="mt-4 px-4 py-2 confirm-button rounded-full"
                 >
                     Lukk
                 </button>
@@ -157,7 +157,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId }) => {
         <div className="flex items-center space-x-2">
             <button
                 onClick={handleLikeToggle}
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 text-slate-900"
             >
                 <span className="h-8 w-8">
                     {hasLiked ? (
@@ -166,11 +166,11 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId }) => {
                         <img src="/icons/chef.png" alt="not liked" />
                     )}
                 </span>
-                <span className="text-4xl">{likeCount}</span>
+                <span className="text-2xl font-semibold">{likeCount}</span>
             </button>
             <button
                 onClick={() => setShowModal(true)}
-                className="text-base underline"
+                className="text-sm text-slate-600 underline"
             >
                 tok av seg hatten
             </button>

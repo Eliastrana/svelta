@@ -99,7 +99,7 @@ const Navbar: React.FC = () => {
     flex items-center justify-between
     max-w-sm gap-2 px-6 py-2
     rounded-full shadow-xl backdrop-blur-lg
-    bg-[#373737]/30 border border-slate-600/40
+    bg-white/90 border border-slate-200
   "
             >
                 {/* Home */}

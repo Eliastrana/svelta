@@ -43,7 +43,7 @@ export default function LoginPage() {
                 </h1>
                 <button
                     onClick={signIn}
-                    className="confirm-button text-black font-bold py-2 px-4 rounded shadow-md transition duration-300"
+                    className="confirm-button text-white font-semibold py-2 px-5 rounded-full shadow-md transition duration-300"
                 >
                     Logg inn med Google
                 </button>

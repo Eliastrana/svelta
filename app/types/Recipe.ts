@@ -17,6 +17,7 @@ export interface Recipe {
     comments?: number;
     likeCount?: number;
     commentCount?: number;
+    popularityScore?: number;
     bgColor: string;
     fontStyle: string;
     cookingSteps: CookingStep[];

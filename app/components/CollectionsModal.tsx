@@ -41,8 +41,8 @@ const CollectionsModal: React.FC<CollectionsModalProps> = ({
             <div
                 className="fixed md:bottom-30 bottom-24 left-1/2 -translate-x-1/2 w-[90vw] max-w-md z-50
                    p-4 rounded-2xl shadow-xl backdrop-blur
-                   bg-[#2a2a2a]/90
-                   border border-slate-600"
+                   bg-white/95
+                   border border-slate-200"
             >
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
@@ -61,7 +61,7 @@ const CollectionsModal: React.FC<CollectionsModalProps> = ({
                         type="text"
                         placeholder="Ny liste…"
                         className="flex-grow px-3 py-2 rounded-lg
-                       focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-600"
+                       focus:outline-none focus:ring-2 focus:ring-slate-300"
                         value={newListName}
                         onChange={(e) => setNewListName(e.target.value)}
                         onKeyDown={(e) => {
@@ -69,9 +69,7 @@ const CollectionsModal: React.FC<CollectionsModalProps> = ({
                         }}
                     />
                     <button
-                        className="p-2 rounded-lg
-
-                       disabled:opacity-40"
+                        className="p-2 rounded-lg text-slate-700 disabled:opacity-40"
                         onClick={handleSubmit}
                         disabled={!newListName.trim()}
                     >
@@ -89,7 +87,7 @@ const CollectionsModal: React.FC<CollectionsModalProps> = ({
                         {collections.map((c) => (
                             <li
                                 key={c.id}
-                                className="p-2 rounded-lg cursor-pointer hover:bg-[#373737]/50"
+                                className="p-2 rounded-lg cursor-pointer hover:bg-slate-100"
                                 onClick={() => {
                                     router.push(`/collections/${c.id}`);
                                     onClose();
