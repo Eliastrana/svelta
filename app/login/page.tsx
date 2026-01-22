@@ -76,7 +76,7 @@ export default function LoginPage() {
 
             {/* Content */}
             <div className="flex flex-col items-center text-center max-w-5xl mx-auto">
-                <h1 className="md:text-8xl text-5xl font-bold mb-8 text-cyan-400 ">
+                <h1 className="md:text-8xl text-5xl font-bold mb-8 text-neutral-700 ">
                     Del dine beste oppskrifter
                 </h1>
 

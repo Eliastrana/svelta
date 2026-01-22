@@ -26,7 +26,7 @@ type RecipeForDetail = {
     cookingSteps: Array<{ title: string; description: string }>;
     temperature?: string;
     cookingTime?: string;
-    poritons?: string;
+    portions?: string;
 
     // legacy
     ingredients?: string[];
@@ -188,39 +188,44 @@ const RecipeDetail: React.FC = () => {
             <div className="max-w-4xl mx-auto p-4 md:flex md:justify-between gap-8">
                 <div className="flex-1">
                     {ingredientsToRender.length > 0 && (
-                        <ul className="rounded-2xl border border-slate-200 bg-cyan-100 shadow-sm overflow-hidden">
+                        <ul className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                             {ingredientsToRender.map((ing, idx) => (
                                 <li
                                     key={`ing-${idx}`}
                                     className="flex items-start justify-between px-4 py-3 border-b border-slate-200 last:border-b-0"
                                 >
                                     <div className="flex-1">
-                                        <span className="font-semibold text-slate-900">{ing.name}</span>
+                                        <span className="font-semibold ">{ing.name}</span>
                                     </div>
 
-                                    {ing.amount ? <span className="shrink-0 text-slate-600">{ing.amount}</span> : null}
+                                    {ing.amount ? <span className="shrink-0 text-neutral-600">{ing.amount}</span> : null}
                                 </li>
                             ))}
                         </ul>
                     )}
                 </div>
 
-                <div className="mt-6 md:mt-0 md:min-w-[220px]">
-                    {(recipe.temperature || recipe.cookingTime) && (
-                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                            {recipe.temperature && (
-                                <p className="text-slate-800">
-                                    <span className="font-semibold">Temperatur:</span> {recipe.temperature}
-                                </p>
-                            )}
-                            {recipe.cookingTime && (
-                                <p className="text-slate-800 mt-2">
-                                    <span className="font-semibold">Koketid:</span> {recipe.cookingTime}
-                                </p>
-                            )}
-                        </div>
-                    )}
-                </div>
+                {(recipe.portions || recipe.temperature || recipe.cookingTime) && (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 self-start md:mt-0 mt-6 shadow-sm w-full md:w-48">
+                        {recipe.portions && (
+                            <p className="text-neutral-800">
+                                <span className="font-semibold">Porsjoner:</span> {recipe.portions}
+                            </p>
+                        )}
+
+                        {recipe.temperature && (
+                            <p className={`text-neutral-800 ${recipe.portions ? 'mt-2' : ''}`}>
+                                <span className="font-semibold">Temperatur:</span> {recipe.temperature}
+                            </p>
+                        )}
+
+                        {recipe.cookingTime && (
+                            <p className={`text-neutral-800 ${(recipe.portions || recipe.temperature) ? 'mt-2' : ''}`}>
+                                <span className="font-semibold">Koketid:</span> {recipe.cookingTime}
+                            </p>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="max-w-4xl mx-auto p-4 md:flex md:justify-between gap-8">

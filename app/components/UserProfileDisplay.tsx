@@ -9,10 +9,22 @@ type UserDoc = {
     photoURL?: string;
 };
 
-const UserProfileDisplay = () => {
+type Props = {
+    sizeClassName?: string; // default navbar size
+    className?: string;
+    active?: boolean;       // ring when true
+};
+
+const UserProfileDisplay = ({
+                                sizeClassName = 'w-10 h-10',
+                                className = '',
+                                active = false,
+                            }: Props) => {
     const [user, setUser] = useState<User | null>(null);
     const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
     const [loadingPhoto, setLoadingPhoto] = useState(false);
+
+    const ringClass = active ? 'ring-2 ring-cyan-200 ring-offset-2 ring-offset-white' : '';
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -20,6 +32,7 @@ const UserProfileDisplay = () => {
 
             if (!currentUser) {
                 setProfilePhoto(null);
+                setLoadingPhoto(false);
                 return;
             }
 
@@ -27,12 +40,9 @@ const UserProfileDisplay = () => {
             try {
                 const snap = await getDoc(doc(firestore, 'users', currentUser.uid));
                 const data = snap.exists() ? (snap.data() as UserDoc) : null;
-
-                // Prefer custom photo from Firestore, fallback to Google photoURL
                 const url = (data?.photoURL?.trim() || currentUser.photoURL || null) as string | null;
                 setProfilePhoto(url);
             } catch {
-                // If Firestore fails, fallback to Google
                 setProfilePhoto(currentUser.photoURL || null);
             } finally {
                 setLoadingPhoto(false);
@@ -45,36 +55,24 @@ const UserProfileDisplay = () => {
     // Not logged in
     if (!user) {
         return (
-            <div className="p-4 items-center">
-                <a href="/login" className="hover:underline">
-                    🧑‍🍳
-                </a>
+            <div className={`${sizeClassName} ${className} ${ringClass} rounded-full bg-slate-100 grid place-items-center`}>
+                🧑‍🍳
             </div>
         );
     }
 
-    // Loading state (optional)
+    // Loading state
     if (loadingPhoto) {
-        return (
-            <div className="flex items-center p-2">
-                <div className="w-12 h-12 rounded-full bg-slate-200 animate-pulse" />
-            </div>
-        );
+        return <div className={`${sizeClassName} ${className} ${ringClass} rounded-full bg-slate-200 animate-pulse`} />;
     }
 
     // Logged in
     return (
-        <div className="flex items-center p-2">
+        <div className={`${sizeClassName} ${className} ${ringClass} rounded-full overflow-hidden`}>
             {profilePhoto ? (
-                <img
-                    src={profilePhoto}
-                    alt={user.displayName || 'Profile'}
-                    className="w-12 h-12 rounded-full object-cover"
-                />
+                <img src={profilePhoto} alt={user.displayName || 'Profile'} className="w-full h-full object-cover" />
             ) : (
-                <div className="w-12 h-12 rounded-full bg-slate-100 grid place-items-center">
-                    🧑‍🍳
-                </div>
+                <div className="w-full h-full bg-slate-100 grid place-items-center">🧑‍🍳</div>
             )}
         </div>
     );

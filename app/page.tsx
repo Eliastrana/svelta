@@ -187,7 +187,7 @@ const Home: React.FC = () => {
                 )}
             </div>
 
-            <div className="text-xl text-center">
+            <div className="text-xl text-center flex flex-col items-center justify-center mt-20 mb-10 text-slate-600">
                 Vet du fortsatt ikke hva du vil ha?
 
                 <button
@@ -196,7 +196,7 @@ const Home: React.FC = () => {
                     className="mt-4 inline-flex items-center gap-2 rounded-full px-5 py-2 bg-cyan-100 hover:bg-cyan-200 transition"
                 >
                     <span className="material-symbols-outlined">skillet</span>
-                    Anbefal meg noe
+                    Spør kokken
                 </button>
             </div>
         </div>

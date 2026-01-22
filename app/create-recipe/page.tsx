@@ -200,6 +200,7 @@ const CreateRecipe = () => {
 
     const [temperature, setTemperature] = useState('');
     const [cookingTime, setCookingTime] = useState('');
+    const [portions, setPortions] = useState('');
 
     const router = useRouter();
 
@@ -223,6 +224,7 @@ const CreateRecipe = () => {
             newIngredientAmount?: string;
             temperature?: string;
             cookingTime?: string;
+            portions?: string;
             coverImagePreview?: string | null;
         } = JSON.parse(savedData);
 
@@ -233,6 +235,8 @@ const CreateRecipe = () => {
         setFontStyle(formData.fontStyle || 'sans-serif');
         setTemperature(formData.temperature || '');
         setCookingTime(formData.cookingTime || '');
+        setPortions(formData.portions || '');
+
         setCoverImagePreview(formData.coverImagePreview || null);
 
         // steps
@@ -272,6 +276,7 @@ const CreateRecipe = () => {
             newIngredientAmount,
             temperature,
             cookingTime,
+            portions,
             coverImagePreview,
         };
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(formData));
@@ -287,6 +292,7 @@ const CreateRecipe = () => {
         newIngredientAmount,
         temperature,
         cookingTime,
+        portions,
         coverImagePreview,
     ]);
 
@@ -419,6 +425,7 @@ const CreateRecipe = () => {
 
                 temperature,
                 cookingTime,
+                portions,
                 userId: user.uid,
                 createdAt: serverTimestamp(),
                 coverImage: coverImageUrl,
@@ -521,15 +528,6 @@ const CreateRecipe = () => {
                             <div className="flex items-center justify-between mb-3">
                                 <h2 className="text-base font-semibold text-slate-900">Ingredienser</h2>
 
-                                <button
-                                    type="button"
-                                    onClick={handleAddIngredient}
-                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition disabled:opacity-50"
-                                    disabled={!newIngredientName.trim()}
-                                >
-                                    <span className="material-symbols-outlined text-base">add</span>
-                                    Legg til
-                                </button>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -578,8 +576,18 @@ const CreateRecipe = () => {
                                 </p>
                             )}
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
-                                <div>
+                            <button
+                                type="button"
+                                onClick={handleAddIngredient}
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition disabled:opacity-50 mt-2"
+                                disabled={!newIngredientName.trim()}
+                            >
+                                <span className="material-symbols-outlined text-base">add</span>
+                                Legg til
+                            </button>
+
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">                                <div>
                                     <label className="block text-sm font-semibold text-slate-900 mb-2">Temperatur</label>
                                     <input
                                         type="text"
@@ -600,6 +608,16 @@ const CreateRecipe = () => {
                                         className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                                     />
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-900 mb-2">Porsjoner</label>
+                                    <input
+                                        type="text"
+                                        placeholder="f.eks. 4"
+                                        value={portions}
+                                        onChange={(e) => setPortions(e.target.value)}
+                                        className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -607,14 +625,6 @@ const CreateRecipe = () => {
                         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                             <div className="flex items-center justify-between mb-3">
                                 <h2 className="text-base font-semibold text-slate-900">Steg</h2>
-                                <button
-                                    type="button"
-                                    onClick={handleAddStep}
-                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition"
-                                >
-                                    <span className="material-symbols-outlined text-base">add</span>
-                                    Legg til
-                                </button>
                             </div>
 
                             <SortableContext items={cookingSteps.map((s) => s.id)} strategy={verticalListSortingStrategy}>
@@ -636,6 +646,15 @@ const CreateRecipe = () => {
                                     )}
                                 </div>
                             </SortableContext>
+
+                            <button
+                                type="button"
+                                onClick={handleAddStep}
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition mt-2"
+                            >
+                                <span className="material-symbols-outlined text-base">add</span>
+                                Legg til
+                            </button>
 
                         </div>
                     </DndContext>

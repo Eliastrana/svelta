@@ -11,4 +11,5 @@ export interface RecipeData {
     temperature?: string;
     cookingTime?: string;
     coverImage?: string;
+    portions?: string;
 }

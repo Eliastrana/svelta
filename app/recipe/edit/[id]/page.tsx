@@ -37,6 +37,7 @@ type IngredientItem = {
 type RecipeDoc = RecipeData & {
     // ny struktur (kan mangle i eldre docs)
     ingredientsDetailed?: IngredientItem[];
+    portions?: string;
 };
 
 type DraftPayload = {
@@ -46,6 +47,7 @@ type DraftPayload = {
     // ny
     ingredientsDetailed?: IngredientItem[];
 
+    portions?: string;
     temperature?: string;
     cookingTime?: string;
 
@@ -92,6 +94,8 @@ function isMeaningfulDraft(draft: DraftPayload): boolean {
 
     const temperature = (draft.temperature ?? draft.recipeData?.temperature ?? '').trim();
     const cookingTime = (draft.cookingTime ?? draft.recipeData?.cookingTime ?? '').trim();
+    const portions = (draft.portions ?? draft.recipeData?.portions ?? '').trim();
+
 
     const coverPreview = draft.coverImagePreview ?? null;
     const usablePreview = coverPreview && !coverPreview.startsWith('blob:');
@@ -103,6 +107,7 @@ function isMeaningfulDraft(draft: DraftPayload): boolean {
         steps.length > 0 ||
         temperature ||
         cookingTime ||
+        portions ||
         usablePreview,
     );
 }
@@ -289,6 +294,7 @@ const EditRecipePage: React.FC = () => {
 
     const [temperature, setTemperature] = useState('');
     const [cookingTime, setCookingTime] = useState('');
+    const [portions, setPortions] = useState('');
 
     const [cookingSteps, setCookingSteps] = useState<StepWithId[]>([]);
 
@@ -366,6 +372,7 @@ const EditRecipePage: React.FC = () => {
 
             setTemperature(draft.temperature ?? draft.recipeData?.temperature ?? '');
             setCookingTime(draft.cookingTime ?? draft.recipeData?.cookingTime ?? '');
+            setPortions(draft.portions ?? draft.recipeData?.portions ?? '');
 
             const loadedSteps = draft.cookingSteps ?? [];
             setCookingSteps(loadedSteps.map((s) => ({ ...s, id: s.id || makeId() })));
@@ -417,6 +424,7 @@ const EditRecipePage: React.FC = () => {
 
                     setTemperature(data.temperature ?? '');
                     setCookingTime(data.cookingTime ?? '');
+                    setPortions(data.portions ?? '');
 
                     const steps = (data.cookingSteps ?? []).map((s) => ({ ...s, id: makeId() }));
                     setCookingSteps(steps);
@@ -450,7 +458,6 @@ const EditRecipePage: React.FC = () => {
         const payload: DraftPayload = {
             recipeData: {
                 ...recipeData,
-                // legacy: bare navn
                 ingredients: ingredientsDetailed.map((x) => x.name).filter(Boolean),
                 temperature,
                 cookingTime,
@@ -459,13 +466,13 @@ const EditRecipePage: React.FC = () => {
                     description: s.description,
                 })),
             },
-            // ny
             ingredientsDetailed,
-            // legacy også (hjelper hvis andre deler fortsatt leser ingredients)
             ingredients: ingredientsDetailed.map((x) => x.name).filter(Boolean),
 
+            portions,
             temperature,
             cookingTime,
+
             cookingSteps,
             newIngredientName,
             newIngredientAmount,
@@ -482,6 +489,7 @@ const EditRecipePage: React.FC = () => {
         temperature,
         cookingTime,
         cookingSteps,
+        portions,
         newIngredientName,
         newIngredientAmount,
     ]);
@@ -571,6 +579,7 @@ const EditRecipePage: React.FC = () => {
 
                 temperature,
                 cookingTime,
+                portions,
                 cookingSteps: stepsForDb,
                 coverImage: coverImageUrl,
                 updatedAt: serverTimestamp(),
@@ -586,7 +595,7 @@ const EditRecipePage: React.FC = () => {
     if (loading) return <div className="p-4">Laster inn oppskrift...</div>;
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen">
             <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
                 <div className="mx-auto max-w-xl px-4 py-3 flex items-center justify-between">
                     <button
@@ -734,8 +743,7 @@ const EditRecipePage: React.FC = () => {
                             </DndContext>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
-                            <div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 ">                            <div>
                                 <label className="block text-sm font-semibold text-slate-900 mb-2">Temperatur</label>
                                 <input
                                     type="text"
@@ -756,7 +764,19 @@ const EditRecipePage: React.FC = () => {
                                     className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                                 />
                             </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-900 mb-2">Porsjoner</label>
+                                <input
+                                    type="text"
+                                    placeholder="f.eks. 4"
+                                    value={portions}
+                                    onChange={(e) => setPortions(e.target.value)}
+                                    className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                />
+                            </div>
+
                         </div>
+
                     </div>
 
                     {/* Steps */}
