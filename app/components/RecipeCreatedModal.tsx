@@ -167,7 +167,7 @@ export type RecipeCreatedModalProps = {
     onOpenRecipe?: () => void;
 };
 
-const RecipeCreatedModal: React.FC<RecipeCreatedModalProps> = ({ recipeId, onClose, onOpenRecipe }) => {
+const RecipeCreatedModal: React.FC<RecipeCreatedModalProps> = ({ recipeId, onClose }) => {
     const [open, setOpen] = useState(false);
     const [closing, setClosing] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -219,10 +219,7 @@ const RecipeCreatedModal: React.FC<RecipeCreatedModalProps> = ({ recipeId, onClo
         }
     };
 
-    const handleOpen = () => {
-        if (onOpenRecipe) onOpenRecipe();
-        else window.location.assign(recipeUrl);
-    };
+
 
     return (
         <>
@@ -256,7 +253,7 @@ const RecipeCreatedModal: React.FC<RecipeCreatedModalProps> = ({ recipeId, onClo
                                     Gratulerer med din nye oppskrift 🎉
                                 </h3>
                                 <p className="text-sm text-slate-600 mt-1">
-                                    Del den med en venn – link kopieres med ett klikk.
+                                    Dette så vanvittig godt ut – del den med en venn!
                                 </p>
                             </div>
 
@@ -271,10 +268,7 @@ const RecipeCreatedModal: React.FC<RecipeCreatedModalProps> = ({ recipeId, onClo
                             </button>
                         </div>
 
-                        <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
-                            <p className="text-xs text-slate-500 mb-1">Lenke</p>
-                            <p className="text-sm text-slate-800 break-all">{recipeUrl}</p>
-                        </div>
+
 
                         <div className="mt-4 flex gap-2">
                             <button
@@ -282,16 +276,10 @@ const RecipeCreatedModal: React.FC<RecipeCreatedModalProps> = ({ recipeId, onClo
                                 onClick={() => void copyLink()}
                                 className="flex-1 rounded-full py-2 font-semibold shadow-sm brown-button hover:opacity-95 active:scale-[0.99] transition"
                             >
-                                {copied ? 'Kopiert!' : 'Del (kopier link)'}
+                                {copied ? 'Kopiert!' : 'Del'}
                             </button>
 
-                            <button
-                                type="button"
-                                onClick={handleOpen}
-                                className="px-4 rounded-full py-2 font-semibold bg-slate-100 hover:bg-slate-200 transition"
-                            >
-                                Åpne
-                            </button>
+
                         </div>
 
                         <button
@@ -299,7 +287,7 @@ const RecipeCreatedModal: React.FC<RecipeCreatedModalProps> = ({ recipeId, onClo
                             onClick={closeWithAnim}
                             className="mt-3 w-full rounded-full py-2 font-semibold bg-white border border-slate-200 hover:bg-slate-50 transition"
                         >
-                            Ferdig
+                            Se oppskriften
                         </button>
                     </div>
                 </div>

@@ -199,6 +199,8 @@ const CreateRecipe = () => {
     const [cookingTime, setCookingTime] = useState('');
     const [portions, setPortions] = useState('');
 
+    const [publishing, setPublishing] = useState(false);
+
     const router = useRouter();
 
     // ✅ success modal state
@@ -373,31 +375,35 @@ const CreateRecipe = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (publishing) return; // ✅ blokker dobbeltklikk / dobbel submit
+
         const user = auth.currentUser;
         if (!user) return alert('Please sign in first.');
         if (!trimmedTitle) return;
 
-        let coverImageUrl = '';
-        if (coverImageFile) {
-            const imageRef = ref(storage, `recipe-covers/${user.uid}-${Date.now()}-${coverImageFile.name}`);
-            const snapshot = await uploadBytes(imageRef, coverImageFile);
-            coverImageUrl = await getDownloadURL(snapshot.ref);
-        }
-
-        const stepsForDb: CookingStep[] = cookingSteps.map((s) => ({
-            title: s.title,
-            description: s.description,
-        }));
-
-        const ingredientsDetailedForDb: Ingredient[] = ingredients
-            .map((i) => ({ name: i.name.trim(), amount: i.amount.trim() }))
-            .filter((i) => i.name.length > 0);
-
-        const ingredientsStringsForDb: string[] = ingredientsDetailedForDb
-            .map((i) => `${i.amount} ${i.name}`.trim())
-            .filter(Boolean);
+        setPublishing(true);
 
         try {
+            let coverImageUrl = '';
+            if (coverImageFile) {
+                const imageRef = ref(storage, `recipe-covers/${user.uid}-${Date.now()}-${coverImageFile.name}`);
+                const snapshot = await uploadBytes(imageRef, coverImageFile);
+                coverImageUrl = await getDownloadURL(snapshot.ref);
+            }
+
+            const stepsForDb: CookingStep[] = cookingSteps.map((s) => ({
+                title: s.title,
+                description: s.description,
+            }));
+
+            const ingredientsDetailedForDb: Ingredient[] = ingredients
+                .map((i) => ({ name: i.name.trim(), amount: i.amount.trim() }))
+                .filter((i) => i.name.length > 0);
+
+            const ingredientsStringsForDb: string[] = ingredientsDetailedForDb
+                .map((i) => `${i.amount} ${i.name}`.trim())
+                .filter(Boolean);
+
             const docRef = await addDoc(collection(firestore, 'recipes'), {
                 title,
                 description,
@@ -418,11 +424,10 @@ const CreateRecipe = () => {
             });
 
             localStorage.removeItem(LOCAL_STORAGE_KEY);
-
-            // ✅ show modal instead of immediate redirect
             setCreatedRecipeId(docRef.id);
         } catch (error) {
             console.error('Error adding recipe:', error);
+            setPublishing(false); // ✅ bare re-enable hvis det feiler
         }
     };
 
@@ -456,9 +461,21 @@ const CreateRecipe = () => {
                     <button
                         type="submit"
                         form="create-recipe-form"
-                        className="h-10 px-4 rounded-full brown-button text-sm font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition"
+                        disabled={publishing}
+                        className={[
+                            'h-10 px-4 rounded-full brown-button text-sm font-semibold shadow-sm transition',
+                            publishing ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95 active:scale-[0.99]',
+                        ].join(' ')}
                     >
-                        Publiser
+    <span className="inline-flex items-center gap-2">
+        {publishing ? (
+            <span
+                className="inline-block h-4 w-4 rounded-full border-2 border-white/60 border-t-white animate-spin"
+                aria-hidden="true"
+            />
+        ) : null}
+        {publishing ? 'Publiserer…' : 'Publiser'}
+    </span>
                     </button>
                 </div>
             </div>
@@ -657,9 +674,21 @@ const CreateRecipe = () => {
                     <div className="sm:hidden pt-2">
                         <button
                             type="submit"
-                            className="w-full rounded-full py-3 font-semibold shadow-lg brown-button hover:opacity-95 active:scale-[0.99] transition"
+                            disabled={publishing}
+                            className={[
+                                'w-full rounded-full py-3 font-semibold shadow-lg brown-button transition',
+                                publishing ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95 active:scale-[0.99]',
+                            ].join(' ')}
                         >
-                            Publiser
+    <span className="inline-flex items-center justify-center gap-2">
+        {publishing ? (
+            <span
+                className="inline-block h-5 w-5 rounded-full border-2 border-white/60 border-t-white animate-spin"
+                aria-hidden="true"
+            />
+        ) : null}
+        {publishing ? 'Publiserer…' : 'Publiser'}
+    </span>
                         </button>
                     </div>
                 </form>

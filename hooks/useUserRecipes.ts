@@ -1,14 +1,8 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import { firestore } from '@/firebase';
-import {
-    collection,
-    query,
-    where,
-    orderBy,
-    onSnapshot,
-    getCountFromServer,
-} from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { Recipe } from '@/app/types/Recipe';
 
 export function useUserRecipes(userId: string): Recipe[] {
@@ -26,35 +20,27 @@ export function useUserRecipes(userId: string): Recipe[] {
             orderBy('createdAt', 'desc')
         );
 
-        // Since we need async calls for likes/comments, we use an async callback here.
-        const unsubscribe = onSnapshot(recipesQuery, async (snapshot) => {
-            // Fetch likeCount and commentCount for each doc in parallel.
-            const recipesData = await Promise.all(
-                snapshot.docs.map(async (docSnap) => {
-                    const data = docSnap.data() as Omit<
-                        Recipe,
-                        'id' | 'likeCount' | 'commentCount'
-                    >;
-                    const id = docSnap.id;
-
-                    const likesSnap = await getCountFromServer(
-                        collection(firestore, 'recipes', id, 'likes')
-                    );
-                    const commentsSnap = await getCountFromServer(
-                        collection(firestore, 'recipes', id, 'comments')
-                    );
+        const unsubscribe = onSnapshot(
+            recipesQuery,
+            (snapshot) => {
+                const recipesData: Recipe[] = snapshot.docs.map((docSnap) => {
+                    const data = docSnap.data() as Omit<Recipe, 'id'>;
 
                     return {
-                        id,
+                        id: docSnap.id,
                         ...data,
-                        likeCount: likesSnap.data().count,
-                        commentCount: commentsSnap.data().count,
-                    } as Recipe;
-                })
-            );
+                        likeCount: typeof data.likeCount === 'number' ? data.likeCount : 0,
+                        commentCount: typeof data.commentCount === 'number' ? data.commentCount : 0,
+                    };
+                });
 
-            setRecipes(recipesData);
-        });
+                setRecipes(recipesData);
+            },
+            (err) => {
+                console.error('useUserRecipes snapshot error:', err.code, err.message);
+                setRecipes([]);
+            }
+        );
 
         return () => unsubscribe();
     }, [userId]);
