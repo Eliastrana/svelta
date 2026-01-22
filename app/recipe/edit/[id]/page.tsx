@@ -1,15 +1,167 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, firestore, storage } from '@/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { RecipeData } from '@/app/types/RecipeData';
+import { CookingStep } from '@/app/types/CookingStep';
+
+import {
+    DndContext,
+    PointerSensor,
+    KeyboardSensor,
+    closestCenter,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    useSortable,
+    verticalListSortingStrategy,
+    arrayMove,
+    sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+type StepWithId = CookingStep & { id: string };
+
+type DraftPayload = {
+    recipeData?: RecipeData;
+    ingredients?: string[];
+    temperature?: string;
+    cookingTime?: string;
+    cookingSteps?: StepWithId[];
+    newIngredient?: string;
+    // NB: blob:-preview funker ikke etter reload, så vi ignorerer den ved hydration
+    coverImagePreview?: string | null;
+};
+
+const makeId = (): string =>
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+function isMeaningfulDraft(draft: DraftPayload): boolean {
+    const title = draft.recipeData?.title?.trim() ?? '';
+    const desc = draft.recipeData?.description?.trim() ?? '';
+
+    const ingredients =
+        draft.ingredients ??
+        draft.recipeData?.ingredients ??
+        [];
+
+    const steps =
+        draft.cookingSteps ??
+        (draft.recipeData?.cookingSteps ?? []).map((s) => ({ ...s, id: makeId() }));
+
+    const temperature =
+        (draft.temperature ?? draft.recipeData?.temperature ?? '').trim();
+
+    const cookingTime =
+        (draft.cookingTime ?? draft.recipeData?.cookingTime ?? '').trim();
+
+    const coverPreview = draft.coverImagePreview ?? null;
+    const usablePreview = coverPreview && !coverPreview.startsWith('blob:'); // blob er ubrukelig etter reload
+
+    return Boolean(
+        title ||
+        desc ||
+        ingredients.length > 0 ||
+        steps.length > 0 ||
+        temperature ||
+        cookingTime ||
+        usablePreview,
+    );
+}
+
+function SortableStepCard(props: {
+    step: StepWithId;
+    index: number;
+    onChange: (stepId: string, field: 'title' | 'description', value: string) => void;
+    onRemove: (stepId: string) => void;
+}) {
+    const { step, index, onChange, onRemove } = props;
+
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: step.id,
+    });
+
+    const style: React.CSSProperties = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`rounded-2xl border border-slate-200 p-3 bg-white ${
+                isDragging ? 'shadow-lg ring-2 ring-slate-200' : ''
+            }`}
+        >
+            <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                        <button
+                            type="button"
+                            className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition cursor-grab active:cursor-grabbing"
+                            aria-label="Dra for å flytte steg"
+                            {...attributes}
+                            {...listeners}
+                        >
+                            <span className="material-symbols-outlined text-slate-600">drag_indicator</span>
+                        </button>
+
+                        <label className="block text-sm font-semibold text-slate-900">
+                            Steg {index + 1} – tittel
+                        </label>
+                    </div>
+
+                    <input
+                        type="text"
+                        placeholder="f.eks. Forvarm ovnen"
+                        value={step.title}
+                        onChange={(e) => onChange(step.id, 'title', e.target.value)}
+                        className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                        required
+                    />
+
+                    <label className="block text-sm font-semibold text-slate-900 mt-3 mb-2">Beskrivelse</label>
+                    <textarea
+                        placeholder="Hva gjør man her?"
+                        value={step.description}
+                        onChange={(e) => onChange(step.id, 'description', e.target.value)}
+                        className="w-full min-h-[90px] p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                        required
+                    />
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => onRemove(step.id)}
+                    className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition"
+                    aria-label="Slett steg"
+                >
+                    <span className="material-symbols-outlined text-slate-600">delete</span>
+                </button>
+            </div>
+        </div>
+    );
+}
 
 const EditRecipePage: React.FC = () => {
     const params = useParams();
     const recipeId = Array.isArray(params.id) ? params.id[0] : params.id;
     const router = useRouter();
+
+    const LOCAL_STORAGE_KEY = recipeId ? `editRecipeForm_${recipeId}` : 'editRecipeForm';
+
+    const [loading, setLoading] = useState(true);
+    const [draftChecked, setDraftChecked] = useState(false);
+    const hasFetched = useRef(false);
 
     const [recipeData, setRecipeData] = useState<RecipeData>({
         title: '',
@@ -23,159 +175,237 @@ const EditRecipePage: React.FC = () => {
         cookingTime: '',
         coverImage: '',
     });
-    const [loading, setLoading] = useState(true);
+
     const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
     const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+
     const [newIngredient, setNewIngredient] = useState('');
+    const [ingredients, setIngredients] = useState<string[]>([]);
+    const [temperature, setTemperature] = useState('');
+    const [cookingTime, setCookingTime] = useState('');
 
-    // Use a key specific to this recipe's edit form.
-    const LOCAL_STORAGE_KEY = recipeId ? `editRecipeForm_${recipeId}` : 'editRecipeForm';
+    const [cookingSteps, setCookingSteps] = useState<StepWithId[]>([]);
 
-    const hasFetched = React.useRef(false);
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    );
 
-    // Fetch recipe data from Firestore if not already fetched.
-    useEffect(() => {
-        if (!recipeId || hasFetched.current) return;
-        const fetchRecipe = async () => {
-            const recipeDocRef = doc(firestore, 'recipes', recipeId);
-            const recipeSnap = await getDoc(recipeDocRef);
-            if (recipeSnap.exists()) {
-                const data = recipeSnap.data() as RecipeData;
-                setRecipeData((prev) => {
-                    // Only update if there is a meaningful difference.
-                    if (prev.title !== data.title || prev.description !== data.description) {
-                        return data;
-                    }
-                    return prev;
-                });
-            }
-            setLoading(false);
-            hasFetched.current = true;
-        };
-        fetchRecipe();
-    }, [recipeId]);
+    const onDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
 
-    // Load persisted form state from localStorage on mount.
-    useEffect(() => {
-        if (!recipeId) return;
-        const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (savedData) {
-            const formData = JSON.parse(savedData);
-            if (formData.recipeData) {
-                setRecipeData(formData.recipeData);
-            }
-            if (formData.newIngredient !== undefined) {
-                setNewIngredient(formData.newIngredient);
-            }
-            if (formData.coverImagePreview) {
-                setCoverImagePreview(formData.coverImagePreview);
-            }
-        }
-    }, [recipeId, LOCAL_STORAGE_KEY]);
-
-    // Persist form state (excluding Timestamp fields) to localStorage whenever a dependency changes.
-    useEffect(() => {
-        if (!recipeId) return;
-        const formData = {
-            recipeData,
-            newIngredient,
-            coverImagePreview,
-        };
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(formData));
-    }, [recipeId, recipeData, newIngredient, coverImagePreview, LOCAL_STORAGE_KEY]);
-
-    const handleChange = (field: keyof RecipeData, value: string) => {
-        setRecipeData((prev) => ({ ...prev, [field]: value }));
-    };
-
-    const handleAddIngredient = () => {
-        if (newIngredient.trim()) {
-            setRecipeData((prev) => ({
-                ...prev,
-                ingredients: [...(prev.ingredients || []), newIngredient.trim()],
-            }));
-            setNewIngredient('');
-        }
-    };
-
-    const handleRemoveIngredient = (index: number) => {
-        setRecipeData((prev) => ({
-            ...prev,
-            ingredients: (prev.ingredients || []).filter((_, idx) => idx !== index),
-        }));
-    };
-
-    // --- Cooking Steps Handlers ---
-    const handleAddCookingStep = () => {
-        setRecipeData((prev) => ({
-            ...prev,
-            cookingSteps: [...prev.cookingSteps, { title: '', description: '' }],
-        }));
-    };
-
-    const handleCookingStepChange = (
-        index: number,
-        field: 'title' | 'description',
-        value: string
-    ) => {
-        setRecipeData((prev) => {
-            const updatedSteps = prev.cookingSteps.map((step, idx) =>
-                idx === index ? { ...step, [field]: value } : step
-            );
-            return { ...prev, cookingSteps: updatedSteps };
+        setCookingSteps((prev) => {
+            const oldIndex = prev.findIndex((s) => s.id === active.id);
+            const newIndex = prev.findIndex((s) => s.id === over.id);
+            if (oldIndex === -1 || newIndex === -1) return prev;
+            return arrayMove(prev, oldIndex, newIndex);
         });
     };
 
-    const handleRemoveCookingStep = (index: number) => {
-        setRecipeData((prev) => ({
-            ...prev,
-            cookingSteps: prev.cookingSteps.filter((_, idx) => idx !== index),
-        }));
-    };
-    // -------------------------------
+    // 1) Sjekk localStorage først. Hvis draft er tom → slett den.
+    useEffect(() => {
+        if (!recipeId) return;
 
-    // Drag & drop style image uploader.
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setCoverImageFile(file);
-            const previewUrl = URL.createObjectURL(file);
-            setCoverImagePreview(previewUrl);
+        const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (!raw) {
+            setDraftChecked(true);
+            return;
         }
-    };
 
-    // Clean up the object URL when the preview changes or component unmounts.
+        try {
+            const draft = JSON.parse(raw) as DraftPayload;
+
+            if (!isMeaningfulDraft(draft)) {
+                localStorage.removeItem(LOCAL_STORAGE_KEY);
+                setDraftChecked(true);
+                return;
+            }
+
+            // Hydrate fra draft (bruker ønsker “fortsett der jeg slapp”)
+            if (draft.recipeData) {
+                setRecipeData(draft.recipeData);
+            }
+
+            const ing = draft.ingredients ?? draft.recipeData?.ingredients ?? [];
+            setIngredients(ing);
+
+            setTemperature(draft.temperature ?? draft.recipeData?.temperature ?? '');
+            setCookingTime(draft.cookingTime ?? draft.recipeData?.cookingTime ?? '');
+
+            const loadedSteps = draft.cookingSteps ?? [];
+            setCookingSteps(
+                loadedSteps.map((s) => ({ ...s, id: s.id || makeId() })),
+            );
+
+            setNewIngredient(draft.newIngredient ?? '');
+
+            // blob preview er ubrukelig etter reload — ignorer den
+            const prev = draft.coverImagePreview ?? null;
+            setCoverImagePreview(prev && !prev.startsWith('blob:') ? prev : null);
+
+            setDraftChecked(true);
+            setLoading(false);
+        } catch {
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+            setDraftChecked(true);
+        }
+    }, [recipeId, LOCAL_STORAGE_KEY]);
+
+    // 2) Når draft er sjekket: hent fra Firestore hvis vi ikke allerede har et gyldig draft som fyller ting.
+    useEffect(() => {
+        if (!recipeId) return;
+        if (!draftChecked) return;
+        if (hasFetched.current) return;
+
+        const fetchRecipe = async () => {
+            try {
+                const recipeSnap = await getDoc(doc(firestore, 'recipes', recipeId));
+                if (!recipeSnap.exists()) return;
+
+                const data = recipeSnap.data() as RecipeData;
+
+                // Hvis vi fortsatt er tomme (ingen draft / slettet draft), hydrate fra DB
+                const alreadyHasTitle = (recipeData.title ?? '').trim().length > 0;
+                if (!alreadyHasTitle) {
+                    setRecipeData(data);
+                    setIngredients(data.ingredients ?? []);
+                    setTemperature(data.temperature ?? '');
+                    setCookingTime(data.cookingTime ?? '');
+
+                    const steps = (data.cookingSteps ?? []).map((s) => ({ ...s, id: makeId() }));
+                    setCookingSteps(steps);
+
+                    // hvis vi ikke har preview valgt lokalt, vis coverImage fra db
+                    setCoverImagePreview(null);
+                }
+            } finally {
+                setLoading(false);
+                hasFetched.current = true;
+            }
+        };
+
+        void fetchRecipe();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [recipeId, draftChecked]);
+
+    // Rydd opp object URL preview når du velger nytt bilde i samme session
     useEffect(() => {
         return () => {
-            if (coverImagePreview) {
+            if (coverImagePreview && coverImagePreview.startsWith('blob:')) {
                 URL.revokeObjectURL(coverImagePreview);
             }
         };
     }, [coverImagePreview]);
 
+    // Persist draft (MEN: ikke lagre blob preview i localStorage)
+    useEffect(() => {
+        if (!recipeId) return;
+        if (!draftChecked) return;
+
+        const payload: DraftPayload = {
+            recipeData: {
+                ...recipeData,
+                ingredients,
+                temperature,
+                cookingTime,
+                cookingSteps: cookingSteps.map((s) => ({
+                    title: s.title,
+                    description: s.description,
+                })),
+            },
+            ingredients,
+            temperature,
+            cookingTime,
+            cookingSteps,
+            newIngredient,
+            coverImagePreview: null, // blob preview kan ikke gjenbrukes etter reload
+        };
+
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
+    }, [
+        recipeId,
+        LOCAL_STORAGE_KEY,
+        draftChecked,
+        recipeData,
+        ingredients,
+        temperature,
+        cookingTime,
+        cookingSteps,
+        newIngredient,
+    ]);
+
+    const setTitle = (v: string) => setRecipeData((p) => ({ ...p, title: v }));
+    const setDescription = (v: string) => setRecipeData((p) => ({ ...p, description: v }));
+
+    const handleAddIngredient = () => {
+        const trimmed = newIngredient.trim();
+        if (!trimmed) return;
+        setIngredients((prev) => [...prev, trimmed]);
+        setNewIngredient('');
+    };
+
+    const handleRemoveIngredient = (index: number) => {
+        setIngredients((prev) => prev.filter((_, idx) => idx !== index));
+    };
+
+    const handleAddStep = () => {
+        setCookingSteps((prev) => [...prev, { id: makeId(), title: '', description: '' }]);
+    };
+
+    const handleStepChange = (stepId: string, field: 'title' | 'description', value: string) => {
+        setCookingSteps((prev) => prev.map((s) => (s.id === stepId ? { ...s, [field]: value } : s)));
+    };
+
+    const handleRemoveStep = (stepId: string) => {
+        setCookingSteps((prev) => prev.filter((s) => s.id !== stepId));
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setCoverImageFile(file);
+
+        // preview for denne session
+        const previewUrl = URL.createObjectURL(file);
+        setCoverImagePreview(previewUrl);
+    };
+
+    const trimmedTitle = useMemo(() => (recipeData.title ?? '').trim(), [recipeData.title]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
         const user = auth.currentUser;
         if (!user) return alert('Please sign in first.');
+        if (!recipeId) return;
+        if (!trimmedTitle) return;
 
         let coverImageUrl = recipeData.coverImage || '';
+
         if (coverImageFile) {
-            const imageRef = ref(
-                storage,
-                `recipe-covers/${user.uid}-${Date.now()}-${coverImageFile.name}`
-            );
+            const imageRef = ref(storage, `recipe-covers/${user.uid}-${Date.now()}-${coverImageFile.name}`);
             const snapshot = await uploadBytes(imageRef, coverImageFile);
             coverImageUrl = await getDownloadURL(snapshot.ref);
         }
 
+        const stepsForDb: CookingStep[] = cookingSteps.map((s) => ({
+            title: s.title,
+            description: s.description,
+        }));
+
         try {
-            const recipeDocRef = doc(firestore, 'recipes', recipeId!);
-            await updateDoc(recipeDocRef, {
+            await updateDoc(doc(firestore, 'recipes', recipeId), {
                 ...recipeData,
+                ingredients,
+                temperature,
+                cookingTime,
+                cookingSteps: stepsForDb,
                 coverImage: coverImageUrl,
                 updatedAt: serverTimestamp(),
             });
-            // Clear persisted state after successful update.
+
             localStorage.removeItem(LOCAL_STORAGE_KEY);
             router.push(`/user/${user.uid}`);
         } catch (error) {
@@ -186,218 +416,202 @@ const EditRecipePage: React.FC = () => {
     if (loading) return <div className="p-4">Laster inn oppskrift...</div>;
 
     return (
-        <div className="max-w-lg mx-auto p-4">
-            <h2 className="text-4xl font-bold mb-4">Rediger oppskrift</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <input
-                    type="text"
-                    placeholder="Tittel"
-                    value={recipeData.title}
-                    onChange={(e) => handleChange('title', e.target.value)}
-                    className="w-full border-2 p-2 rounded"
-                    required
-                />
-                <textarea
-                    placeholder="Beskrivelse"
-                    value={recipeData.description}
-                    onChange={(e) => handleChange('description', e.target.value)}
-                    className="w-full border-2 p-2 rounded"
-                    required
-                />
-                {/* Uncomment if needed for SVG editing.
-        <div>
-          <h1 className="block text-xl mb-1">Tegn maten 👨‍🎨</h1>
-          <DrawingCanvas onChange={(svg) => handleChange('image', svg)} />
-          <p className="mt-2 text-sm">Nåværende bilde (fra DB):</p>
-          <div className="border" dangerouslySetInnerHTML={{ __html: recipeData.image }} />
-        </div>
-        */}
-                <div>
-                    <label className="block mb-2 text-xl font-bold">Forsidebilde</label>
-                    <div className="flex items-center justify-center w-full">
-                        <label
-                            className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#73628A] transition-all duration-200"
-                        >
-                            <span className="material-symbols-outlined">upload</span>
-                            <p className="mt-2 text-sm text-gray-600">
-                                Klikk eller dra og slipp bildet ditt her
-                            </p>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={handleImageChange}
-                            />
-                        </label>
-                    </div>
-                    {coverImagePreview ? (
-                        <div className="mt-4">
-                            <img
-                                src={coverImagePreview}
-                                alt="Cover Preview"
-                                className="w-full max-h-60 object-contain rounded"
-                            />
-                        </div>
-                    ) : recipeData.coverImage ? (
-                        <div className="mt-2">
-                            <img
-                                src={recipeData.coverImage}
-                                alt="Cover"
-                                className="w-full rounded"
-                            />
-                        </div>
-                    ) : null}
-                </div>
-                <div>
-                    <h2 className="block font-bold mb-1 text-xl">Bakgrunnsfarge</h2>
-                    <div className="flex flex-wrap gap-4">
-                        {['#ffffff', '#d5d0dc', '#9d91ad', '#d89cf6', '#f6c3e5'].map(
-                            (color) => (
-                                <label key={color} className="cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="bgColor"
-                                        value={color}
-                                        checked={recipeData.bgColor === color}
-                                        onChange={() => handleChange('bgColor', color)}
-                                        className="sr-only"
-                                    />
-                                    <div
-                                        className={`w-12 h-12 border-2 rounded-full transition ${
-                                            recipeData.bgColor === color ? 'ring-2' : ''
-                                        }`}
-                                        style={{ backgroundColor: color }}
-                                    />
-                                </label>
-                            )
-                        )}
-                    </div>
-                </div>
-                <div>
-                    <h1 className="block mb-1 text-xl">Font</h1>
-                    <select
-                        value={recipeData.fontStyle}
-                        onChange={(e) => handleChange('fontStyle', e.target.value)}
-                        className="w-full border-2 p-2 rounded"
-                        style={{ fontFamily: recipeData.fontStyle }}
+        <div className="min-h-screen bg-slate-50">
+            <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
+                <div className="mx-auto max-w-xl px-4 py-3 flex items-center justify-between">
+                    <button
+                        onClick={() => router.back()}
+                        className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100"
+                        aria-label="Tilbake"
+                        type="button"
                     >
-                        {[
-                            { name: 'Raleway', value: "'Raleway', sans-serif" },
-                            { name: 'Righteous', value: "'Righteous', cursive" },
-                            { name: 'Playfair Display', value: "'Playfair Display', serif" },
-                            { name: 'Roboto Mono', value: "'Roboto Mono', monospace" },
-                            { name: 'Lobster', value: "'Lobster', cursive" },
-                        ].map((font) => (
-                            <option key={font.name} value={font.value} style={{ fontFamily: font.value }}>
-                                {font.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                        <span className="material-symbols-outlined">arrow_back</span>
+                    </button>
 
-                {/* Ingredients Section */}
-                <div>
-                    <h2 className="text-xl font-bold mb-2">Ingredienser</h2>
-                    <div className="flex space-x-2 mb-2">
-                        <input
-                            type="text"
-                            placeholder="Legg til ingrediens..."
-                            value={newIngredient}
-                            onChange={(e) => setNewIngredient(e.target.value)}
-                            className="flex-grow border p-2 rounded"
-                        />
-                        <button
-                            type="button"
-                            onClick={handleAddIngredient}
-                            className="px-4 py-2 confirm-button rounded"
-                        >
-                            Legg til
-                        </button>
-                    </div>
-                    {recipeData.ingredients && recipeData.ingredients.length > 0 && (
-                        <ul className="list-disc pl-5 mb-4">
-                            {recipeData.ingredients.map((ing, idx) => (
-                                <li key={idx} className="flex items-center space-x-2">
-                                    <span>{ing}</span>
-                                    <button type="button" onClick={() => handleRemoveIngredient(idx)}>
-                                        <span className="material-symbols-outlined">delete</span>
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                    <div className="mb-4">
-                        <label className="block mb-1 font-bold text-xl">Temperatur</label>
-                        <input
-                            type="text"
-                            placeholder="f.eks. 200°C"
-                            value={recipeData.temperature}
-                            onChange={(e) => handleChange('temperature', e.target.value)}
-                            className="w-full border-2 p-2 rounded"
-                        />
-                    </div>
-                    <div className="mb-4">
-                        <label className="block font-bold mb-1 text-xl">Koketid</label>
-                        <input
-                            type="text"
-                            placeholder="f.eks. 45 minutter"
-                            value={recipeData.cookingTime}
-                            onChange={(e) => handleChange('cookingTime', e.target.value)}
-                            className="w-full border-2 p-2 rounded"
-                        />
-                    </div>
-                </div>
+                    <h1 className="text-lg font-semibold text-slate-900">Rediger oppskrift</h1>
 
-                <div>
-                    <h2 className="text-xl mb-2">Steg</h2>
-                    {recipeData.cookingSteps.length > 0 &&
-                        recipeData.cookingSteps.map((step, index) => (
-                            <div key={index} className="border-2 p-2 mb-2 rounded">
-                                <input
-                                    type="text"
-                                    placeholder="Stegtittel"
-                                    value={step.title}
-                                    onChange={(e) =>
-                                        handleCookingStepChange(index, 'title', e.target.value)
-                                    }
-                                    className="w-full border p-2 rounded mb-2"
-                                    required
-                                />
-                                <textarea
-                                    placeholder="Stegbeskrivelse"
-                                    value={step.description}
-                                    onChange={(e) =>
-                                        handleCookingStepChange(index, 'description', e.target.value)
-                                    }
-                                    className="w-full border p-2 rounded mb-2"
-                                    required
-                                />
+                    <button
+                        type="submit"
+                        form="edit-recipe-form"
+                        className="h-10 px-4 rounded-full bg-slate-900 text-white text-sm font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition"
+                    >
+                        Lagre
+                    </button>
+                </div>
+            </div>
+
+            <div className="mx-auto max-w-xl px-4 py-6 pb-28">
+                <form id="edit-recipe-form" onSubmit={handleSubmit} className="space-y-4">
+                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                        <label className="block text-sm font-semibold text-slate-900 mb-2">Tittel</label>
+                        <input
+                            type="text"
+                            placeholder="f.eks. Verdens beste lasagne"
+                            value={recipeData.title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                            required
+                        />
+
+                        <label className="block text-sm font-semibold text-slate-900 mt-4 mb-2">Beskrivelse</label>
+                        <textarea
+                            placeholder="Kort og fristende…"
+                            value={recipeData.description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            className="w-full min-h-[120px] p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                            required
+                        />
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <h2 className="text-base font-semibold text-slate-900">Forsidebilde</h2>
+                            {(coverImagePreview || recipeData.coverImage) && (
                                 <button
                                     type="button"
-                                    onClick={() => handleRemoveCookingStep(index)}
-                                    className="py-1 px-2 rounded cursor-pointer"
+                                    onClick={() => {
+                                        setCoverImageFile(null);
+                                        setCoverImagePreview(null);
+                                        setRecipeData((p) => ({ ...p, coverImage: '' }));
+                                    }}
+                                    className="text-sm text-slate-600 hover:underline"
                                 >
-                                    <span className="material-symbols-outlined">delete</span>
+                                    Fjern
                                 </button>
-                            </div>
-                        ))}
-                    <button
-                        type="button"
-                        onClick={handleAddCookingStep}
-                        className="flex items-center px-4 py-2 confirm-button rounded"
-                    >
-                        <span className="material-symbols-outlined">add</span>
-                        <span className="ml-2">Legg til steg</span>
-                    </button>
-                </div>
+                            )}
+                        </div>
 
-                <div className="flex items-center confirm-button rounded-lg w-fit p-1 mb-2 justify-end cursor-pointer">
-                    <span className="material-symbols-outlined">upload</span>
-                    <button type="submit" className="p-2 rounded cursor-pointer">
-                        Oppdater
-                    </button>
-                </div>
-            </form>
+                        <label className="flex flex-col items-center justify-center w-full h-36 border border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 transition">
+                            <span className="material-symbols-outlined text-slate-700">upload</span>
+                            <p className="mt-2 text-sm text-slate-600">Klikk eller dra og slipp bildet ditt her</p>
+                            <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                        </label>
+
+                        {coverImagePreview ? (
+                            <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+                                <img src={coverImagePreview} alt="Cover Preview" className="w-full max-h-72 object-cover" />
+                            </div>
+                        ) : recipeData.coverImage ? (
+                            <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+                                <img src={recipeData.coverImage} alt="Cover" className="w-full max-h-72 object-cover" />
+                            </div>
+                        ) : null}
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                        <h2 className="text-base font-semibold text-slate-900 mb-3">Ingredienser</h2>
+
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                placeholder="Legg til ingrediens..."
+                                value={newIngredient}
+                                onChange={(e) => setNewIngredient(e.target.value)}
+                                className="flex-1 p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleAddIngredient();
+                                    }
+                                }}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleAddIngredient}
+                                className="px-4 rounded-2xl bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition disabled:opacity-50"
+                                disabled={!newIngredient.trim()}
+                            >
+                                Legg til
+                            </button>
+                        </div>
+
+                        {ingredients.length > 0 && (
+                            <ul className="mt-4 space-y-2">
+                                {ingredients.map((ing, idx) => (
+                                    <li
+                                        key={`${ing}-${idx}`}
+                                        className="flex items-center justify-between rounded-2xl border border-slate-200 px-3 py-2"
+                                    >
+                                        <span className="text-slate-800">{ing}</span>
+                                        <button type="button" onClick={() => handleRemoveIngredient(idx)}>
+                                            <span className="material-symbols-outlined text-slate-600">delete</span>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-900 mb-2">Temperatur</label>
+                                <input
+                                    type="text"
+                                    placeholder="f.eks. 200°C"
+                                    value={temperature}
+                                    onChange={(e) => setTemperature(e.target.value)}
+                                    className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-900 mb-2">Koketid</label>
+                                <input
+                                    type="text"
+                                    placeholder="f.eks. 45 minutter"
+                                    value={cookingTime}
+                                    onChange={(e) => setCookingTime(e.target.value)}
+                                    className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-base font-semibold text-slate-900">Steg</h2>
+                            <button
+                                type="button"
+                                onClick={handleAddStep}
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition"
+                            >
+                                <span className="material-symbols-outlined text-base">add</span>
+                                Legg til
+                            </button>
+                        </div>
+
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                            <SortableContext items={cookingSteps.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                                <div className="space-y-3">
+                                    {cookingSteps.map((step, index) => (
+                                        <SortableStepCard
+                                            key={step.id}
+                                            step={step}
+                                            index={index}
+                                            onChange={handleStepChange}
+                                            onRemove={handleRemoveStep}
+                                        />
+                                    ))}
+
+                                    {cookingSteps.length === 0 && (
+                                        <p className="text-slate-600">
+                                            Ingen steg ennå — trykk <span className="font-semibold">Legg til</span>.
+                                        </p>
+                                    )}
+                                </div>
+                            </SortableContext>
+                        </DndContext>
+                    </div>
+
+                    <div className="sm:hidden pt-2">
+                        <button
+                            type="submit"
+                            className="w-full rounded-full py-3 font-semibold text-white shadow-lg bg-slate-900 hover:opacity-95 active:scale-[0.99] transition"
+                        >
+                            Lagre
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };

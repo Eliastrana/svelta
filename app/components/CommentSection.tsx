@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     collection,
     query,
@@ -25,7 +25,7 @@ interface Comment {
     id: string;
     text: string;
     userId: string;
-    createdAt?: Timestamp; // ✅ optional because serverTimestamp resolves later
+    createdAt?: Timestamp;
 }
 
 interface UserDoc {
@@ -41,6 +41,9 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
     const [comments, setComments] = useState<Comment[]>([]);
     const [commentText, setCommentText] = useState('');
     const [usersMap, setUsersMap] = useState<Record<string, UserDoc>>({});
+    const [submitting, setSubmitting] = useState(false);
+
+    const canSubmit = useMemo(() => commentText.trim().length > 0 && !submitting, [commentText, submitting]);
 
     useEffect(() => {
         const commentsRef = collection(firestore, 'recipes', recipeId, 'comments');
@@ -90,19 +93,20 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
             return;
         }
 
-        const uid = user.uid;
-
-        if (commentText.trim() === '') return;
+        const text = commentText.trim();
+        if (!text || submitting) return;
 
         const recipeRef = doc(firestore, 'recipes', recipeId);
         const commentsRef = collection(firestore, 'recipes', recipeId, 'comments');
 
         try {
+            setSubmitting(true);
+
             await runTransaction(firestore, async (tx) => {
-                const newCommentRef = doc(commentsRef); // auto-id
+                const newCommentRef = doc(commentsRef);
                 tx.set(newCommentRef, {
-                    text: commentText,
-                    userId: uid,
+                    text,
+                    userId: user.uid,
                     createdAt: serverTimestamp(),
                 });
                 tx.update(recipeRef, { commentCount: increment(1) });
@@ -111,57 +115,77 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
             setCommentText('');
         } catch (error) {
             console.error('Error adding comment: ', error);
+        } finally {
+            setSubmitting(false);
         }
     };
 
-
     return (
-        <div className="mt-4 w-full mb-20">
-            <h2 className="text-lg font-semibold mb-2 text-slate-900">Kommentarer</h2>
+        <div className="w-full mt-6">
+            <h2 className="text-base font-semibold text-slate-900 mb-3">Kommentarer</h2>
 
-            <form onSubmit={handleAddComment} className="mb-4 flex items-center space-x-2">
+            {/* Composer */}
+            <form onSubmit={handleAddComment} className="flex items-center gap-2">
                 <input
                     type="text"
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder="Skriv en kommentar..."
-                    className="w-full p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                    className="flex-1 p-3 rounded-2xl bg-white shadow-sm
+                     focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
-                <button type="submit" className="px-3 py-2 confirm-button rounded-full">
+
+                <button
+                    type="submit"
+                    disabled={!canSubmit}
+                    className={[
+                        'h-12 w-12 grid place-items-center rounded-2xl shadow-sm transition',
+                        canSubmit
+                            ? 'bg-slate-900 text-white hover:opacity-95 active:scale-[0.98] cursor-pointer'
+                            : 'bg-slate-200 text-slate-500 cursor-not-allowed',
+                    ].join(' ')}
+                    aria-label="Send kommentar"
+                >
                     <span className="material-symbols-outlined">send</span>
                 </button>
             </form>
 
-            <div>
+            {/* Comments list */}
+            <div className="mt-4 space-y-3">
                 {comments.length === 0 ? (
                     <p className="text-slate-600">Vær den første til å kommentere!</p>
                 ) : (
                     comments.map((comment) => {
                         const userInfo = usersMap[comment.userId];
-
                         const timeText =
                             comment.createdAt instanceof Timestamp
                                 ? dayjs(comment.createdAt.toDate()).fromNow()
                                 : 'Akkurat nå';
 
                         return (
-                            <div key={comment.id} className="py-4 border-b border-slate-100 last:border-b-0">
-                                <div className="flex items-center space-x-2">
+                            <div key={comment.id} className="rounded-2xl bg-white shadow-sm p-3">
+                                <div className="flex items-start gap-3">
                                     {userInfo?.photoURL ? (
                                         <img
                                             src={userInfo.photoURL}
                                             alt={userInfo.name || 'User'}
-                                            className="w-16 h-16 rounded-full"
+                                            className="w-12 h-12 rounded-full object-cover"
                                         />
                                     ) : (
-                                        <div className="w-16 h-16 rounded-full bg-gray-400" />
+                                        <div className="w-12 h-12 rounded-full bg-slate-200" />
                                     )}
-                                    <div>
-                                        <h1 className="text-base font-semibold text-slate-900">
-                                            {userInfo?.name || 'Ukjent bruker'}
-                                        </h1>
-                                        <p className="text-xs text-slate-500">{timeText}</p>
-                                        <p className="mt-1 text-sm text-slate-700">{comment.text}</p>
+
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-sm font-semibold text-slate-900 truncate">
+                                                {userInfo?.name || 'Ukjent bruker'}
+                                            </h3>
+                                            <span className="text-xs text-slate-500 whitespace-nowrap">
+                        {timeText}
+                      </span>
+                                        </div>
+
+                                        <p className="mt-1 text-sm text-slate-700 break-words">{comment.text}</p>
                                     </div>
                                 </div>
                             </div>
@@ -169,6 +193,9 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                     })
                 )}
             </div>
+
+            {/* space for bottom navbar */}
+            <div className="h-20" />
         </div>
     );
 };

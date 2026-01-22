@@ -17,14 +17,49 @@ interface RecipeCardProps {
     onDelete?: (recipeId: string) => void;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({
-                                                   recipe,
-                                                   creator,
-                                                   isOwner = false,
-                                                   onDelete,
-                                               }) => {
+/**
+ * Use this where you want loading placeholders:
+ * <RecipeCard.Skeleton />
+ */
+const RecipeCardSkeleton: React.FC = () => {
+    return (
+        <div className="animate-pulse">
+            <div className="rounded-2xl bg-white shadow-sm overflow-hidden">
+                <div className="h-72 bg-slate-100" />
+            </div>
+
+            <div className="mt-4 space-y-2">
+                <div className="h-7 w-2/3 rounded-xl bg-slate-100" />
+                <div className="h-4 w-full rounded-xl bg-slate-100" />
+                <div className="h-4 w-5/6 rounded-xl bg-slate-100" />
+            </div>
+
+            <div className="mt-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <div className="h-10 w-10 rounded-full bg-slate-100" />
+                    <div className="space-y-2">
+                        <div className="h-4 w-28 rounded-xl bg-slate-100" />
+                        <div className="h-3 w-36 rounded-xl bg-slate-100" />
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <div className="h-5 w-12 rounded-xl bg-slate-100" />
+                    <div className="h-5 w-12 rounded-xl bg-slate-100" />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const RecipeCardComponent: React.FC<RecipeCardProps> = ({
+                                                            recipe,
+                                                            creator,
+                                                            isOwner = false,
+                                                            onDelete,
+                                                        }) => {
     const router = useRouter();
-    const userName  = creator?.name  || 'Ukjent brukernavn';
+    const userName = creator?.name || 'Ukjent brukernavn';
     const userPhoto = creator?.photoURL;
 
     /* fade-in ------------------------------------------------- */
@@ -32,18 +67,30 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     useEffect(() => setMounted(true), []);
 
     /* tooltip state ------------------------------------------ */
-    const [tip, setTip] = useState({ show: false, x: 0, y: 0 });
+    const [tip, setTip] = useState<{ show: boolean; x: number; y: number }>({
+        show: false,
+        x: 0,
+        y: 0,
+    });
+
     const handleEnter = (e: React.MouseEvent) =>
         setTip({ show: true, x: e.clientX, y: e.clientY });
-    const handleMove  = (e: React.MouseEvent) =>
-        setTip(prev => ({ ...prev, x: e.clientX, y: e.clientY }));
-    const handleLeave = () => setTip(prev => ({ ...prev, show: false }));
+
+    const handleMove = (e: React.MouseEvent) =>
+        setTip((prev) => ({ ...prev, x: e.clientX, y: e.clientY }));
+
+    const handleLeave = () => setTip((prev) => ({ ...prev, show: false }));
 
     /* navigation / owner edits -------------------------------- */
     const handleCardClick = () => router.push(`/recipe/${recipe.id}`);
-    const handleEdit   = (e: React.MouseEvent) => { e.stopPropagation(); router.push(`/recipe/edit/${recipe.id}`); };
-    const handleDelete = (e: React.MouseEvent) => { e.stopPropagation(); onDelete?.(recipe.id); };
-
+    const handleEdit = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        router.push(`/recipe/edit/${recipe.id}`);
+    };
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onDelete?.(recipe.id);
+    };
 
     const createdAtToDate = (createdAt?: Timestamp | Date | number): Date | null => {
         if (!createdAt) return null;
@@ -73,14 +120,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                 onMouseLeave={handleLeave}
             >
                 {recipe.coverImage && (
-                    <>
-                        <Image
-                            src={recipe.coverImage}
-                            alt="Cover"
-                            fill
-                            className="object-cover w-full h-full transition-transform duration-300 ease-out group-hover:scale-105"
-                        />
-                    </>
+                    <Image
+                        src={recipe.coverImage}
+                        alt="Cover"
+                        fill
+                        className="object-cover w-full h-full transition-transform duration-300 ease-out group-hover:scale-105"
+                    />
                 )}
             </div>
 
@@ -101,24 +146,20 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 
             {/* text content */}
             <div className="mt-4">
-                <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">
-                    {recipe.title}
-                </h1>
-                <p className="text-base mt-1 text-slate-600 line-clamp-2">
-                    {recipe.description}
-                </p>
+                <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">{recipe.title}</h1>
+                <p className="text-base mt-1 text-slate-600 line-clamp-2">{recipe.description}</p>
             </div>
 
             <div className="flex justify-between mt-4 w-full">
                 {/* creator */}
                 <div className="flex space-x-2 items-center">
-                    <div className="h-10 w-10 rounded-full overflow-hidden">
+                    <div className="h-10 w-10 rounded-full overflow-hidden bg-slate-100">
                         {userPhoto && <img src={userPhoto} alt="Creator" className="w-full h-full object-cover" />}
                     </div>
                     <div>
                         <p className="text-xl font-semibold">{userName}</p>
 
-                        <p className="text-xs">
+                        <p className="text-xs text-slate-600">
                             {createdAtDate
                                 ? createdAtDate.toLocaleString('nb-NO', {
                                     timeZone: 'Europe/Oslo',
@@ -130,7 +171,6 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                                 })
                                 : 'Ingen dato funnet'}
                         </p>
-
                     </div>
                 </div>
 
@@ -150,10 +190,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
             {/* owner controls */}
             {isOwner && (
                 <div className="relative right-2 flex space-x-2 z-20">
-                    <button onClick={handleEdit}   className="p-1 rounded h-12 cursor-pointer" title="Edit recipe">
+                    <button onClick={handleEdit} className="p-1 rounded h-12 cursor-pointer" title="Edit recipe">
                         <span className="material-symbols-outlined">edit</span>
                     </button>
-                    <button onClick={handleDelete} className="p-1 rounded cursor-pointer"   title="Delete recipe">
+                    <button onClick={handleDelete} className="p-1 rounded cursor-pointer" title="Delete recipe">
                         <span className="material-symbols-outlined">delete</span>
                     </button>
                 </div>
@@ -161,5 +201,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         </div>
     );
 };
+
+// attach skeleton for convenient usage: RecipeCard.Skeleton
+const RecipeCard = Object.assign(RecipeCardComponent, { Skeleton: RecipeCardSkeleton });
 
 export default RecipeCard;
