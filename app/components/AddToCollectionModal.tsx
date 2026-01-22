@@ -9,6 +9,7 @@ import {
 import { useCollections } from '@/hooks/collections/useCollections';
 import { useToggleRecipeInCollection } from '@/hooks/collections/useToggleRecipeInCollection';
 import { useAuthUser } from '@/hooks/useAuthUser';
+import Button from '@/app/components/Button';
 
 export default function AddToCollectionModal({
                                                  recipeId,
@@ -107,12 +108,12 @@ export default function AddToCollectionModal({
                     </ul>
                 )}
 
-                <button
-                    className="confirm-button mt-6 w-full"
+                <Button
+                    className="mt-6 w-full"
                     onClick={onClose}
                 >
                     Ferdig
-                </button>
+                </Button>
             </div>
         </div>
     );

@@ -14,6 +14,7 @@ import { fetchPopularRecipes } from '@/helpers/fetchPopularRecipies';
 
 import { Recipe } from '@/app/types/Recipe';
 import { UserDoc } from '@/hooks/useUserData';
+import Button from '@/app/components/Button';
 
 type Feed = 'following' | 'popular';
 
@@ -117,27 +118,29 @@ const Home: React.FC = () => {
 
                 <div className="relative inline-flex rounded-full bg-slate-50 p-1 mt-4 shadow-sm">
                     <div
-                        className="absolute top-0 left-0 h-full w-1/2 rounded-full bg-color shadow-sm transition-transform duration-300"
+                        className="absolute top-0 left-0 h-full w-1/2 rounded-full bg-white shadow-sm transition-transform duration-300"
                         style={{ transform: activeFeed === 'popular' ? 'translateX(100%)' : undefined }}
                     />
 
-                    <button
+                    <Button
                         onClick={() => setActiveFeed('following')}
-                        className={`relative px-4 py-1 w-1/2 text-sm font-medium focus:outline-none ${
-                            activeFeed === 'following' ? 'text-white' : 'text-slate-600'
+                        variant="ghost"
+                        className={`relative px-4 py-1 w-1/2 focus:outline-none ${
+                            activeFeed === 'following' ? 'text-slate-900' : 'text-slate-500'
                         }`}
                     >
                         Følger
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button
                         onClick={() => setActiveFeed('popular')}
-                        className={`relative px-4 py-1 w-1/2 text-sm font-medium focus:outline-none ${
-                            activeFeed === 'popular' ? 'text-white' : 'text-slate-600'
+                        variant="ghost"
+                        className={`relative px-4 py-1 w-1/2 focus:outline-none ${
+                            activeFeed === 'popular' ? 'text-slate-900' : 'text-slate-500'
                         }`}
                     >
                         Populære
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -154,12 +157,12 @@ const Home: React.FC = () => {
                         <p className="text-slate-700">
                             Du følger ingen enda.
                         </p>
-                        <button
+                        <Button
                             onClick={() => router.push('/add-friends')}
-                            className="confirm-button mt-4"
+                            className="mt-4"
                         >
                             Legg til kokker
-                        </button>
+                        </Button>
                     </div>
                 ) : showSkeletonGrid ? (
                     <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-10">

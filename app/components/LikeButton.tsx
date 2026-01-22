@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { firestore } from '@/firebase';
 import { useAuthUser } from '@/hooks/useAuthUser';
+import Button from '@/app/components/Button';
 
 interface LikeButtonProps {
     recipeId: string;
@@ -91,9 +92,9 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
                     )}
                 </ul>
 
-                <button onClick={onClose} className="confirm-button mt-4">
+                <Button onClick={onClose} className="mt-4">
                     Lukk
-                </button>
+                </Button>
             </div>
         </div>
     );
@@ -156,7 +157,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId }) => {
 
     return (
         <div className="flex items-center space-x-2">
-            <button onClick={handleLikeToggle} className="confirm-button">
+            <Button onClick={handleLikeToggle}>
         <span className="h-8 w-8">
           {hasLiked ? (
               <img src="/icons/chef_black.png" alt="liked" />
@@ -165,11 +166,11 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId }) => {
           )}
         </span>
                 <span className="text-2xl font-semibold">{likeCount}</span>
-            </button>
+            </Button>
 
-            <button onClick={() => setShowModal(true)} className="confirm-button text-sm">
+            <Button onClick={() => setShowModal(true)} className="text-sm">
                 tok av seg hatten
-            </button>
+            </Button>
 
             {showModal && <LikedUsersModal recipeId={recipeId} onClose={() => setShowModal(false)} />}
         </div>

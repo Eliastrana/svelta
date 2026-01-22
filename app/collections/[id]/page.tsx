@@ -11,6 +11,7 @@ import RecipeCard from '@/app/components/RecipeCard';
 import { Recipe } from '@/app/types/Recipe';
 import { Timestamp } from 'firebase/firestore';
 import { UserDoc } from '@/hooks/useUserData';
+import Button from '@/app/components/Button';
 
 type CollectionEntry = { recipe: Recipe };
 
@@ -64,10 +65,10 @@ export default function CollectionPage() {
 
         return (
         <div className="p-4 md:mb-20 md:max-w-5xl md:w-2/3 md:mx-auto">
-            <button onClick={() => router.back()} className="confirm-button mb-4">
+            <Button onClick={() => router.back()} className="mb-4">
                 <span className="material-symbols-outlined">arrow_back</span>
                 Tilbake
-            </button>
+            </Button>
 
             <h1 className="md:text-5xl text-4xl font-bold mb-6">{title}</h1>
 

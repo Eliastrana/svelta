@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Button from '@/app/components/Button';
 
 export interface CollectionDoc {
     id: string;
@@ -47,12 +48,12 @@ const CollectionsModal: React.FC<CollectionsModalProps> = ({
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold">Mine lister</h3>
-                    <button
-                        className="confirm-button h-8 w-8 p-0"
+                    <Button
+                        className="h-8 w-8 p-0"
                         onClick={onClose}
                     >
                         <span className="material-symbols-outlined">close</span>
-                    </button>
+                    </Button>
                 </div>
 
                 {/* New list input */}
@@ -68,13 +69,13 @@ const CollectionsModal: React.FC<CollectionsModalProps> = ({
                             if (e.key === 'Enter') handleSubmit();
                         }}
                     />
-                    <button
-                        className="confirm-button h-10 w-10 p-0 disabled:opacity-40"
+                    <Button
+                        className="h-10 w-10 p-0 disabled:opacity-40"
                         onClick={handleSubmit}
                         disabled={!newListName.trim()}
                     >
                         <span className="material-symbols-outlined">add</span>
-                    </button>
+                    </Button>
                 </div>
 
                 {/* Lists */}

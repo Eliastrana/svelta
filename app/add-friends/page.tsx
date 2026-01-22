@@ -17,6 +17,7 @@ import {
 } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, firestore } from '@/firebase';
+import Button from '@/app/components/Button';
 
 interface UserData {
     name?: string;
@@ -134,13 +135,12 @@ const AddFriendsPage: React.FC = () => {
             {/* Top bar */}
             <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
                 <div className="mx-auto max-w-xl px-4 py-3 flex items-center justify-between">
-                    <button
+                    <Button
                         onClick={() => router.back()}
-                        className="confirm-button"
                     >
                         <span className="material-symbols-outlined">arrow_back</span>
                         Tilbake
-                    </button>
+                    </Button>
 
                     <h1 className="text-lg font-semibold text-slate-900">Søk etter kokker</h1>
 
@@ -178,9 +178,9 @@ const AddFriendsPage: React.FC = () => {
                                         {uid === u.uid ? (
                                             <span className="text-sm text-slate-500">Deg</span>
                                         ) : (
-                                            <button
+                                            <Button
                                                 onClick={() => handleFollow(u.uid)}
-                                                className="confirm-button text-sm"
+                                                className="text-sm"
                                                 aria-label={currentFollowing.includes(u.uid) ? 'Slutt å følge' : 'Følg'}
                                             >
                                                 {currentFollowing.includes(u.uid) ? (
@@ -188,7 +188,7 @@ const AddFriendsPage: React.FC = () => {
                                                 ) : (
                                                     <span className="material-symbols-outlined">add</span>
                                                 )}
-                                            </button>
+                                            </Button>
                                         )}
                                     </div>
                                 ))}

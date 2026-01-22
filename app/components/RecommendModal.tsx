@@ -8,6 +8,7 @@ import { useAuthUser }             from '@/hooks/useAuthUser';
 import { useUserFollowing }        from '@/hooks/useUserFollowing';
 import { fetchFollowedRecipes }    from '@/helpers/fetchFollowedRecipies';
 import { Recipe }                  from '@/app/types/Recipe';
+import Button from '@/app/components/Button';
 
 interface Props {
     onClose: () => void;
@@ -71,12 +72,12 @@ export default function RecommendModal({ onClose }: Props) {
                    bg-white/95
                    border border-slate-200"
             >
-                <button
+                <Button
                     onClick={onClose}
-                    className="confirm-button absolute top-3 right-3 h-8 w-8 p-0"
+                    className="absolute top-3 right-3 h-8 w-8 p-0"
                 >
                     ✕
-                </button>
+                </Button>
 
                 <h2 className="text-2xl font-semibold mb-2 text-slate-900">Spør CorpCoreKokken!</h2>
                 <p className="mb-2 text-slate-600">Se så uproposjonal han er!</p>
@@ -102,13 +103,13 @@ export default function RecommendModal({ onClose }: Props) {
                             className="w-full p-2 border border-slate-200 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-slate-200"
                             rows={3}
                         />
-                        <button
+                        <Button
                             type="submit"
                             disabled={busy || !prompt.trim()}
-                            className="confirm-button w-full disabled:opacity-50"
+                            className="w-full disabled:opacity-50"
                         >
                             {busy ? 'Tenker…' : 'Finn oppskrift'}
-                        </button>
+                        </Button>
                     </form>
                 )}
 

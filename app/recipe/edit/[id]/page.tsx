@@ -7,6 +7,7 @@ import { auth, firestore, storage } from '@/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { RecipeData } from '@/app/types/RecipeData';
 import { CookingStep } from '@/app/types/CookingStep';
+import Button from '@/app/components/Button';
 
 import {
     DndContext,
@@ -105,15 +106,15 @@ function SortableStepCard(props: {
             <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                        <button
+                        <Button
                             type="button"
-                            className="confirm-button h-10 w-10 p-0 cursor-grab active:cursor-grabbing"
+                            className="h-10 w-10 p-0 cursor-grab active:cursor-grabbing"
                             aria-label="Dra for å flytte steg"
                             {...attributes}
                             {...listeners}
                         >
                             <span className="material-symbols-outlined text-slate-600">drag_indicator</span>
-                        </button>
+                        </Button>
 
                         <label className="block text-sm font-semibold text-slate-900">
                             Steg {index + 1} – tittel
@@ -139,14 +140,14 @@ function SortableStepCard(props: {
                     />
                 </div>
 
-                <button
+                <Button
                     type="button"
                     onClick={() => onRemove(step.id)}
-                    className="confirm-button h-10 w-10 p-0"
+                    className="h-10 w-10 p-0"
                     aria-label="Slett steg"
                 >
                     <span className="material-symbols-outlined">delete</span>
-                </button>
+                </Button>
             </div>
         </div>
     );
@@ -419,24 +420,23 @@ const EditRecipePage: React.FC = () => {
         <div className="min-h-screen bg-slate-50">
             <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
                 <div className="mx-auto max-w-xl px-4 py-3 flex items-center justify-between">
-                    <button
+                    <Button
                         onClick={() => router.back()}
-                        className="confirm-button"
                         type="button"
                     >
                         <span className="material-symbols-outlined">arrow_back</span>
                         Tilbake
-                    </button>
+                    </Button>
 
                     <h1 className="text-lg font-semibold text-slate-900">Rediger oppskrift</h1>
 
-                    <button
+                    <Button
                         type="submit"
                         form="edit-recipe-form"
-                        className="confirm-button text-sm"
+                        className="text-sm"
                     >
                         Lagre
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -467,17 +467,17 @@ const EditRecipePage: React.FC = () => {
                         <div className="flex items-center justify-between mb-2">
                             <h2 className="text-base font-semibold text-slate-900">Forsidebilde</h2>
                             {(coverImagePreview || recipeData.coverImage) && (
-                                <button
+                                <Button
                                     type="button"
                                     onClick={() => {
                                         setCoverImageFile(null);
                                         setCoverImagePreview(null);
                                         setRecipeData((p) => ({ ...p, coverImage: '' }));
                                     }}
-                                    className="confirm-button text-sm"
+                                    className="text-sm"
                                 >
                                     Fjern
-                                </button>
+                                </Button>
                             )}
                         </div>
 
@@ -515,14 +515,14 @@ const EditRecipePage: React.FC = () => {
                                     }
                                 }}
                             />
-                            <button
+                            <Button
                                 type="button"
                                 onClick={handleAddIngredient}
-                                className="confirm-button disabled:opacity-50"
+                                className="disabled:opacity-50"
                                 disabled={!newIngredient.trim()}
                             >
                                 Legg til
-                            </button>
+                            </Button>
                         </div>
 
                         {ingredients.length > 0 && (
@@ -533,13 +533,13 @@ const EditRecipePage: React.FC = () => {
                                         className="flex items-center justify-between rounded-2xl border border-slate-200 px-3 py-2"
                                     >
                                         <span className="text-slate-800">{ing}</span>
-                                        <button
+                                        <Button
                                             type="button"
                                             onClick={() => handleRemoveIngredient(idx)}
-                                            className="confirm-button h-8 w-8 p-0"
+                                            className="h-8 w-8 p-0"
                                         >
                                             <span className="material-symbols-outlined">delete</span>
-                                        </button>
+                                        </Button>
                                     </li>
                                 ))}
                             </ul>
@@ -573,14 +573,13 @@ const EditRecipePage: React.FC = () => {
                     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="text-base font-semibold text-slate-900">Steg</h2>
-                            <button
+                            <Button
                                 type="button"
                                 onClick={handleAddStep}
-                                className="confirm-button"
                             >
                                 <span className="material-symbols-outlined text-base">add</span>
                                 Legg til
-                            </button>
+                            </Button>
                         </div>
 
                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
@@ -607,12 +606,12 @@ const EditRecipePage: React.FC = () => {
                     </div>
 
                     <div className="sm:hidden pt-2">
-                        <button
+                        <Button
                             type="submit"
-                            className="confirm-button w-full"
+                            className="w-full"
                         >
                             Lagre
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </div>

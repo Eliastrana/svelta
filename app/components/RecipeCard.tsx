@@ -6,6 +6,7 @@ import { Timestamp } from 'firebase/firestore';
 import Image from 'next/image';
 import { Recipe } from '@/app/types/Recipe';
 import { RecipeDetail } from '@/app/types/RecipeDetail';
+import Button from '@/app/components/Button';
 
 // CombinedRecipe may include detail fields, but we primarily use Recipe fields
 type CombinedRecipe = Recipe & Partial<RecipeDetail>;
@@ -190,20 +191,20 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
             {/* owner controls */}
             {isOwner && (
                 <div className="relative right-2 flex space-x-2 z-20">
-                    <button
+                    <Button
                         onClick={handleEdit}
-                        className="confirm-button h-10 w-10 p-0"
+                        className="h-10 w-10 p-0"
                         title="Edit recipe"
                     >
                         <span className="material-symbols-outlined">edit</span>
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         onClick={handleDelete}
-                        className="confirm-button h-10 w-10 p-0"
+                        className="h-10 w-10 p-0"
                         title="Delete recipe"
                     >
                         <span className="material-symbols-outlined">delete</span>
-                    </button>
+                    </Button>
                 </div>
             )}
         </div>

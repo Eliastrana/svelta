@@ -17,6 +17,7 @@ import { auth, firestore } from '@/firebase';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/nb';
+import Button from '@/app/components/Button';
 
 dayjs.extend(relativeTime);
 dayjs.locale('nb');
@@ -135,14 +136,14 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                      focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
 
-                <button
+                <Button
                     type="submit"
                     disabled={!canSubmit}
-                    className="confirm-button h-12 w-12 p-0"
+                    className="h-12 w-12 p-0"
                     aria-label="Send kommentar"
                 >
                     <span className="material-symbols-outlined">send</span>
-                </button>
+                </Button>
             </form>
 
             {/* Comments list */}

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import LikeButton       from '@/app/components/LikeButton';
 import CommentSection   from '@/app/components/CommentSection';
 import AddToCollectionModal from '@/app/components/AddToCollectionModal';
+import Button from '@/app/components/Button';
 
 import { useRecipe }   from '@/hooks/useRecipe';
 import { useUserData } from '@/hooks/useUserData';
@@ -29,10 +30,10 @@ const RecipeDetail: React.FC = () => {
             <div className="max-w-4xl md:mx-auto m-4 rounded-2xl">
                 {/* Top bar */}
                 <div className="flex justify-between">
-                    <button onClick={() => router.back()} className="confirm-button mb-4">
+                    <Button onClick={() => router.back()} className="mb-4">
                         <span className="material-symbols-outlined">arrow_back</span>
                         Tilbake
-                    </button>
+                    </Button>
 
                 </div>
 
@@ -55,13 +56,13 @@ const RecipeDetail: React.FC = () => {
                     {/* Content under image */}
                     <div className=" mt-6">
 
-                        <button
+                        <Button
                             onClick={() => setShowAddModal(true)}
-                            className="confirm-button mb-4"
+                            className="mb-4"
                         >
                             <span className="material-symbols-outlined">bookmark_add</span>
                             Legg til i samling
-                        </button>
+                        </Button>
 
                         <h2 className="text-3xl md:text-4xl font-semibold text-slate-900 mb-2">
                             {recipe.title}

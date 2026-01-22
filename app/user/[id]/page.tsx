@@ -18,6 +18,7 @@ import { signOut, User } from 'firebase/auth';
 import { useUserRecipes } from '@/hooks/useUserRecipes';
 import RecipeCard from '@/app/components/RecipeCard';
 import { useUserLikedRecipes } from '@/hooks/useLikedRecipes';
+import Button from '@/app/components/Button';
 
 interface UserData {
     name?: string;
@@ -195,13 +196,13 @@ const UserProfile: React.FC = () => {
                 </div>
 
                 {isOwner && (
-                    <button onClick={logout} className="confirm-button mt-4 md:mt-0">
+                    <Button onClick={logout} className="mt-4 md:mt-0">
                         Logg ut
-                    </button>
+                    </Button>
                 )}
 
                 {!isOwner && auth.currentUser && (
-                    <button
+                    <Button
                         onClick={async () => {
                             const meRef = doc(firestore, 'users', auth.currentUser!.uid);
                             await updateDoc(meRef, {
@@ -209,37 +210,39 @@ const UserProfile: React.FC = () => {
                             });
                             setIsFollowing(!isFollowing);
                         }}
-                        className="confirm-button mt-4 md:mt-0"
+                        className="mt-4 md:mt-0"
                     >
                         {isFollowing ? 'Slutt å følge' : 'Følg'}
-                    </button>
+                    </Button>
                 )}
             </div>
 
             {/* Tab controls */}
             <div className="relative inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 mt-6">
                 <div
-                    className="absolute top-0 left-0 h-full w-1/2 rounded-full bg-color shadow-sm transition-transform duration-300"
+                    className="absolute top-0 left-0 h-full w-1/2 rounded-full bg-white shadow-sm transition-transform duration-300"
                     style={{
                         transform: activeTab === 'likedRecipes' ? 'translateX(100%)' : 'translateX(0)',
                     }}
                 />
-                <button
+                <Button
                     onClick={() => setActiveTab('myRecipes')}
-                    className={`relative px-6 py-1 w-1/2 text-sm font-medium focus:outline-none ${
-                        activeTab === 'myRecipes' ? 'text-white' : 'text-slate-600'
+                    variant="ghost"
+                    className={`relative px-6 py-1 w-1/2 focus:outline-none ${
+                        activeTab === 'myRecipes' ? 'text-slate-900' : 'text-slate-500'
                     }`}
                 >
                     Oppskrifter
-                </button>
-                <button
+                </Button>
+                <Button
                     onClick={() => setActiveTab('likedRecipes')}
-                    className={`relative px-8 py-1 w-1/2 text-sm font-medium focus:outline-none ${
-                        activeTab === 'likedRecipes' ? 'text-white' : 'text-slate-600'
+                    variant="ghost"
+                    className={`relative px-8 py-1 w-1/2 focus:outline-none ${
+                        activeTab === 'likedRecipes' ? 'text-slate-900' : 'text-slate-500'
                     }`}
                 >
                     Likte
-                </button>
+                </Button>
             </div>
 
             {/* Recipe list */}
@@ -248,12 +251,12 @@ const UserProfile: React.FC = () => {
                     <div>
                         <p className="text-slate-600">Ingen oppskrifter funnet.</p>
                         {isOwner && activeTab === 'myRecipes' && (
-                            <button
+                            <Button
                                 onClick={() => router.push('/create-recipe')}
-                                className="confirm-button mt-4"
+                                className="mt-4"
                             >
                                 Lag ny oppskrift
-                            </button>
+                            </Button>
                         )}
                     </div>
                 ) : (
@@ -281,25 +284,23 @@ const UserProfile: React.FC = () => {
                         </h1>
                         <p className="text-slate-600">Var den ikke noe god?</p>
                         <div className="flex justify-end gap-2 mt-4">
-                            <button
+                            <Button
                                 onClick={() => {
                                     setShowConfirm(false);
                                     setPendingDeleteId(null);
                                 }}
-                                className="confirm-button"
                             >
                                 Avbryt
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 onClick={async () => {
                                     await deleteDoc(doc(firestore, 'recipes', pendingDeleteId));
                                     setShowConfirm(false);
                                     setPendingDeleteId(null);
                                 }}
-                                className="confirm-button"
                             >
                                 Slett
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>

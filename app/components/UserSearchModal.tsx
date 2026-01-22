@@ -15,6 +15,7 @@ import {
 } from "firebase/firestore";
 import { auth, firestore } from "@/firebase";
 import { User } from "firebase/auth";
+import Button from "@/app/components/Button";
 
 interface UserData {
     name?: string;
@@ -128,13 +129,13 @@ const UserSearchModal: React.FC<UserSearchModalProps> = ({ onClose }) => {
                 <div className="relative">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-2xl font-bold text-slate-900">Søk etter kokker</h2>
-                        <button
+                        <Button
                             onClick={onClose}
-                            className="confirm-button h-8 w-8 p-0"
+                            className="h-8 w-8 p-0"
                             aria-label="Lukk"
                         >
                             &times;
-                        </button>
+                        </Button>
                     </div>
 
                     {/* Search input */}
@@ -165,16 +166,16 @@ const UserSearchModal: React.FC<UserSearchModalProps> = ({ onClose }) => {
                                         {currentUser && currentUser.uid === user.uid ? (
                                             <span className="text-sm text-slate-500">Deg</span>
                                         ) : (
-                                            <button
+                                            <Button
                                                 onClick={() => handleFollow(user.uid)}
-                                                className="confirm-button text-sm"
+                                                className="text-sm"
                                             >
                                                 {currentFollowing.includes(user.uid) ? (
                                                     <span className="material-symbols-outlined">close</span>
                                                 ) : (
                                                     <span className="material-symbols-outlined">add</span>
                                                 )}
-                                            </button>
+                                            </Button>
                                         )}
                                     </div>
                                 ))

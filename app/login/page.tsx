@@ -4,6 +4,7 @@
 import { useEffect } from 'react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, provider } from '@/firebase';
+import Button from '@/app/components/Button';
 
 export default function LoginPage() {
     // 1) On mount, if we already have the cookie, go home immediately:
@@ -65,12 +66,11 @@ export default function LoginPage() {
                     Del dine beste oppskrifter
                 </h1>
 
-                <button
+                <Button
                     onClick={signIn}
-                    className="confirm-button"
                 >
                     Logg inn med Google
-                </button>
+                </Button>
             </div>
         </div>
     );
