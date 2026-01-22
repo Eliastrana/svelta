@@ -112,10 +112,10 @@ const Home: React.FC = () => {
     return (
         <div className="p-4 md:max-w-5xl md:w-2/3 md:mx-auto md:mb-24">
             {/* Header & feed toggle */}
-            <div className="md:flex items-center justify-between mb-6">
+            <div className="md:flex items-center justify-between ">
                 <h2 className="md:text-3xl text-2xl font-semibold text-slate-900">Oppskrifter</h2>
 
-                <div className="relative inline-flex rounded-full bg-slate-50 p-1 mt-4 shadow-sm">
+                <div className="relative inline-flex w-full max-w-sm rounded-full border border-slate-200 bg-slate-50 p-1 mt-6">
                     <div
                         className="absolute top-0 left-0 h-full w-1/2 rounded-full bg-white shadow-sm transition-transform duration-300"
                         style={{ transform: activeFeed === 'popular' ? 'translateX(100%)' : undefined }}
@@ -123,22 +123,26 @@ const Home: React.FC = () => {
 
                     <button
                         onClick={() => setActiveFeed('following')}
-                        className={`relative px-4 py-1 w-1/2 text-sm font-medium focus:outline-none ${
+                        className={`relative w-1/2 py-1 text-sm font-medium focus:outline-none flex items-center justify-center ${
                             activeFeed === 'following' ? 'text-slate-900' : 'text-slate-500'
                         }`}
+                        type="button"
                     >
                         Følger
                     </button>
 
                     <button
                         onClick={() => setActiveFeed('popular')}
-                        className={`relative px-4 py-1 w-1/2 text-sm font-medium focus:outline-none ${
+                        className={`relative w-1/2 py-1 text-sm font-medium focus:outline-none flex items-center justify-center ${
                             activeFeed === 'popular' ? 'text-slate-900' : 'text-slate-500'
                         }`}
+                        type="button"
                     >
                         Populære
+
                     </button>
                 </div>
+
             </div>
 
             {/* optional: link to own profile */}

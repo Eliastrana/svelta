@@ -636,6 +636,7 @@ const CreateRecipe = () => {
                                     )}
                                 </div>
                             </SortableContext>
+
                         </div>
                     </DndContext>
 

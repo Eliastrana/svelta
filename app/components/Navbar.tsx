@@ -124,7 +124,7 @@ const Navbar: React.FC = () => {
                     </h2>
 
                     <h2 onClick={() => router.push('/create-recipe')} className={iconBase}>
-                        <span className="material-symbols-outlined">outdoor_grill</span>
+                        <span className="material-symbols-outlined">add</span>
                     </h2>
 
                     <h2 onClick={() => router.push('/add-friends')} className={iconBase}>

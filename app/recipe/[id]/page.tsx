@@ -26,6 +26,7 @@ type RecipeForDetail = {
     cookingSteps: Array<{ title: string; description: string }>;
     temperature?: string;
     cookingTime?: string;
+    poritons?: string;
 
     // legacy
     ingredients?: string[];
@@ -222,9 +223,11 @@ const RecipeDetail: React.FC = () => {
                 </div>
             </div>
 
+            <div className="max-w-4xl mx-auto p-4 md:flex md:justify-between gap-8">
+                <h2 className="text-2xl font-semibold">Fremgangsmåte</h2>
+            </div>
             {/* Steps */}
             <div className="max-w-4xl mx-auto px-4 pb-6">
-                <h2 className="text-lg font-semibold mb-3">Fremgangsmåte</h2>
                 <div className="space-y-4">
                     {recipe.cookingSteps.map((step, i) => (
                         <div
