@@ -29,9 +29,8 @@ const RecipeDetail: React.FC = () => {
             <div className="max-w-4xl md:mx-auto m-4 rounded-2xl">
                 {/* Top bar */}
                 <div className="flex justify-between">
-                    <button onClick={() => router.back()} className="mb-4 px-4 py-2 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-2">
-
-                    <span className="material-symbols-outlined">arrow_back</span>
+                    <button onClick={() => router.back()} className="confirm-button mb-4">
+                        <span className="material-symbols-outlined">arrow_back</span>
                         Tilbake
                     </button>
 
@@ -58,7 +57,7 @@ const RecipeDetail: React.FC = () => {
 
                         <button
                             onClick={() => setShowAddModal(true)}
-                            className="mb-4 px-4 py-2 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-2"
+                            className="confirm-button mb-4"
                         >
                             <span className="material-symbols-outlined">bookmark_add</span>
                             Legg til i samling

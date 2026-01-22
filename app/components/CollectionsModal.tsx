@@ -48,10 +48,10 @@ const CollectionsModal: React.FC<CollectionsModalProps> = ({
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold">Mine lister</h3>
                     <button
-                        className="material-symbols-outlined text-lg opacity-70 hover:opacity-100"
+                        className="confirm-button h-8 w-8 p-0"
                         onClick={onClose}
                     >
-                        close
+                        <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
 
@@ -69,7 +69,7 @@ const CollectionsModal: React.FC<CollectionsModalProps> = ({
                         }}
                     />
                     <button
-                        className="p-2 rounded-lg text-slate-700 disabled:opacity-40"
+                        className="confirm-button h-10 w-10 p-0 disabled:opacity-40"
                         onClick={handleSubmit}
                         disabled={!newListName.trim()}
                     >

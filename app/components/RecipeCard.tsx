@@ -190,10 +190,18 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
             {/* owner controls */}
             {isOwner && (
                 <div className="relative right-2 flex space-x-2 z-20">
-                    <button onClick={handleEdit} className="p-1 rounded h-12 cursor-pointer" title="Edit recipe">
+                    <button
+                        onClick={handleEdit}
+                        className="confirm-button h-10 w-10 p-0"
+                        title="Edit recipe"
+                    >
                         <span className="material-symbols-outlined">edit</span>
                     </button>
-                    <button onClick={handleDelete} className="p-1 rounded cursor-pointer" title="Delete recipe">
+                    <button
+                        onClick={handleDelete}
+                        className="confirm-button h-10 w-10 p-0"
+                        title="Delete recipe"
+                    >
                         <span className="material-symbols-outlined">delete</span>
                     </button>
                 </div>

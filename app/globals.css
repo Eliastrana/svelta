@@ -28,10 +28,24 @@ body {
 .confirm-button {
     background-color: var(--accent-strong);
     color: #ffffff;
+    border-radius: 9999px;
+    padding: 0.5rem 1.25rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 .confirm-button:hover {
     background-color: #2f86f5;
     color: #ffffff;
+}
+.confirm-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 h1 {

@@ -130,7 +130,7 @@ const UserSearchModal: React.FC<UserSearchModalProps> = ({ onClose }) => {
                         <h2 className="text-2xl font-bold text-slate-900">Søk etter kokker</h2>
                         <button
                             onClick={onClose}
-                            className="cursor-pointer text-2xl leading-none text-slate-500"
+                            className="confirm-button h-8 w-8 p-0"
                             aria-label="Lukk"
                         >
                             &times;
@@ -167,7 +167,7 @@ const UserSearchModal: React.FC<UserSearchModalProps> = ({ onClose }) => {
                                         ) : (
                                             <button
                                                 onClick={() => handleFollow(user.uid)}
-                                                className="px-3 py-1 rounded-full text-sm cursor-pointer bg-slate-100 text-slate-700 hover:bg-slate-200"
+                                                className="confirm-button text-sm"
                                             >
                                                 {currentFollowing.includes(user.uid) ? (
                                                     <span className="material-symbols-outlined">close</span>

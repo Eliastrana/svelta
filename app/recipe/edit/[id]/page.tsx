@@ -107,7 +107,7 @@ function SortableStepCard(props: {
                     <div className="flex items-center gap-2 mb-2">
                         <button
                             type="button"
-                            className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition cursor-grab active:cursor-grabbing"
+                            className="confirm-button h-10 w-10 p-0 cursor-grab active:cursor-grabbing"
                             aria-label="Dra for å flytte steg"
                             {...attributes}
                             {...listeners}
@@ -142,10 +142,10 @@ function SortableStepCard(props: {
                 <button
                     type="button"
                     onClick={() => onRemove(step.id)}
-                    className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition"
+                    className="confirm-button h-10 w-10 p-0"
                     aria-label="Slett steg"
                 >
-                    <span className="material-symbols-outlined text-slate-600">delete</span>
+                    <span className="material-symbols-outlined">delete</span>
                 </button>
             </div>
         </div>
@@ -421,11 +421,11 @@ const EditRecipePage: React.FC = () => {
                 <div className="mx-auto max-w-xl px-4 py-3 flex items-center justify-between">
                     <button
                         onClick={() => router.back()}
-                        className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100"
-                        aria-label="Tilbake"
+                        className="confirm-button"
                         type="button"
                     >
                         <span className="material-symbols-outlined">arrow_back</span>
+                        Tilbake
                     </button>
 
                     <h1 className="text-lg font-semibold text-slate-900">Rediger oppskrift</h1>
@@ -433,7 +433,7 @@ const EditRecipePage: React.FC = () => {
                     <button
                         type="submit"
                         form="edit-recipe-form"
-                        className="h-10 px-4 rounded-full bg-slate-900 text-white text-sm font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition"
+                        className="confirm-button text-sm"
                     >
                         Lagre
                     </button>
@@ -474,7 +474,7 @@ const EditRecipePage: React.FC = () => {
                                         setCoverImagePreview(null);
                                         setRecipeData((p) => ({ ...p, coverImage: '' }));
                                     }}
-                                    className="text-sm text-slate-600 hover:underline"
+                                    className="confirm-button text-sm"
                                 >
                                     Fjern
                                 </button>
@@ -518,7 +518,7 @@ const EditRecipePage: React.FC = () => {
                             <button
                                 type="button"
                                 onClick={handleAddIngredient}
-                                className="px-4 rounded-2xl bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition disabled:opacity-50"
+                                className="confirm-button disabled:opacity-50"
                                 disabled={!newIngredient.trim()}
                             >
                                 Legg til
@@ -533,8 +533,12 @@ const EditRecipePage: React.FC = () => {
                                         className="flex items-center justify-between rounded-2xl border border-slate-200 px-3 py-2"
                                     >
                                         <span className="text-slate-800">{ing}</span>
-                                        <button type="button" onClick={() => handleRemoveIngredient(idx)}>
-                                            <span className="material-symbols-outlined text-slate-600">delete</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveIngredient(idx)}
+                                            className="confirm-button h-8 w-8 p-0"
+                                        >
+                                            <span className="material-symbols-outlined">delete</span>
                                         </button>
                                     </li>
                                 ))}
@@ -572,7 +576,7 @@ const EditRecipePage: React.FC = () => {
                             <button
                                 type="button"
                                 onClick={handleAddStep}
-                                className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition"
+                                className="confirm-button"
                             >
                                 <span className="material-symbols-outlined text-base">add</span>
                                 Legg til
@@ -605,7 +609,7 @@ const EditRecipePage: React.FC = () => {
                     <div className="sm:hidden pt-2">
                         <button
                             type="submit"
-                            className="w-full rounded-full py-3 font-semibold text-white shadow-lg bg-slate-900 hover:opacity-95 active:scale-[0.99] transition"
+                            className="confirm-button w-full"
                         >
                             Lagre
                         </button>

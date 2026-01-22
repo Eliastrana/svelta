@@ -73,7 +73,7 @@ export default function RecommendModal({ onClose }: Props) {
             >
                 <button
                     onClick={onClose}
-                    className="absolute top-3 right-3 text-slate-500 hover:text-slate-700"
+                    className="confirm-button absolute top-3 right-3 h-8 w-8 p-0"
                 >
                     ✕
                 </button>
@@ -105,7 +105,7 @@ export default function RecommendModal({ onClose }: Props) {
                         <button
                             type="submit"
                             disabled={busy || !prompt.trim()}
-                            className="w-full bg-color text-white py-2 rounded-full disabled:opacity-50"
+                            className="confirm-button w-full disabled:opacity-50"
                         >
                             {busy ? 'Tenker…' : 'Finn oppskrift'}
                         </button>

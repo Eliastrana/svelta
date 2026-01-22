@@ -62,10 +62,11 @@ export default function CollectionPage() {
     const currentCollection = collections.find((c) => c.id === id);
     const title = currentCollection?.name ?? 'Liste';
 
-    return (
+        return (
         <div className="p-4 md:mb-20 md:max-w-5xl md:w-2/3 md:mx-auto">
-            <button onClick={() => router.back()} className="mb-4">
+            <button onClick={() => router.back()} className="confirm-button mb-4">
                 <span className="material-symbols-outlined">arrow_back</span>
+                Tilbake
             </button>
 
             <h1 className="md:text-5xl text-4xl font-bold mb-6">{title}</h1>

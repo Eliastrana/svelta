@@ -195,7 +195,7 @@ const UserProfile: React.FC = () => {
                 </div>
 
                 {isOwner && (
-                    <button onClick={logout} className="confirm-button mt-4 md:mt-0 px-4 py-2 rounded-full">
+                    <button onClick={logout} className="confirm-button mt-4 md:mt-0">
                         Logg ut
                     </button>
                 )}
@@ -209,7 +209,7 @@ const UserProfile: React.FC = () => {
                             });
                             setIsFollowing(!isFollowing);
                         }}
-                        className="mt-4 md:mt-0 confirm-button py-2 px-4 rounded-full"
+                        className="confirm-button mt-4 md:mt-0"
                     >
                         {isFollowing ? 'Slutt å følge' : 'Følg'}
                     </button>
@@ -219,7 +219,7 @@ const UserProfile: React.FC = () => {
             {/* Tab controls */}
             <div className="relative inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 mt-6">
                 <div
-                    className="absolute top-0 left-0 h-full w-1/2 rounded-full bg-white shadow-sm transition-transform duration-300"
+                    className="absolute top-0 left-0 h-full w-1/2 rounded-full bg-color shadow-sm transition-transform duration-300"
                     style={{
                         transform: activeTab === 'likedRecipes' ? 'translateX(100%)' : 'translateX(0)',
                     }}
@@ -227,7 +227,7 @@ const UserProfile: React.FC = () => {
                 <button
                     onClick={() => setActiveTab('myRecipes')}
                     className={`relative px-6 py-1 w-1/2 text-sm font-medium focus:outline-none ${
-                        activeTab === 'myRecipes' ? 'text-slate-900' : 'text-slate-500'
+                        activeTab === 'myRecipes' ? 'text-white' : 'text-slate-600'
                     }`}
                 >
                     Oppskrifter
@@ -235,7 +235,7 @@ const UserProfile: React.FC = () => {
                 <button
                     onClick={() => setActiveTab('likedRecipes')}
                     className={`relative px-8 py-1 w-1/2 text-sm font-medium focus:outline-none ${
-                        activeTab === 'likedRecipes' ? 'text-slate-900' : 'text-slate-500'
+                        activeTab === 'likedRecipes' ? 'text-white' : 'text-slate-600'
                     }`}
                 >
                     Likte
@@ -250,7 +250,7 @@ const UserProfile: React.FC = () => {
                         {isOwner && activeTab === 'myRecipes' && (
                             <button
                                 onClick={() => router.push('/create-recipe')}
-                                className="confirm-button py-2 px-4 rounded-full mt-4"
+                                className="confirm-button mt-4"
                             >
                                 Lag ny oppskrift
                             </button>
@@ -286,7 +286,7 @@ const UserProfile: React.FC = () => {
                                     setShowConfirm(false);
                                     setPendingDeleteId(null);
                                 }}
-                                className="confirm-button px-4 py-2 rounded-full"
+                                className="confirm-button"
                             >
                                 Avbryt
                             </button>
@@ -296,7 +296,7 @@ const UserProfile: React.FC = () => {
                                     setShowConfirm(false);
                                     setPendingDeleteId(null);
                                 }}
-                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full"
+                                className="confirm-button"
                             >
                                 Slett
                             </button>

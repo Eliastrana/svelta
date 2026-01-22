@@ -67,10 +67,7 @@ export default function LoginPage() {
 
                 <button
                     onClick={signIn}
-                    className="rounded-full px-6 py-2 font-semibold text-white shadow-lg
-           bg-gradient-to-r from-sky-500 via-cyan-500 to-blue-500
-           hover:opacity-95 active:scale-[0.99] transition"
-
+                    className="confirm-button"
                 >
                     Logg inn med Google
                 </button>

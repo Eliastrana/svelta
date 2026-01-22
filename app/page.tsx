@@ -117,14 +117,14 @@ const Home: React.FC = () => {
 
                 <div className="relative inline-flex rounded-full bg-slate-50 p-1 mt-4 shadow-sm">
                     <div
-                        className="absolute top-0 left-0 h-full w-1/2 rounded-full bg-white shadow-sm transition-transform duration-300"
+                        className="absolute top-0 left-0 h-full w-1/2 rounded-full bg-color shadow-sm transition-transform duration-300"
                         style={{ transform: activeFeed === 'popular' ? 'translateX(100%)' : undefined }}
                     />
 
                     <button
                         onClick={() => setActiveFeed('following')}
                         className={`relative px-4 py-1 w-1/2 text-sm font-medium focus:outline-none ${
-                            activeFeed === 'following' ? 'text-slate-900' : 'text-slate-500'
+                            activeFeed === 'following' ? 'text-white' : 'text-slate-600'
                         }`}
                     >
                         Følger
@@ -133,7 +133,7 @@ const Home: React.FC = () => {
                     <button
                         onClick={() => setActiveFeed('popular')}
                         className={`relative px-4 py-1 w-1/2 text-sm font-medium focus:outline-none ${
-                            activeFeed === 'popular' ? 'text-slate-900' : 'text-slate-500'
+                            activeFeed === 'popular' ? 'text-white' : 'text-slate-600'
                         }`}
                     >
                         Populære
@@ -156,8 +156,7 @@ const Home: React.FC = () => {
                         </p>
                         <button
                             onClick={() => router.push('/add-friends')}
-                            className="mt-4 rounded-full px-5 py-2 bg-slate-900 text-white font-semibold shadow-sm
-                         hover:opacity-95 active:scale-[0.99] transition"
+                            className="confirm-button mt-4"
                         >
                             Legg til kokker
                         </button>

@@ -108,7 +108,7 @@ export default function AddToCollectionModal({
                 )}
 
                 <button
-                    className="mt-6 w-full py-2 rounded-full confirm-button"
+                    className="confirm-button mt-6 w-full"
                     onClick={onClose}
                 >
                     Ferdig

@@ -99,7 +99,7 @@ export default function RecommendPage() {
             {/* feed toggle */}
             <div className="inline-flex mb-6 rounded-full border border-slate-200 bg-slate-50 p-1 overflow-hidden relative">
                 <div
-                    className="absolute top-0 left-0 h-full w-1/2 transition-transform duration-300 bg-white rounded-full shadow-sm"
+                    className="absolute top-0 left-0 h-full w-1/2 transition-transform duration-300 bg-color rounded-full shadow-sm"
                     style={{ transform: activeFeed === 'popular' ? 'translateX(100%)' : undefined }}
                 />
                 {(['following','popular'] as Feed[]).map(f => (
@@ -107,7 +107,7 @@ export default function RecommendPage() {
                         key={f}
                         onClick={() => setActiveFeed(f)}
                         className={`relative px-4 py-1 w-1/2 text-sm font-medium focus:outline-none ${
-                            activeFeed===f ? 'text-slate-900' : 'text-slate-500'
+                            activeFeed===f ? 'text-white' : 'text-slate-600'
                         }`}
                     >
                         {f === 'following' ? 'Følger' : 'Populære'}
@@ -127,7 +127,7 @@ export default function RecommendPage() {
                 <button
                     type="submit"
                     disabled={busy || !prompt.trim()}
-                    className="confirm-button px-4 py-2 rounded-full"
+                    className="confirm-button"
                 >
                     {busy ? 'Tenker…' : 'Finn oppskrift'}
                 </button>

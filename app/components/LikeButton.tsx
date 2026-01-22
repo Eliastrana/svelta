@@ -91,7 +91,7 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
                     )}
                 </ul>
 
-                <button onClick={onClose} className="mt-4 px-4 py-2 confirm-button rounded-full">
+                <button onClick={onClose} className="confirm-button mt-4">
                     Lukk
                 </button>
             </div>
@@ -156,7 +156,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId }) => {
 
     return (
         <div className="flex items-center space-x-2">
-            <button onClick={handleLikeToggle} className="flex items-center space-x-2 text-slate-900">
+            <button onClick={handleLikeToggle} className="confirm-button">
         <span className="h-8 w-8">
           {hasLiked ? (
               <img src="/icons/chef_black.png" alt="liked" />
@@ -167,7 +167,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId }) => {
                 <span className="text-2xl font-semibold">{likeCount}</span>
             </button>
 
-            <button onClick={() => setShowModal(true)} className="text-sm text-slate-600 underline">
+            <button onClick={() => setShowModal(true)} className="confirm-button text-sm">
                 tok av seg hatten
             </button>
 

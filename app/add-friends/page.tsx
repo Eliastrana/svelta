@@ -136,10 +136,10 @@ const AddFriendsPage: React.FC = () => {
                 <div className="mx-auto max-w-xl px-4 py-3 flex items-center justify-between">
                     <button
                         onClick={() => router.back()}
-                        className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100"
-                        aria-label="Tilbake"
+                        className="confirm-button"
                     >
                         <span className="material-symbols-outlined">arrow_back</span>
+                        Tilbake
                     </button>
 
                     <h1 className="text-lg font-semibold text-slate-900">Søk etter kokker</h1>
@@ -180,7 +180,7 @@ const AddFriendsPage: React.FC = () => {
                                         ) : (
                                             <button
                                                 onClick={() => handleFollow(u.uid)}
-                                                className="px-3 py-1 rounded-full text-sm cursor-pointer bg-slate-100 text-slate-700 hover:bg-slate-200"
+                                                className="confirm-button text-sm"
                                                 aria-label={currentFollowing.includes(u.uid) ? 'Slutt å følge' : 'Følg'}
                                             >
                                                 {currentFollowing.includes(u.uid) ? (

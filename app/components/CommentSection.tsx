@@ -138,12 +138,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                 <button
                     type="submit"
                     disabled={!canSubmit}
-                    className={[
-                        'h-12 w-12 grid place-items-center rounded-2xl shadow-sm transition',
-                        canSubmit
-                            ? 'bg-slate-900 text-white hover:opacity-95 active:scale-[0.98] cursor-pointer'
-                            : 'bg-slate-200 text-slate-500 cursor-not-allowed',
-                    ].join(' ')}
+                    className="confirm-button h-12 w-12 p-0"
                     aria-label="Send kommentar"
                 >
                     <span className="material-symbols-outlined">send</span>
