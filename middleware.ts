@@ -1,24 +1,35 @@
-// middleware.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+const PUBLIC_FILE = /\.(.*)$/; // matches "/something.png", "/fonts.woff2", etc.
+
 export function middleware(req: NextRequest) {
-    const { pathname, search } = req.nextUrl;
+    const { pathname } = req.nextUrl;
     const token = req.cookies.get('yourAuthToken')?.value;
 
-    // Always allow Next assets + favicon
-    const isNextAsset =
+    // ✅ Always allow Next internals + public/static files
+    // (public/ assets like /icons/chef.png, /og-default.jpg, etc.)
+    const isAlwaysAllowed =
         pathname.startsWith('/_next/') ||
-        pathname === '/favicon.ico';
+        pathname === '/favicon.ico' ||
+        pathname === '/robots.txt' ||
+        pathname === '/sitemap.xml' ||
+        PUBLIC_FILE.test(pathname);
 
-    if (isNextAsset) return NextResponse.next();
+    if (isAlwaysAllowed) return NextResponse.next();
 
-    // Allow logout page (public)
-    if (pathname === '/logout') return NextResponse.next();
+    // ✅ Public routes (important for share previews)
+    const isPublicRoute =
+        pathname === '/login' ||
+        pathname === '/logout' ||
+        pathname.startsWith('/recipe/'); // 👈 allow recipe pages publicly
 
-    // If on /login and already authenticated -> go home
-    if (pathname === '/login') {
-        if (token) return NextResponse.redirect(new URL('/', req.url));
+    if (isPublicRoute) {
+        // if already logged in and on /login, go to next or home
+        if (pathname === '/login' && token) {
+            const next = req.nextUrl.searchParams.get('next') || '/';
+            return NextResponse.redirect(new URL(next, req.url));
+        }
         return NextResponse.next();
     }
 
@@ -26,15 +37,7 @@ export function middleware(req: NextRequest) {
     if (!token) {
         const loginUrl = req.nextUrl.clone();
         loginUrl.pathname = '/login';
-
-        // ✅ preserve original path + query (?recommend=1 etc)
-        const next = pathname + search;
-
-        // Optional: avoid redirect loop if next accidentally becomes /login
-        if (!next.startsWith('/login')) {
-            loginUrl.searchParams.set('next', next);
-        }
-
+        loginUrl.searchParams.set('next', req.nextUrl.pathname + req.nextUrl.search);
         return NextResponse.redirect(loginUrl);
     }
 
@@ -42,5 +45,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+    matcher: ['/((?!_next/static|_next/image).*)'],
 };

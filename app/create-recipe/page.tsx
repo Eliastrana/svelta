@@ -7,6 +7,8 @@ import { auth, firestore, storage } from '@/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { CookingStep } from '@/app/types/CookingStep';
 
+import RecipeCreatedModal from '@/app/components/RecipeCreatedModal';
+
 import {
     DndContext,
     PointerSensor,
@@ -62,9 +64,7 @@ function SortableStepCard(props: {
         <div
             ref={setNodeRef}
             style={style}
-            className={`rounded-2xl border border-slate-200 p-3 bg-white ${
-                isDragging ? 'shadow-lg ring-2 ring-slate-200' : ''
-            }`}
+            className={`rounded-2xl border border-slate-200 p-3 bg-white ${isDragging ? 'shadow-lg ring-2 ring-slate-200' : ''}`}
         >
             <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
@@ -136,9 +136,7 @@ function SortableIngredientCard(props: {
         <div
             ref={setNodeRef}
             style={style}
-            className={`rounded-2xl border border-slate-200 bg-white px-3 py-2 ${
-                isDragging ? 'shadow-lg ring-2 ring-slate-200' : ''
-            }`}
+            className={`rounded-2xl border border-slate-200 bg-white px-3 py-2 ${isDragging ? 'shadow-lg ring-2 ring-slate-200' : ''}`}
         >
             <div className="flex items-center gap-2">
                 <button
@@ -193,7 +191,6 @@ const CreateRecipe = () => {
     const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
     const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
 
-    // ✅ NEW ingredients: amount + name + drag
     const [ingredients, setIngredients] = useState<IngredientWithId[]>([]);
     const [newIngredientName, setNewIngredientName] = useState('');
     const [newIngredientAmount, setNewIngredientAmount] = useState('');
@@ -204,7 +201,10 @@ const CreateRecipe = () => {
 
     const router = useRouter();
 
-    // Load draft from localStorage
+    // ✅ success modal state
+    const [createdRecipeId, setCreatedRecipeId] = useState<string>('');
+
+    // Load draft
     useEffect(() => {
         const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (!savedData) return;
@@ -216,9 +216,7 @@ const CreateRecipe = () => {
             bgColor?: string;
             fontStyle?: string;
             cookingSteps?: Array<CookingStep | StepWithId>;
-            // old drafts may have string[]
             ingredients?: string[];
-            // new drafts
             ingredientsDetailed?: Array<Ingredient | IngredientWithId>;
             newIngredientName?: string;
             newIngredientAmount?: string;
@@ -236,19 +234,16 @@ const CreateRecipe = () => {
         setTemperature(formData.temperature || '');
         setCookingTime(formData.cookingTime || '');
         setPortions(formData.portions || '');
-
         setCoverImagePreview(formData.coverImagePreview || null);
 
-        // steps
         const loadedSteps = formData.cookingSteps || [];
-        setCookingSteps(loadedSteps.map((s) => ('id' in s ? (s as StepWithId) : { ...(s as CookingStep), id: makeId('step') })));
+        setCookingSteps(
+            loadedSteps.map((s) => ('id' in s ? (s as StepWithId) : { ...(s as CookingStep), id: makeId('step') })),
+        );
 
-        // ingredients (prefer new format; fallback to old string[] -> name only)
         const detailed = formData.ingredientsDetailed || [];
         if (detailed.length > 0) {
-            setIngredients(
-                detailed.map((i) => ('id' in i ? (i as IngredientWithId) : { ...(i as Ingredient), id: makeId('ing') })),
-            );
+            setIngredients(detailed.map((i) => ('id' in i ? (i as IngredientWithId) : { ...(i as Ingredient), id: makeId('ing') })));
         } else {
             const old = formData.ingredients || [];
             setIngredients(old.map((name) => ({ id: makeId('ing'), name, amount: '' })));
@@ -258,7 +253,7 @@ const CreateRecipe = () => {
         setNewIngredientAmount(formData.newIngredientAmount || '');
     }, []);
 
-    // Persist draft to localStorage
+    // Persist draft
     useEffect(() => {
         const formData = {
             title,
@@ -267,7 +262,6 @@ const CreateRecipe = () => {
             bgColor,
             fontStyle,
             cookingSteps,
-            // keep BOTH for compatibility with the rest of the app
             ingredients: ingredients
                 .map((i) => `${(i.amount || '').trim()} ${(i.name || '').trim()}`.trim())
                 .filter(Boolean),
@@ -296,7 +290,6 @@ const CreateRecipe = () => {
         coverImagePreview,
     ]);
 
-    // Steps handlers
     const handleAddStep = () => {
         setCookingSteps((prev) => [...prev, { id: makeId('step'), title: '', description: '' }]);
     };
@@ -309,7 +302,6 @@ const CreateRecipe = () => {
         setCookingSteps((prev) => prev.filter((s) => s.id !== id));
     };
 
-    // ✅ Ingredients handlers
     const handleAddIngredient = () => {
         const name = newIngredientName.trim();
         const amount = newIngredientAmount.trim();
@@ -328,7 +320,6 @@ const CreateRecipe = () => {
         setIngredients((prev) => prev.filter((i) => i.id !== id));
     };
 
-    // Cover image
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -344,7 +335,6 @@ const CreateRecipe = () => {
         };
     }, [coverImagePreview]);
 
-    // DnD sensors + handler (handles BOTH lists)
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -394,35 +384,29 @@ const CreateRecipe = () => {
             coverImageUrl = await getDownloadURL(snapshot.ref);
         }
 
-        // steps without ids
         const stepsForDb: CookingStep[] = cookingSteps.map((s) => ({
             title: s.title,
             description: s.description,
         }));
 
-        // ✅ ingredients without ids (new)
         const ingredientsDetailedForDb: Ingredient[] = ingredients
             .map((i) => ({ name: i.name.trim(), amount: i.amount.trim() }))
             .filter((i) => i.name.length > 0);
 
-        // ✅ keep old string[] too so the rest of the app doesn’t break yet
         const ingredientsStringsForDb: string[] = ingredientsDetailedForDb
             .map((i) => `${i.amount} ${i.name}`.trim())
             .filter(Boolean);
 
         try {
-            await addDoc(collection(firestore, 'recipes'), {
+            const docRef = await addDoc(collection(firestore, 'recipes'), {
                 title,
                 description,
                 image: svgData,
                 bgColor,
                 fontStyle,
                 cookingSteps: stepsForDb,
-
-                // ✅ both formats
                 ingredients: ingredientsStringsForDb,
                 ingredientsDetailed: ingredientsDetailedForDb,
-
                 temperature,
                 cookingTime,
                 portions,
@@ -434,7 +418,9 @@ const CreateRecipe = () => {
             });
 
             localStorage.removeItem(LOCAL_STORAGE_KEY);
-            router.push('/');
+
+            // ✅ show modal instead of immediate redirect
+            setCreatedRecipeId(docRef.id);
         } catch (error) {
             console.error('Error adding recipe:', error);
         }
@@ -442,6 +428,17 @@ const CreateRecipe = () => {
 
     return (
         <div className="min-h-screen ">
+            {/* ✅ Success modal */}
+            {createdRecipeId ? (
+                <RecipeCreatedModal
+                    recipeId={createdRecipeId}
+                    onClose={() => {
+                        // after closing, go to the recipe page
+                        router.push(`/recipe/${createdRecipeId}`);
+                    }}
+                />
+            ) : null}
+
             {/* Top bar */}
             <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
                 <div className="mx-auto max-w-xl px-4 py-3 flex items-center justify-between">
@@ -459,7 +456,7 @@ const CreateRecipe = () => {
                     <button
                         type="submit"
                         form="create-recipe-form"
-                        className="h-10 px-4 rounded-full brown-button  text-sm font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition"
+                        className="h-10 px-4 rounded-full brown-button text-sm font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition"
                     >
                         Publiser
                     </button>
@@ -527,7 +524,6 @@ const CreateRecipe = () => {
                         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                             <div className="flex items-center justify-between mb-3">
                                 <h2 className="text-base font-semibold text-slate-900">Ingredienser</h2>
-
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -571,9 +567,7 @@ const CreateRecipe = () => {
                                     </div>
                                 </SortableContext>
                             ) : (
-                                <p className="text-slate-600 mt-4">
-                                    Ingen ingredienser ennå — legg til over, og dra for å sortere.
-                                </p>
+                                <p className="text-slate-600 mt-4">Ingen ingredienser ennå — legg til over, og dra for å sortere.</p>
                             )}
 
                             <button
@@ -586,8 +580,8 @@ const CreateRecipe = () => {
                                 Legg til
                             </button>
 
-
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">                                <div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
+                                <div>
                                     <label className="block text-sm font-semibold text-slate-900 mb-2">Temperatur</label>
                                     <input
                                         type="text"
@@ -608,6 +602,7 @@ const CreateRecipe = () => {
                                         className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                                     />
                                 </div>
+
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-900 mb-2">Porsjoner</label>
                                     <input
@@ -621,7 +616,7 @@ const CreateRecipe = () => {
                             </div>
                         </div>
 
-                        {/* Steps with drag & drop */}
+                        {/* Steps */}
                         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                             <div className="flex items-center justify-between mb-3">
                                 <h2 className="text-base font-semibold text-slate-900">Steg</h2>
@@ -655,15 +650,14 @@ const CreateRecipe = () => {
                                 <span className="material-symbols-outlined text-base">add</span>
                                 Legg til
                             </button>
-
                         </div>
                     </DndContext>
 
-                    {/* Bottom publish (nice on mobile) */}
+                    {/* Bottom publish */}
                     <div className="sm:hidden pt-2">
                         <button
                             type="submit"
-                            className="w-full rounded-full py-3 font-semibold  shadow-lg brown-button hover:opacity-95 active:scale-[0.99] transition"
+                            className="w-full rounded-full py-3 font-semibold shadow-lg brown-button hover:opacity-95 active:scale-[0.99] transition"
                         >
                             Publiser
                         </button>

@@ -11,34 +11,24 @@ function getSafeNextPath(): string {
     const sp = new URLSearchParams(window.location.search);
     const next = sp.get('next') || '/';
 
-    // Prevent open redirects (only allow relative paths)
     if (!next.startsWith('/')) return '/';
-
-    // Avoid loops
     if (next.startsWith('/login')) return '/';
 
     return next;
 }
 
 export default function LoginPage() {
-    // If already authed (firebase session), go to next
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                const nextPath = getSafeNextPath();
-                window.location.replace(nextPath);
-            }
+            if (user) window.location.replace(getSafeNextPath());
         });
         return () => unsub();
     }, []);
 
-    // If cookie already exists, go to next immediately
     useEffect(() => {
         if (typeof document === 'undefined') return;
-
         if (document.cookie.includes('yourAuthToken=')) {
-            const nextPath = getSafeNextPath();
-            window.location.replace(nextPath);
+            window.location.replace(getSafeNextPath());
         }
     }, []);
 
@@ -60,9 +50,7 @@ export default function LoginPage() {
                 .filter(Boolean)
                 .join('; ');
 
-            // Full reload so middleware sees cookie + take user back to original page
-            const nextPath = getSafeNextPath();
-            window.location.href = nextPath;
+            window.location.href = getSafeNextPath();
         } catch (error) {
             console.error('Error during sign in', error);
         }
@@ -72,17 +60,28 @@ export default function LoginPage() {
         <div className="relative min-h-screen overflow-hidden flex items-center justify-center md:p-40 p-4">
             {/* Background gradient / glow */}
             <div className="absolute inset-0 -z-10">
-                <div className="absolute inset-0 bg-slate-50" />
+                {/* base */}
+                <div className="absolute inset-0 bg-[#fbfaf7]" />
+
+                {/* bigger, less subtle sand glows */}
                 <div
-                    className="absolute -top-24 -left-24 h-[420px] w-[420px] rounded-full blur-3xl opacity-70
-          bg-gradient-to-br from-sky-300 via-cyan-200 to-transparent"
+                    className="absolute -top-56 -left-56 h-[760px] w-[760px] rounded-full blur-3xl opacity-90
+          bg-gradient-to-br from-stone-200 via-amber-100 to-transparent"
                 />
                 <div
-                    className="absolute -bottom-28 -right-28 h-[520px] w-[520px] rounded-full blur-3xl opacity-70
-          bg-gradient-to-tr from-blue-200 via-sky-200 to-transparent"
+                    className="absolute -bottom-72 -right-72 h-[920px] w-[920px] rounded-full blur-3xl opacity-90
+          bg-gradient-to-tr from-amber-100 via-stone-200 to-transparent"
                 />
-                <div className="absolute inset-0 opacity-70 bg-gradient-to-b from-white/40 via-transparent to-white/60" />
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(2,6,23,0.06)_100%)]" />
+                <div
+                    className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[620px] w-[620px] rounded-full blur-3xl opacity-80
+          bg-gradient-to-br from-stone-100 via-amber-50 to-transparent"
+                />
+
+                {/* stronger sweep */}
+                <div className="absolute inset-0 opacity-80 bg-gradient-to-b from-white/60 via-transparent to-white/70" />
+
+                {/* slightly stronger vignette */}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_25%,rgba(2,6,23,0.08)_100%)]" />
             </div>
 
             {/* Content */}
@@ -94,8 +93,8 @@ export default function LoginPage() {
                 <button
                     onClick={signIn}
                     className="rounded-full px-6 py-2 font-semibold text-white shadow-lg
-          bg-gradient-to-r from-sky-500 via-cyan-500 to-blue-500
-          hover:opacity-95 active:scale-[0.99] transition"
+          bg-gradient-to-r from-stone-700 via-stone-800 to-stone-700
+          hover:opacity-95 active:scale-[0.99] transition hover:cursor-pointer"
                 >
                     Logg inn
                 </button>

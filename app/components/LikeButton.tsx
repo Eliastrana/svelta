@@ -16,6 +16,11 @@ import { useAuthUser } from '@/hooks/useAuthUser';
 
 interface LikeButtonProps {
     recipeId: string;
+    /**
+     * If provided: called when user presses like / "Se hvem" while not logged in.
+     * Typical: () => router.push(`/login?next=${encodeURIComponent(path)}`)
+     */
+    onRequireLogin?: () => void;
 }
 
 interface LikedUser {
@@ -182,7 +187,11 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
                                 >
                                     <div className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 shrink-0">
                                         {u.photoURL ? (
-                                            <img src={u.photoURL} alt={u.name || 'User'} className="w-full h-full object-cover" />
+                                            <img
+                                                src={u.photoURL}
+                                                alt={u.name || 'User'}
+                                                className="w-full h-full object-cover"
+                                            />
                                         ) : (
                                             <div className="w-full h-full grid place-items-center text-slate-500">🧑‍🍳</div>
                                         )}
@@ -213,13 +222,18 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
     );
 };
 
-const LikeButton: React.FC<LikeButtonProps> = ({ recipeId }) => {
+const LikeButton: React.FC<LikeButtonProps> = ({ recipeId, onRequireLogin }) => {
     const currentUser = useAuthUser();
 
     const [likeCount, setLikeCount] = useState(0);
     const [hasLiked, setHasLiked] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [toggling, setToggling] = useState(false);
+
+    const requireLogin = () => {
+        if (onRequireLogin) onRequireLogin();
+        else alert('Please sign in to continue.');
+    };
 
     // Listen to likeCount on recipe doc (cheap)
     useEffect(() => {
@@ -244,7 +258,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId }) => {
 
     const handleLikeToggle = async () => {
         if (!currentUser?.uid) {
-            alert('Please sign in to like a recipe.');
+            requireLogin();
             return;
         }
         if (toggling) return;
@@ -255,7 +269,6 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId }) => {
         try {
             setToggling(true);
 
-            // Transaction keeps count + like doc consistent
             await runTransaction(firestore, async (tx) => {
                 const likeSnap = await tx.get(likeRef);
 
@@ -273,6 +286,14 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId }) => {
         } finally {
             setToggling(false);
         }
+    };
+
+    const openLikedUsers = () => {
+        if (!currentUser?.uid) {
+            requireLogin();
+            return;
+        }
+        setShowModal(true);
     };
 
     const likeLabel = hasLiked ? 'Ta på hatten' : 'Ta av deg hatten';
@@ -310,9 +331,9 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId }) => {
             {/* Open modal */}
             <button
                 type="button"
-                onClick={() => setShowModal(true)}
-                className="inline-flex items-center gap-2 rounded-full text-base font-semibold
-                     hover:bg-slate-200 transition active:scale-[0.99]"
+                onClick={openLikedUsers}
+                className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-slate-700
+                   hover:bg-slate-100 transition active:scale-[0.99]"
             >
                 Se hvem
             </button>
