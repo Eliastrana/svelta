@@ -24,7 +24,7 @@ const UserProfileDisplay = ({
     const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
     const [loadingPhoto, setLoadingPhoto] = useState(false);
 
-    const ringClass = active ? 'ring-2 ring-cyan-200 ring-offset-2 ring-offset-white' : '';
+    const ringClass = active ? 'ring-2 brown-button ring-offset-2 ring-offset-white' : '';
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {

@@ -459,7 +459,7 @@ const CreateRecipe = () => {
                     <button
                         type="submit"
                         form="create-recipe-form"
-                        className="h-10 px-4 rounded-full bg-cyan-200  text-sm font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition"
+                        className="h-10 px-4 rounded-full brown-button  text-sm font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition"
                     >
                         Publiser
                     </button>
@@ -663,7 +663,7 @@ const CreateRecipe = () => {
                     <div className="sm:hidden pt-2">
                         <button
                             type="submit"
-                            className="w-full rounded-full py-3 font-semibold  shadow-lg bg-cyan-100 hover:opacity-95 active:scale-[0.99] transition"
+                            className="w-full rounded-full py-3 font-semibold  shadow-lg brown-button hover:opacity-95 active:scale-[0.99] transition"
                         >
                             Publiser
                         </button>

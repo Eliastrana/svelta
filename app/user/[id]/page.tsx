@@ -349,10 +349,10 @@ const UserProfile: React.FC = () => {
     return (
         <div className="p-4 md:max-w-5xl md:w-2/3 md:mx-auto md:mb-24">
             {/* Header */}
-            <div className="md:flex justify-between items-center p-4 rounded-2xl border border-cyan-100 bg-cyan-100">
+            <div className="md:flex justify-between items-center p-4 rounded-2xl border border-neutral-100 bg-neutral-50">
                 <div className="flex items-center">
                     {photoURL ? (
-                        <img src={photoURL} alt="User Avatar" className="w-24 h-24 md:h-40 md:w-40 rounded-2xl mr-4 object-cover" />
+                        <img src={photoURL} alt="User Avatar" className="w-24 h-24 md:h-40 md:w-40 rounded-lg mr-4 object-cover" />
                     ) : (
                         <div className="h-16 w-16 rounded-full mr-4 bg-slate-100" />
                     )}
@@ -390,7 +390,7 @@ const UserProfile: React.FC = () => {
                 </div>
 
                 {isOwner && (
-                    <button onClick={logout} className="!bg-neutral-50 mt-4 md:mt-0 px-4 py-2 rounded-full ">
+                    <button onClick={logout} className="brown-button mt-4 md:mt-0 px-4 py-2 rounded-full ">
                         Logg ut
                     </button>
                 )}
@@ -404,7 +404,7 @@ const UserProfile: React.FC = () => {
                             });
                             setIsFollowing(!isFollowing);
                         }}
-                        className="mt-4 md:mt-0 bg-white py-2 px-4 rounded-full"
+                        className="mt-4 md:mt-0 brown-button py-2 px-4 rounded-full"
                     >
                         {isFollowing ? 'Slutt å følge' : 'Følg'}
                     </button>

@@ -1,15 +1,28 @@
 @import 'tailwindcss';
 
 :root {
-    --background: #eafdff;
+    --background: #fff5eb;
     --foreground: #0f172a;
-    --accent: #7dbbff;
-    --accent-strong: #CFFAFE;
+    --accent: #ddb892;
+    --accent-strong: #e6ccb2;
     --accent-soft: #e7f2ff;
 }
 
 body {
     font-family: Urbanist, sans-serif;
+}
+
+
+
+.brown-button {
+    background-color: var(--accent-strong);
+}
+
+.brown-button:hover {
+    background-color: var(--accent);
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+
 }
 
 .light-purple {

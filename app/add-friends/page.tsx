@@ -14,6 +14,8 @@ import {
     query,
     getDocs,
     orderBy,
+    where,
+    documentId,
 } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, firestore } from '@/firebase';
@@ -21,12 +23,106 @@ import { auth, firestore } from '@/firebase';
 interface UserData {
     name?: string;
     following?: string[];
+    photoURL?: string;
 }
 
 interface UserSearchResult {
     uid: string;
     name: string;
+    photoURL?: string;
 }
+
+type FriendsTab = 'friends' | 'following' | 'followers';
+
+const chunk = <T,>(arr: T[], size: number) => {
+    const out: T[][] = [];
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+};
+
+const fetchUsersByIds = async (uids: string[]): Promise<UserSearchResult[]> => {
+    if (uids.length === 0) return [];
+    const usersRef = collection(firestore, 'users');
+
+    const chunks = chunk(uids, 10);
+    const all: UserSearchResult[] = [];
+
+    for (const c of chunks) {
+        const q = query(usersRef, where(documentId(), 'in', c));
+        const snap = await getDocs(q);
+        snap.forEach((d) => {
+            const data = d.data() as UserData;
+            all.push({
+                uid: d.id,
+                name: data.name || 'Unnamed User',
+                photoURL: data.photoURL,
+            });
+        });
+    }
+
+    // behold rekkefølgen fra input
+    const orderIndex = new Map(uids.map((id, i) => [id, i]));
+    all.sort((a, b) => (orderIndex.get(a.uid) ?? 999999) - (orderIndex.get(b.uid) ?? 999999));
+
+    return all;
+};
+
+/**
+ * Hent "followers" uten å lagre followers-array:
+ * Followers = alle user-docs der following array-contains uid.
+ * Returner både ids + liste.
+ */
+const fetchFollowersForUid = async (uid: string): Promise<UserSearchResult[]> => {
+    if (!uid) return [];
+
+    const usersRef = collection(firestore, 'users');
+    const q = query(usersRef, where('following', 'array-contains', uid));
+
+    const snap = await getDocs(q);
+    const out: UserSearchResult[] = [];
+    snap.forEach((d) => {
+        const data = d.data() as UserData;
+        out.push({
+            uid: d.id,
+            name: data.name || 'Unnamed User',
+            photoURL: data.photoURL,
+        });
+    });
+
+    // valgfritt: sorter alfabetisk
+    out.sort((a, b) => a.name.localeCompare(b.name, 'no'));
+
+    return out;
+};
+
+// function normalizeSearch(s: string) {
+//     return s
+//         .trim()
+//         .toLowerCase()
+//         .normalize('NFD')
+//         .replace(/[\u0300-\u036f]/g, '') // fjerner aksenter
+//         .replace(/\s+/g, ' ');
+// }
+
+// function buildPrefixTokens(name: string) {
+//     const n = normalizeSearch(name);
+//     const words = n.split(' ').filter(Boolean);
+//
+//     const tokens = new Set<string>();
+//
+//     for (const w of words) {
+//         // prefixes: "eli", "elia", "elias" osv
+//         for (let i = 1; i <= w.length; i++) {
+//             tokens.add(w.slice(0, i));
+//         }
+//     }
+//
+//     // også hele strengen uten mellomrom (valgfritt)
+//     const compact = n.replace(/\s/g, '');
+//     for (let i = 1; i <= compact.length; i++) tokens.add(compact.slice(0, i));
+//
+//     return Array.from(tokens);
+// }
 
 const AddFriendsPage: React.FC = () => {
     const router = useRouter();
@@ -36,8 +132,16 @@ const AddFriendsPage: React.FC = () => {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [results, setResults] = useState<UserSearchResult[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loadingSearch, setLoadingSearch] = useState(false);
+
     const [currentFollowing, setCurrentFollowing] = useState<string[]>([]);
+
+    const [activeTab, setActiveTab] = useState<FriendsTab>('friends');
+
+    const [friendsList, setFriendsList] = useState<UserSearchResult[]>([]);
+    const [followingList, setFollowingList] = useState<UserSearchResult[]>([]);
+    const [followersList, setFollowersList] = useState<UserSearchResult[]>([]);
+    const [loadingTopList, setLoadingTopList] = useState(false);
 
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, (u) => {
@@ -50,41 +154,71 @@ const AddFriendsPage: React.FC = () => {
 
     const uid = currentUser?.uid ?? '';
 
-    // fetch following once
+    // hent following for current user
     useEffect(() => {
-        const fetchCurrentUserFollowing = async () => {
+        const fetchMyFollowing = async () => {
             if (!uid) return;
-            const userDocRef = doc(firestore, 'users', uid);
-            const docSnap = await getDoc(userDocRef);
-            if (docSnap.exists()) {
-                const data = docSnap.data() as UserData;
-                setCurrentFollowing(data.following ?? []);
+
+            const meRef = doc(firestore, 'users', uid);
+            const snap = await getDoc(meRef);
+
+            if (!snap.exists()) {
+                setCurrentFollowing([]);
+                return;
             }
+
+            const data = snap.data() as UserData;
+            setCurrentFollowing(data.following ?? []);
         };
-        fetchCurrentUserFollowing();
+
+        fetchMyFollowing();
     }, [uid]);
 
-    // normalize search term for consistent ordering (optional)
+    // Bygg topp-lister (friends/following/followers)
+    useEffect(() => {
+        const buildLists = async () => {
+            if (!uid) return;
+
+            setLoadingTopList(true);
+            try {
+                // 1) Following-list (fra ids)
+                const followingUsers = await fetchUsersByIds(currentFollowing);
+                setFollowingList(followingUsers);
+
+                // 2) Followers-list (uten å lagre) via array-contains
+                const followersUsers = await fetchFollowersForUid(uid);
+                setFollowersList(followersUsers);
+
+                // 3) Friends = intersection mellom currentFollowing og followersIds
+                const followersIds = new Set(followersUsers.map((u) => u.uid));
+                const friendsIds = currentFollowing.filter((id) => followersIds.has(id));
+                const friendsUsers = await fetchUsersByIds(friendsIds);
+                setFriendsList(friendsUsers);
+            } catch (err) {
+                console.error('Error building top lists:', err);
+            } finally {
+                setLoadingTopList(false);
+            }
+        };
+
+        buildLists();
+    }, [uid, currentFollowing]);
+
     const trimmed = useMemo(() => searchTerm.trim(), [searchTerm]);
 
     // search
     useEffect(() => {
         if (trimmed.length < 3) {
             setResults([]);
-            setLoading(false);
+            setLoadingSearch(false);
             return;
         }
 
         const fetchUsers = async () => {
-            setLoading(true);
+            setLoadingSearch(true);
             try {
                 const usersRef = collection(firestore, 'users');
-                const q = query(
-                    usersRef,
-                    orderBy('name'),
-                    startAt(trimmed),
-                    endAt(trimmed + '\uf8ff'),
-                );
+                const q = query(usersRef, orderBy('name'), startAt(trimmed), endAt(trimmed + '\uf8ff'));
 
                 const querySnapshot = await getDocs(q);
                 const users: UserSearchResult[] = [];
@@ -93,32 +227,36 @@ const AddFriendsPage: React.FC = () => {
                     users.push({
                         uid: d.id,
                         name: data.name || 'Unnamed User',
+                        photoURL: data.photoURL,
                     });
                 });
                 setResults(users);
             } catch (err) {
                 console.error('Error fetching users:', err);
             }
-            setLoading(false);
+            setLoadingSearch(false);
         };
 
         fetchUsers();
     }, [trimmed]);
 
+    // ✅ follow/unfollow oppdaterer KUN currentUser.following
     const handleFollow = async (targetUid: string) => {
         if (!uid) {
             alert('Please log in to follow users.');
             return;
         }
 
-        const currentUserRef = doc(firestore, 'users', uid);
+        const meRef = doc(firestore, 'users', uid);
 
         try {
-            if (currentFollowing.includes(targetUid)) {
-                await updateDoc(currentUserRef, { following: arrayRemove(targetUid) });
+            const isFollowing = currentFollowing.includes(targetUid);
+
+            if (isFollowing) {
+                await updateDoc(meRef, { following: arrayRemove(targetUid) });
                 setCurrentFollowing((prev) => prev.filter((x) => x !== targetUid));
             } else {
-                await updateDoc(currentUserRef, { following: arrayUnion(targetUid) });
+                await updateDoc(meRef, { following: arrayUnion(targetUid) });
                 setCurrentFollowing((prev) => [...prev, targetUid]);
             }
         } catch (err) {
@@ -127,7 +265,58 @@ const AddFriendsPage: React.FC = () => {
     };
 
     if (!authReady) return <div className="p-4 text-slate-600">Laster…</div>;
-    if (!currentUser) return null; // redirected to /login
+    if (!currentUser) return null;
+
+    const FollowButton = ({ targetUid }: { targetUid: string }) => {
+        const isFollowing = currentFollowing.includes(targetUid);
+
+        return (
+            <button
+                type="button"
+                onClick={() => handleFollow(targetUid)}
+                className={[
+                    'px-4 py-2 rounded-full text-sm font-semibold transition',
+                    isFollowing
+                        ? 'bg-slate-100 text-slate-800 hover:bg-slate-200'
+                        : 'bg-cyan-100 text-slate-900 hover:bg-cyan-200',
+                ].join(' ')}
+                aria-label={isFollowing ? 'Slutt å følge' : 'Følg'}
+            >
+                {isFollowing ? 'Slutt å følge' : 'Følg'}
+            </button>
+        );
+    };
+
+    const TopRow = ({ u }: { u: UserSearchResult }) => (
+        <div className="flex items-center justify-between py-3 border-b border-slate-100 last:border-b-0">
+            <button
+                type="button"
+                onClick={() => router.push(`/user/${u.uid}`)}
+                className="flex items-center gap-3 text-left"
+            >
+                <div className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 shrink-0">
+                    {u.photoURL ? (
+                        <img src={u.photoURL} alt={u.name} className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full grid place-items-center text-slate-500">🧑‍🍳</div>
+                    )}
+                </div>
+                <span className="text-slate-900 font-medium">{u.name}</span>
+            </button>
+
+            {uid === u.uid ? <span className="text-sm text-slate-500">Deg</span> : <FollowButton targetUid={u.uid} />}
+        </div>
+    );
+
+    const topList =
+        activeTab === 'friends' ? friendsList : activeTab === 'following' ? followingList : followersList;
+
+    const activeCount =
+        activeTab === 'friends'
+            ? friendsList.length
+            : activeTab === 'following'
+                ? followingList.length
+                : followersList.length;
 
     return (
         <div className="min-h-screen">
@@ -138,6 +327,7 @@ const AddFriendsPage: React.FC = () => {
                         onClick={() => router.back()}
                         className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100"
                         aria-label="Tilbake"
+                        type="button"
                     >
                         <span className="material-symbols-outlined">arrow_back</span>
                     </button>
@@ -149,7 +339,82 @@ const AddFriendsPage: React.FC = () => {
             </div>
 
             {/* Content */}
-            <div className="mx-auto max-w-xl px-4 py-6">
+            <div className="mx-auto max-w-xl px-4 py-6 space-y-4">
+                {/* Toggle list */}
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div className="p-4">
+                        {/* Tabs */}
+                        <div className="flex items-center justify-between gap-2 mb-4">
+                            <div className="relative inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+                                <div
+                                    className="absolute top-0 left-0 h-full w-1/3 rounded-full bg-white shadow-sm transition-transform duration-300"
+                                    style={{
+                                        transform:
+                                            activeTab === 'friends'
+                                                ? 'translateX(0%)'
+                                                : activeTab === 'following'
+                                                    ? 'translateX(100%)'
+                                                    : 'translateX(200%)',
+                                    }}
+                                />
+
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('friends')}
+                                    className={`relative px-4 py-1 text-sm font-medium focus:outline-none ${
+                                        activeTab === 'friends' ? 'text-slate-900' : 'text-slate-500'
+                                    }`}
+                                >
+                                    Venner
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('following')}
+                                    className={`relative px-4 py-1 text-sm font-medium focus:outline-none ${
+                                        activeTab === 'following' ? 'text-slate-900' : 'text-slate-500'
+                                    }`}
+                                >
+                                    Følger
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('followers')}
+                                    className={`relative px-4 py-1 text-sm font-medium focus:outline-none ${
+                                        activeTab === 'followers' ? 'text-slate-900' : 'text-slate-500'
+                                    }`}
+                                >
+                                    Følgere
+                                </button>
+                            </div>
+
+                            {/* Counts */}
+                            <div className="text-sm text-slate-500">{activeCount}</div>
+                        </div>
+
+                        {/* List */}
+                        {loadingTopList ? (
+                            <p className="text-slate-600">Laster…</p>
+                        ) : topList.length === 0 ? (
+                            <p className="text-slate-600">
+                                {activeTab === 'friends'
+                                    ? 'Ingen venner enda (må følge hverandre).'
+                                    : activeTab === 'following'
+                                        ? 'Du følger ingen enda.'
+                                        : 'Ingen følger deg enda.'}
+                            </p>
+                        ) : (
+                            <div className="max-h-[40vh] overflow-y-auto">
+                                {topList.map((u) => (
+                                    <TopRow key={`${activeTab}-${u.uid}`} u={u} />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Search input */}
                 <input
                     type="text"
                     placeholder="Søk etter navn..."
@@ -158,9 +423,10 @@ const AddFriendsPage: React.FC = () => {
                     className="w-full p-3 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-200"
                 />
 
-                <div className="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
+                {/* Search results */}
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <div className="p-4">
-                        {loading ? (
+                        {loadingSearch ? (
                             <p className="text-slate-600">Laster…</p>
                         ) : trimmed.length < 3 ? (
                             <p className="text-slate-600">Søk etter vennene dine, hvis du har noen 🙄</p>
@@ -173,22 +439,25 @@ const AddFriendsPage: React.FC = () => {
                                         key={u.uid}
                                         className="flex items-center justify-between py-3 border-b border-slate-100 last:border-b-0"
                                     >
-                                        <span className="text-slate-900 font-medium">{u.name}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => router.push(`/user/${u.uid}`)}
+                                            className="flex items-center gap-3 text-left"
+                                        >
+                                            <div className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 shrink-0">
+                                                {u.photoURL ? (
+                                                    <img src={u.photoURL} alt={u.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full grid place-items-center text-slate-500">🧑‍🍳</div>
+                                                )}
+                                            </div>
+                                            <span className="text-slate-900 font-medium">{u.name}</span>
+                                        </button>
 
                                         {uid === u.uid ? (
                                             <span className="text-sm text-slate-500">Deg</span>
                                         ) : (
-                                            <button
-                                                onClick={() => handleFollow(u.uid)}
-                                                className="px-3 py-1 rounded-full text-sm cursor-pointer bg-slate-100 text-slate-700 hover:bg-slate-200"
-                                                aria-label={currentFollowing.includes(u.uid) ? 'Slutt å følge' : 'Følg'}
-                                            >
-                                                {currentFollowing.includes(u.uid) ? (
-                                                    <span className="material-symbols-outlined">close</span>
-                                                ) : (
-                                                    <span className="material-symbols-outlined">add</span>
-                                                )}
-                                            </button>
+                                            <FollowButton targetUid={u.uid} />
                                         )}
                                     </div>
                                 ))}

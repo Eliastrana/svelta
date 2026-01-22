@@ -612,7 +612,7 @@ const EditRecipePage: React.FC = () => {
                     <button
                         type="submit"
                         form="edit-recipe-form"
-                        className="h-10 px-4 rounded-full bg-cyan-100 text-sm font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition"
+                        className="h-10 px-4 rounded-full brown-button text-sm font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition"
                     >
                         Lagre
                     </button>
