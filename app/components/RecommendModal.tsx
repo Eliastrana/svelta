@@ -64,22 +64,22 @@ export default function RecommendModal({ onClose }: Props) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-slate-900/30 flex items-center justify-center z-50">
             <div
                 className="fixed md:bottom-30 bottom-24 left-1/2 -translate-x-1/2 w-[90vw] max-w-md z-50
                    p-4 rounded-2xl shadow-xl backdrop-blur
-                   bg-[#2a2a2a]/90
-                   border border-slate-600"
+                   bg-white/95
+                   border border-slate-200"
             >
                 <button
                     onClick={onClose}
-                    className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+                    className="absolute top-3 right-3 text-slate-500 hover:text-slate-700"
                 >
                     ✕
                 </button>
 
-                <h2 className="text-2xl font-semibold mb-2">Spør CorpCoreKokken!</h2>
-                <p className="mb-2">Se så uproposjonal han er!</p>
+                <h2 className="text-2xl font-semibold mb-2 text-slate-900">Spør CorpCoreKokken!</h2>
+                <p className="mb-2 text-slate-600">Se så uproposjonal han er!</p>
 
                 <img
                     className="mt-2 mb-2"
@@ -88,16 +88,18 @@ export default function RecommendModal({ onClose }: Props) {
                 />
 
                 {isLoading ? (
-                    <p>Laster oppskrifter du følger…</p>
+                    <p className="text-slate-600">Laster oppskrifter du følger…</p>
                 ) : recipes.length === 0 ? (
-                    <p>Du følger ingen kokker—legg til noen for å få anbefalinger!</p>
+                    <p className="text-slate-600">
+                        Du følger ingen kokker—legg til noen for å få anbefalinger!
+                    </p>
                 ) : (
                     <form onSubmit={handleSubmit}>
                         <textarea
                             value={prompt}
                             onChange={e => setPrompt(e.target.value)}
                             placeholder="Eksempel: Noe som både har brownie og cookie i seg"
-                            className="w-full p-2 border rounded mb-2"
+                            className="w-full p-2 border border-slate-200 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-slate-200"
                             rows={3}
                         />
                         <button

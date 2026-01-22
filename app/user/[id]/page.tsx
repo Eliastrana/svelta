@@ -118,17 +118,17 @@ const UserProfile: React.FC = () => {
                         />
                     )}
                     <div>
-                        <h1 className="text-4xl font-bold">
+                        <h1 className="text-3xl font-semibold text-slate-900">
                             {userData.name || 'User Profile'}
                         </h1>
-                        <p className="text-lg">{followerCount} følgere</p>
+                        <p className="text-sm text-slate-500">{followerCount} følgere</p>
                     </div>
                 </div>
 
                 {isOwner && (
                     <button
                         onClick={logout}
-                        className="confirm-button mt-4 md:mt-0 p-2 rounded-lg hover:underline"
+                        className="confirm-button mt-4 md:mt-0 px-4 py-2 rounded-full"
                     >
                         Logg ut
                     </button>
@@ -145,7 +145,7 @@ const UserProfile: React.FC = () => {
                             });
                             setIsFollowing(!isFollowing);
                         }}
-                        className="mt-4 md:mt-0 confirm-button py-2 px-4 rounded"
+                        className="mt-4 md:mt-0 confirm-button py-2 px-4 rounded-full"
                     >
                         {isFollowing ? 'Slutt å følge' : 'Følg'}
                     </button>
@@ -153,9 +153,9 @@ const UserProfile: React.FC = () => {
             </div>
 
             {/* Tab controls */}
-            <div className="relative inline-flex rounded overflow-hidden mt-6">
+            <div className="relative inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 mt-6">
                 <div
-                    className="absolute top-0 left-0 h-full w-1/2 transition-transform duration-300"
+                    className="absolute top-0 left-0 h-full w-1/2 rounded-full bg-white shadow-sm transition-transform duration-300"
                     style={{
                         transform:
                             activeTab === 'likedRecipes'
@@ -165,20 +165,20 @@ const UserProfile: React.FC = () => {
                 />
                 <button
                     onClick={() => setActiveTab('myRecipes')}
-                    className={`relative px-6 py-1 w-1/2 focus:outline-none ${
+                    className={`relative px-6 py-1 w-1/2 text-sm font-medium focus:outline-none ${
                         activeTab === 'myRecipes'
-                            ? 'text-black bg-white rounded-full'
-                            : 'text-gray-200'
+                            ? 'text-slate-900'
+                            : 'text-slate-500'
                     }`}
                 >
                     Oppskrifter
                 </button>
                 <button
                     onClick={() => setActiveTab('likedRecipes')}
-                    className={`relative px-8 py-1 w-1/2 focus:outline-none ${
+                    className={`relative px-8 py-1 w-1/2 text-sm font-medium focus:outline-none ${
                         activeTab === 'likedRecipes'
-                            ? 'text-black bg-white rounded-full'
-                            : 'text-gray-200'
+                            ? 'text-slate-900'
+                            : 'text-slate-500'
                     }`}
                 >
                     Likte
@@ -186,14 +186,14 @@ const UserProfile: React.FC = () => {
             </div>
 
             {/* Recipe list */}
-            <div className="grid grid-cols-1 gap-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 {displayedRecipes.length === 0 ? (
                     <div>
-                        <p>Ingen oppskrifter funnet.</p>
+                        <p className="text-slate-600">Ingen oppskrifter funnet.</p>
                         {isOwner && activeTab === 'myRecipes' && (
                             <button
                                 onClick={() => router.push('/create-recipe')}
-                                className="confirm-button py-2 px-4 rounded mt-4"
+                                className="confirm-button py-2 px-4 rounded-full mt-4"
                             >
                                 Lag ny oppskrift
                             </button>
@@ -219,19 +219,19 @@ const UserProfile: React.FC = () => {
 
             {/* Delete confirmation */}
             {showConfirm && pendingDeleteId && (
-                <div className="fixed inset-0 dark-purple-bg flex justify-center items-center z-50 white-text">
-                    <div className="p-6 rounded-lg max-w-sm w-full">
-                        <h1 className="text-4xl font-semibold mb-4">
+                <div className="fixed inset-0 bg-slate-900/30 flex justify-center items-center z-50">
+                    <div className="p-6 rounded-2xl max-w-sm w-full bg-white border border-slate-200 shadow-xl">
+                        <h1 className="text-2xl font-semibold mb-4 text-slate-900">
                             Vil du slette denne oppskriften?
                         </h1>
-                        <p>Var den ikke noe god?</p>
+                        <p className="text-slate-600">Var den ikke noe god?</p>
                         <div className="flex justify-end gap-2 mt-4">
                             <button
                                 onClick={() => {
                                     setShowConfirm(false);
                                     setPendingDeleteId(null);
                                 }}
-                                className="confirm-button px-4 py-2 rounded-lg"
+                                className="confirm-button px-4 py-2 rounded-full"
                             >
                                 Avbryt
                             </button>
@@ -243,7 +243,7 @@ const UserProfile: React.FC = () => {
                                     setShowConfirm(false);
                                     setPendingDeleteId(null);
                                 }}
-                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
+                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full"
                             >
                                 Slett
                             </button>

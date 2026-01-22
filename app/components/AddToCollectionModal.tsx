@@ -57,12 +57,12 @@ export default function AddToCollectionModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white dark:bg-[#2a2a2a] rounded-2xl p-6 w-[90vw] max-w-md">
-                <h3 className="text-lg font-semibold mb-4">Legg til i liste</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30">
+            <div className="bg-white rounded-2xl p-6 w-[90vw] max-w-md border border-slate-200 shadow-xl">
+                <h3 className="text-lg font-semibold mb-4 text-slate-900">Legg til i liste</h3>
 
                 {collections.length === 0 ? (
-                    <p className="text-sm">Du har ingen lister ennå.</p>
+                    <p className="text-sm text-slate-600">Du har ingen lister ennå.</p>
                 ) : (
                     <ul className="space-y-3 max-h-60 overflow-y-auto pr-2">
                         {collections.map((c) => (
@@ -77,7 +77,7 @@ export default function AddToCollectionModal({
                                     <input
                                         id="ripple-on"
                                         type="checkbox"
-                                        className="peer relative h-5 w-5 cursor-pointer appearance-none rounded border border-slate-300 shadow hover:shadow-md transition-all before:absolute before:top-2/4 before:left-2/4 before:block before:h-12 before:w-12 before:-translate-y-2/4 before:-translate-x-2/4 before:rounded-full before:bg-slate-400 before:opacity-0 before:transition-opacity checked:border-slate-800 checked:bg-gray-600 checked:before:bg-slate-400 hover:before:opacity-10"
+                                        className="peer relative h-5 w-5 cursor-pointer appearance-none rounded border border-slate-300 shadow hover:shadow-md transition-all before:absolute before:top-2/4 before:left-2/4 before:block before:h-12 before:w-12 before:-translate-y-2/4 before:-translate-x-2/4 before:rounded-full before:bg-slate-300 before:opacity-0 before:transition-opacity checked:border-slate-600 checked:bg-slate-700 checked:before:bg-slate-300 hover:before:opacity-10"
                                         checked={!!checkedMap[c.id]}
                                         onChange={() => handleToggle(c.id)}
                                     />
@@ -101,14 +101,14 @@ export default function AddToCollectionModal({
                                 </label>
 
 
-                                <span>{c.name}</span>
+                                <span className="text-slate-700">{c.name}</span>
                             </li>
                         ))}
                     </ul>
                 )}
 
                 <button
-                    className="mt-6 w-full py-2 rounded-lg bg-[#373737] text-white"
+                    className="mt-6 w-full py-2 rounded-full confirm-button"
                     onClick={onClose}
                 >
                     Ferdig

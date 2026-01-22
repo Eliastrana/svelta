@@ -66,15 +66,15 @@ const Home: React.FC = () => {
     if (loading) return <div className="p-4">Laster…</div>;
 
     return (
-        <div className="p-2 md:max-w-4xl md:w-2/3 md:mx-auto md:mb-20">
+        <div className="p-4 md:max-w-5xl md:w-2/3 md:mx-auto md:mb-24">
             {/* Header & feed toggle */}
-            <div className="md:flex items-center justify-between mb-4">
-                <h2 className="md:text-4xl text-2xl font-bold mb-4">Oppskrifter</h2>
+            <div className="md:flex items-center justify-between mb-6">
+                <h2 className="md:text-3xl text-2xl font-semibold text-slate-900">Oppskrifter</h2>
 
-                <div className="relative inline-flex rounded overflow-hidden">
+                <div className="relative inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
                     {/* sliding indicator */}
                     <div
-                        className="absolute top-0 left-0 h-full w-1/2 transition-transform duration-300"
+                        className="absolute top-0 left-0 h-full w-1/2 rounded-full bg-white shadow-sm transition-transform duration-300"
                         style={{
                             transform: activeFeed === 'popular' ? 'translateX(100%)' : undefined,
                         }}
@@ -82,10 +82,10 @@ const Home: React.FC = () => {
 
                     <button
                         onClick={() => setActiveFeed('following')}
-                        className={`relative px-6 py-1 w-1/2 focus:outline-none ${
+                        className={`relative px-4 py-1 w-1/2 text-sm font-medium focus:outline-none ${
                             activeFeed === 'following'
-                                ? 'text-black bg-white rounded-full'
-                                : 'text-gray-200'
+                                ? 'text-slate-900'
+                                : 'text-slate-500'
                         }`}
                     >
                         Følger
@@ -93,10 +93,10 @@ const Home: React.FC = () => {
 
                     <button
                         onClick={() => setActiveFeed('popular')}
-                        className={`relative px-6 py-1 w-1/2 focus:outline-none ${
+                        className={`relative px-4 py-1 w-1/2 text-sm font-medium focus:outline-none ${
                             activeFeed === 'popular'
-                                ? 'text-black bg-white rounded-full'
-                                : 'text-gray-200'
+                                ? 'text-slate-900'
+                                : 'text-slate-500'
                         }`}
                     >
                         Populære
@@ -116,20 +116,20 @@ const Home: React.FC = () => {
             <div className="mb-40">
                 {recipes.length === 0 ? (
                     <>
-                        <p>
+                        <p className="text-slate-600">
                             Ingen tilgjengelige oppskrifter. Prøv å følg noen for å se
                             oppskrifter, eller sjekk ut populære oppskrifter!
                         </p>
                         <button
                             onClick={() => setShowModal(true)}
-                            className="confirm-button mt-4 p-2 rounded-lg hover:underline"
+                            className="confirm-button mt-4 px-4 py-2 rounded-full"
                         >
                             Søk etter kokker
                         </button>
                     </>
                 ) : (
-                    <div className="mt-8 white-text">
-                        <div className="grid grid-cols-1 md:gap-24 gap-20">
+                    <div className="mt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                             {recipes.map((recipe) => (
                                 <RecipeCard
                                     key={recipe.id}

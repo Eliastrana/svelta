@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, firestore, storage } from '@/firebase';
-import DrawingCanvas from '@/app/components/DrawingCanvas';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { CookingStep } from '@/app/types/CookingStep';
 
@@ -25,21 +24,21 @@ const CreateRecipe = () => {
 
     const router = useRouter();
 
-    const fontOptions = [
-        { name: 'Raleway', value: "'Raleway', sans-serif" },
-        { name: 'Righteous', value: "'Righteous', cursive" },
-        { name: 'Playfair Display', value: "'Playfair Display', serif" },
-        { name: 'Roboto Mono', value: "'Roboto Mono', monospace" },
-        { name: 'Lobster', value: "'Lobster', cursive" },
-    ];
-
-    const colorOptions = [
-        '#ffffff',
-        '#d5d0dc',
-        '#9d91ad',
-        '#d89cf6',
-        '#f6c3e5',
-    ];
+    // const fontOptions = [
+    //     { name: 'Raleway', value: "'Raleway', sans-serif" },
+    //     { name: 'Righteous', value: "'Righteous', cursive" },
+    //     { name: 'Playfair Display', value: "'Playfair Display', serif" },
+    //     { name: 'Roboto Mono', value: "'Roboto Mono', monospace" },
+    //     { name: 'Lobster', value: "'Lobster', cursive" },
+    // ];
+    //
+    // const colorOptions = [
+    //     '#ffffff',
+    //     '#d5d0dc',
+    //     '#9d91ad',
+    //     '#d89cf6',
+    //     '#f6c3e5',
+    // ];
 
     useEffect(() => {
         const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -152,6 +151,8 @@ const CreateRecipe = () => {
                 userId: user.uid,
                 createdAt: serverTimestamp(),
                 coverImage: coverImageUrl,
+                likeCount: 0,
+                commentCount: 0,
             });
             localStorage.removeItem(LOCAL_STORAGE_KEY);
             router.push('/');
@@ -179,10 +180,10 @@ const CreateRecipe = () => {
                     className="w-full border-2 p-2 rounded"
                     required
                 />
-                <div>
-                    <h2 className="block font-bold text-xl mb-1">Tegn maten 👨‍🎨</h2>
-                    <DrawingCanvas onChange={(svg) => setSvgData(svg)} />
-                </div>
+                {/*<div>*/}
+                {/*    <h2 className="block font-bold text-xl mb-1">Tegn maten 👨‍🎨</h2>*/}
+                {/*    <DrawingCanvas onChange={(svg) => setSvgData(svg)} />*/}
+                {/*</div>*/}
                 <div>
                     <label className="block mb-2 text-xl font-bold">Forsidebilde</label>
                     <div className="flex items-center justify-center w-full">
@@ -215,46 +216,46 @@ const CreateRecipe = () => {
                     )}
                 </div>
 
-                <div>
-                    <h2 className="block mb-1 text-xl font-bold">Bakgrunnsfarge</h2>
-                    <div className="flex flex-wrap gap-4">
-                        {colorOptions.map((color) => (
-                            <label key={color} className="cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="bgColor"
-                                    value={color}
-                                    checked={bgColor === color}
-                                    onChange={() => setBgColor(color)}
-                                    className="sr-only"
-                                />
-                                <div
-                                    className={`w-12 h-12 border-2 rounded-full transition ${bgColor === color ? 'ring-2' : ''}`}
-                                    style={{ backgroundColor: color }}
-                                />
-                            </label>
-                        ))}
-                    </div>
-                </div>
-                <div>
-                    <h2 className="block mb-1 text-xl font-bold">Font</h2>
-                    <select
-                        value={fontStyle}
-                        onChange={(e) => setFontStyle(e.target.value)}
-                        className="w-full border-2 p-2 rounded"
-                        style={{ fontFamily: fontStyle }}
-                    >
-                        {fontOptions.map((font) => (
-                            <option
-                                key={font.name}
-                                value={font.value}
-                                style={{ fontFamily: font.value }}
-                            >
-                                {font.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                {/*<div>*/}
+                {/*    <h2 className="block mb-1 text-xl font-bold">Bakgrunnsfarge</h2>*/}
+                {/*    <div className="flex flex-wrap gap-4">*/}
+                {/*        {colorOptions.map((color) => (*/}
+                {/*            <label key={color} className="cursor-pointer">*/}
+                {/*                <input*/}
+                {/*                    type="radio"*/}
+                {/*                    name="bgColor"*/}
+                {/*                    value={color}*/}
+                {/*                    checked={bgColor === color}*/}
+                {/*                    onChange={() => setBgColor(color)}*/}
+                {/*                    className="sr-only"*/}
+                {/*                />*/}
+                {/*                <div*/}
+                {/*                    className={`w-12 h-12 border-2 rounded-full transition ${bgColor === color ? 'ring-2' : ''}`}*/}
+                {/*                    style={{ backgroundColor: color }}*/}
+                {/*                />*/}
+                {/*            </label>*/}
+                {/*        ))}*/}
+                {/*    </div>*/}
+                {/*</div>*/}
+                {/*<div>*/}
+                {/*    <h2 className="block mb-1 text-xl font-bold">Font</h2>*/}
+                {/*    <select*/}
+                {/*        value={fontStyle}*/}
+                {/*        onChange={(e) => setFontStyle(e.target.value)}*/}
+                {/*        className="w-full border-2 p-2 rounded"*/}
+                {/*        style={{ fontFamily: fontStyle }}*/}
+                {/*    >*/}
+                {/*        {fontOptions.map((font) => (*/}
+                {/*            <option*/}
+                {/*                key={font.name}*/}
+                {/*                value={font.value}*/}
+                {/*                style={{ fontFamily: font.value }}*/}
+                {/*            >*/}
+                {/*                {font.name}*/}
+                {/*            </option>*/}
+                {/*        ))}*/}
+                {/*    </select>*/}
+                {/*</div>*/}
                 <div>
                     <h2 className="text-xl mb-2 font-bold">Ingredienser</h2>
                     <div className="flex space-x-2 mb-2">
