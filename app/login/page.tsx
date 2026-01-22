@@ -2,10 +2,21 @@
 'use client';
 
 import { useEffect } from 'react';
-import { signInWithPopup } from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup } from 'firebase/auth';
 import { auth, provider } from '@/firebase';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
+
+    const router = useRouter();
+
+    useEffect(() => {
+        const unsub = onAuthStateChanged(auth, (user) => {
+            if (user) router.replace('/');
+        });
+        return () => unsub();
+    }, [router]);
+
     // 1) On mount, if we already have the cookie, go home immediately:
     useEffect(() => {
         if (typeof document !== 'undefined' && document.cookie.includes('yourAuthToken=')) {
@@ -20,13 +31,17 @@ export default function LoginPage() {
             const result = await signInWithPopup(auth, provider);
             const token = await result.user.getIdToken(true);
 
+            const isLocalhost =
+                typeof window !== 'undefined' &&
+                window.location.hostname === 'localhost';
+
             document.cookie = [
                 `yourAuthToken=${token}`,
                 `Path=/`,
-                `Max-Age=${60 * 60}`,    // keep it 1 hour
-                `SameSite=None`,         // crucial for client fetches to include it
-                `Secure`,                // required on HTTPS
-            ].join('; ');
+                `Max-Age=${60 * 60}`,
+                isLocalhost ? `SameSite=Lax` : `SameSite=None`,
+                isLocalhost ? `` : `Secure`,
+            ].filter(Boolean).join('; ');
 
             // full reload so the middleware sees the cookie
             window.location.href = '/';
@@ -44,11 +59,11 @@ export default function LoginPage() {
 
                 {/* mesh gradients (light blue vibe) */}
                 <div
-                    className="absolute -top-24 -left-24 h-[420px] w-[420px] rounded-full blur-3xl opacity-60
+                    className="absolute -top-24 -left-24 h-[420px] w-[420px] rounded-full blur-3xl opacity-70
                    bg-gradient-to-br from-sky-300 via-cyan-200 to-transparent"
                 />
                 <div
-                    className="absolute -bottom-28 -right-28 h-[520px] w-[520px] rounded-full blur-3xl opacity-60
+                    className="absolute -bottom-28 -right-28 h-[520px] w-[520px] rounded-full blur-3xl opacity-70
                    bg-gradient-to-tr from-blue-200 via-sky-200 to-transparent"
                 />
 
@@ -61,7 +76,7 @@ export default function LoginPage() {
 
             {/* Content */}
             <div className="flex flex-col items-center text-center max-w-5xl mx-auto">
-                <h1 className="md:text-8xl text-5xl font-bold mb-8 text-slate-900">
+                <h1 className="md:text-8xl text-5xl font-bold mb-8 text-cyan-400 ">
                     Del dine beste oppskrifter
                 </h1>
 
@@ -72,7 +87,7 @@ export default function LoginPage() {
            hover:opacity-95 active:scale-[0.99] transition"
 
                 >
-                    Logg inn med Google
+                    Logg inn
                 </button>
             </div>
         </div>

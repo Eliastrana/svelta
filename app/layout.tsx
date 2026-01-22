@@ -4,6 +4,7 @@ import Navbar from '@/app/components/Navbar';
 import AuthSync from '@/app/components/AuthSync';
 import Footer from '@/app/components/footer';
 import ReactQueryProvider from '@/app/components/ReactQueryProvider';
+import { Suspense } from 'react';
 
 
 export const metadata: Metadata = {
@@ -73,7 +74,9 @@ export default function RootLayout({
         <AuthSync />
 
         <ReactQueryProvider>
+            <Suspense fallback={null}>
             <Navbar />
+            </Suspense>
             {children}
         </ReactQueryProvider>
         <Footer />

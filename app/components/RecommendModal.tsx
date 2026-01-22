@@ -105,7 +105,7 @@ export default function RecommendModal({ onClose }: Props) {
                         <button
                             type="submit"
                             disabled={busy || !prompt.trim()}
-                            className="w-full bg-color text-white py-2 rounded-full disabled:opacity-50"
+                            className="w-full bg-color py-2 rounded-full disabled:opacity-50"
                         >
                             {busy ? 'Tenker…' : 'Finn oppskrift'}
                         </button>

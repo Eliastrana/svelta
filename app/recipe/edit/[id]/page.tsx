@@ -28,13 +28,31 @@ import { CSS } from '@dnd-kit/utilities';
 
 type StepWithId = CookingStep & { id: string };
 
+type IngredientItem = {
+    id: string;
+    name: string;
+    amount: string;
+};
+
+type RecipeDoc = RecipeData & {
+    // ny struktur (kan mangle i eldre docs)
+    ingredientsDetailed?: IngredientItem[];
+};
+
 type DraftPayload = {
     recipeData?: RecipeData;
+    // legacy (gammel)
     ingredients?: string[];
+    // ny
+    ingredientsDetailed?: IngredientItem[];
+
     temperature?: string;
     cookingTime?: string;
+
     cookingSteps?: StepWithId[];
-    newIngredient?: string;
+    newIngredientName?: string;
+    newIngredientAmount?: string;
+
     // NB: blob:-preview funker ikke etter reload, så vi ignorerer den ved hydration
     coverImagePreview?: string | null;
 };
@@ -44,32 +62,44 @@ const makeId = (): string =>
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+function normalizeIngredientName(s: string): string {
+    return s.trim();
+}
+
+function normalizeIngredientAmount(s: string): string {
+    return s.trim();
+}
+
+function toIngredientItemsFromStrings(list: string[]): IngredientItem[] {
+    return list
+        .map((name) => normalizeIngredientName(name))
+        .filter(Boolean)
+        .map((name) => ({ id: makeId(), name, amount: '' }));
+}
+
 function isMeaningfulDraft(draft: DraftPayload): boolean {
     const title = draft.recipeData?.title?.trim() ?? '';
     const desc = draft.recipeData?.description?.trim() ?? '';
 
-    const ingredients =
-        draft.ingredients ??
-        draft.recipeData?.ingredients ??
+    const ingredientsDetailed =
+        draft.ingredientsDetailed ??
+        (draft.ingredients ? toIngredientItemsFromStrings(draft.ingredients) : []) ??
         [];
 
     const steps =
         draft.cookingSteps ??
         (draft.recipeData?.cookingSteps ?? []).map((s) => ({ ...s, id: makeId() }));
 
-    const temperature =
-        (draft.temperature ?? draft.recipeData?.temperature ?? '').trim();
-
-    const cookingTime =
-        (draft.cookingTime ?? draft.recipeData?.cookingTime ?? '').trim();
+    const temperature = (draft.temperature ?? draft.recipeData?.temperature ?? '').trim();
+    const cookingTime = (draft.cookingTime ?? draft.recipeData?.cookingTime ?? '').trim();
 
     const coverPreview = draft.coverImagePreview ?? null;
-    const usablePreview = coverPreview && !coverPreview.startsWith('blob:'); // blob er ubrukelig etter reload
+    const usablePreview = coverPreview && !coverPreview.startsWith('blob:');
 
     return Boolean(
         title ||
         desc ||
-        ingredients.length > 0 ||
+        ingredientsDetailed.length > 0 ||
         steps.length > 0 ||
         temperature ||
         cookingTime ||
@@ -152,6 +182,79 @@ function SortableStepCard(props: {
     );
 }
 
+function SortableIngredientCard(props: {
+    item: IngredientItem;
+    index: number;
+    onChange: (id: string, field: 'name' | 'amount', value: string) => void;
+    onRemove: (id: string) => void;
+}) {
+    const { item, index, onChange, onRemove } = props;
+
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: item.id,
+    });
+
+    const style: React.CSSProperties = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`rounded-2xl border border-slate-200 bg-white p-3 ${
+                isDragging ? 'shadow-lg ring-2 ring-slate-200' : ''
+            }`}
+        >
+            <div className="flex items-start gap-3">
+                <button
+                    type="button"
+                    className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition cursor-grab active:cursor-grabbing"
+                    aria-label="Dra for å flytte ingrediens"
+                    {...attributes}
+                    {...listeners}
+                >
+                    <span className="material-symbols-outlined text-slate-600">drag_indicator</span>
+                </button>
+
+                <div className="flex-1">
+                    <label className="block text-sm font-semibold text-slate-900 mb-2">
+                        Ingrediens {index + 1}
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input
+                            type="text"
+                            placeholder="f.eks. Hvetemel"
+                            value={item.name}
+                            onChange={(e) => onChange(item.id, 'name', e.target.value)}
+                            className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                            required
+                        />
+                        <input
+                            type="text"
+                            placeholder="Mengde (f.eks. 200 g)"
+                            value={item.amount}
+                            onChange={(e) => onChange(item.id, 'amount', e.target.value)}
+                            className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                        />
+                    </div>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => onRemove(item.id)}
+                    className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition"
+                    aria-label="Slett ingrediens"
+                >
+                    <span className="material-symbols-outlined text-slate-600">delete</span>
+                </button>
+            </div>
+        </div>
+    );
+}
+
 const EditRecipePage: React.FC = () => {
     const params = useParams();
     const recipeId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -170,7 +273,7 @@ const EditRecipePage: React.FC = () => {
         bgColor: '#ffffff',
         fontStyle: 'sans-serif',
         cookingSteps: [],
-        ingredients: [],
+        ingredients: [], // legacy
         temperature: '',
         cookingTime: '',
         coverImage: '',
@@ -179,19 +282,27 @@ const EditRecipePage: React.FC = () => {
     const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
     const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
 
-    const [newIngredient, setNewIngredient] = useState('');
-    const [ingredients, setIngredients] = useState<string[]>([]);
+    // NY: detailed ingredients
+    const [ingredientsDetailed, setIngredientsDetailed] = useState<IngredientItem[]>([]);
+    const [newIngredientName, setNewIngredientName] = useState('');
+    const [newIngredientAmount, setNewIngredientAmount] = useState('');
+
     const [temperature, setTemperature] = useState('');
     const [cookingTime, setCookingTime] = useState('');
 
     const [cookingSteps, setCookingSteps] = useState<StepWithId[]>([]);
 
-    const sensors = useSensors(
+    const sensorsSteps = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
     );
 
-    const onDragEnd = (event: DragEndEvent) => {
+    const sensorsIngredients = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    );
+
+    const onDragEndSteps = (event: DragEndEvent) => {
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
@@ -203,7 +314,19 @@ const EditRecipePage: React.FC = () => {
         });
     };
 
-    // 1) Sjekk localStorage først. Hvis draft er tom → slett den.
+    const onDragEndIngredients = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        setIngredientsDetailed((prev) => {
+            const oldIndex = prev.findIndex((s) => s.id === active.id);
+            const newIndex = prev.findIndex((s) => s.id === over.id);
+            if (oldIndex === -1 || newIndex === -1) return prev;
+            return arrayMove(prev, oldIndex, newIndex);
+        });
+    };
+
+    // 1) Sjekk localStorage først
     useEffect(() => {
         if (!recipeId) return;
 
@@ -222,25 +345,34 @@ const EditRecipePage: React.FC = () => {
                 return;
             }
 
-            // Hydrate fra draft (bruker ønsker “fortsett der jeg slapp”)
             if (draft.recipeData) {
                 setRecipeData(draft.recipeData);
             }
 
-            const ing = draft.ingredients ?? draft.recipeData?.ingredients ?? [];
-            setIngredients(ing);
+            // ingredients: prioriter detailed, ellers legacy
+            if (draft.ingredientsDetailed && draft.ingredientsDetailed.length > 0) {
+                setIngredientsDetailed(
+                    draft.ingredientsDetailed.map((x) => ({
+                        id: x.id || makeId(),
+                        name: x.name ?? '',
+                        amount: x.amount ?? '',
+                    })),
+                );
+            } else if (draft.ingredients && draft.ingredients.length > 0) {
+                setIngredientsDetailed(toIngredientItemsFromStrings(draft.ingredients));
+            } else if (draft.recipeData?.ingredients && draft.recipeData.ingredients.length > 0) {
+                setIngredientsDetailed(toIngredientItemsFromStrings(draft.recipeData.ingredients));
+            }
 
             setTemperature(draft.temperature ?? draft.recipeData?.temperature ?? '');
             setCookingTime(draft.cookingTime ?? draft.recipeData?.cookingTime ?? '');
 
             const loadedSteps = draft.cookingSteps ?? [];
-            setCookingSteps(
-                loadedSteps.map((s) => ({ ...s, id: s.id || makeId() })),
-            );
+            setCookingSteps(loadedSteps.map((s) => ({ ...s, id: s.id || makeId() })));
 
-            setNewIngredient(draft.newIngredient ?? '');
+            setNewIngredientName(draft.newIngredientName ?? '');
+            setNewIngredientAmount(draft.newIngredientAmount ?? '');
 
-            // blob preview er ubrukelig etter reload — ignorer den
             const prev = draft.coverImagePreview ?? null;
             setCoverImagePreview(prev && !prev.startsWith('blob:') ? prev : null);
 
@@ -252,7 +384,7 @@ const EditRecipePage: React.FC = () => {
         }
     }, [recipeId, LOCAL_STORAGE_KEY]);
 
-    // 2) Når draft er sjekket: hent fra Firestore hvis vi ikke allerede har et gyldig draft som fyller ting.
+    // 2) Hent fra Firestore hvis vi ikke allerede har draft
     useEffect(() => {
         if (!recipeId) return;
         if (!draftChecked) return;
@@ -263,20 +395,32 @@ const EditRecipePage: React.FC = () => {
                 const recipeSnap = await getDoc(doc(firestore, 'recipes', recipeId));
                 if (!recipeSnap.exists()) return;
 
-                const data = recipeSnap.data() as RecipeData;
+                const data = recipeSnap.data() as RecipeDoc;
 
-                // Hvis vi fortsatt er tomme (ingen draft / slettet draft), hydrate fra DB
                 const alreadyHasTitle = (recipeData.title ?? '').trim().length > 0;
                 if (!alreadyHasTitle) {
                     setRecipeData(data);
-                    setIngredients(data.ingredients ?? []);
+
+                    // Ingredients: ny hvis finnes, ellers legacy
+                    if (Array.isArray(data.ingredientsDetailed) && data.ingredientsDetailed.length > 0) {
+                        setIngredientsDetailed(
+                            data.ingredientsDetailed.map((x) => ({
+                                id: x.id || makeId(),
+                                name: x.name ?? '',
+                                amount: x.amount ?? '',
+                            })),
+                        );
+                    } else {
+                        const legacy = data.ingredients ?? [];
+                        setIngredientsDetailed(toIngredientItemsFromStrings(legacy));
+                    }
+
                     setTemperature(data.temperature ?? '');
                     setCookingTime(data.cookingTime ?? '');
 
                     const steps = (data.cookingSteps ?? []).map((s) => ({ ...s, id: makeId() }));
                     setCookingSteps(steps);
 
-                    // hvis vi ikke har preview valgt lokalt, vis coverImage fra db
                     setCoverImagePreview(null);
                 }
             } finally {
@@ -289,7 +433,7 @@ const EditRecipePage: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [recipeId, draftChecked]);
 
-    // Rydd opp object URL preview når du velger nytt bilde i samme session
+    // cleanup blob preview
     useEffect(() => {
         return () => {
             if (coverImagePreview && coverImagePreview.startsWith('blob:')) {
@@ -298,7 +442,7 @@ const EditRecipePage: React.FC = () => {
         };
     }, [coverImagePreview]);
 
-    // Persist draft (MEN: ikke lagre blob preview i localStorage)
+    // Persist draft (ikke lagre blob preview)
     useEffect(() => {
         if (!recipeId) return;
         if (!draftChecked) return;
@@ -306,7 +450,8 @@ const EditRecipePage: React.FC = () => {
         const payload: DraftPayload = {
             recipeData: {
                 ...recipeData,
-                ingredients,
+                // legacy: bare navn
+                ingredients: ingredientsDetailed.map((x) => x.name).filter(Boolean),
                 temperature,
                 cookingTime,
                 cookingSteps: cookingSteps.map((s) => ({
@@ -314,12 +459,17 @@ const EditRecipePage: React.FC = () => {
                     description: s.description,
                 })),
             },
-            ingredients,
+            // ny
+            ingredientsDetailed,
+            // legacy også (hjelper hvis andre deler fortsatt leser ingredients)
+            ingredients: ingredientsDetailed.map((x) => x.name).filter(Boolean),
+
             temperature,
             cookingTime,
             cookingSteps,
-            newIngredient,
-            coverImagePreview: null, // blob preview kan ikke gjenbrukes etter reload
+            newIngredientName,
+            newIngredientAmount,
+            coverImagePreview: null,
         };
 
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
@@ -328,25 +478,35 @@ const EditRecipePage: React.FC = () => {
         LOCAL_STORAGE_KEY,
         draftChecked,
         recipeData,
-        ingredients,
+        ingredientsDetailed,
         temperature,
         cookingTime,
         cookingSteps,
-        newIngredient,
+        newIngredientName,
+        newIngredientAmount,
     ]);
 
     const setTitle = (v: string) => setRecipeData((p) => ({ ...p, title: v }));
     const setDescription = (v: string) => setRecipeData((p) => ({ ...p, description: v }));
 
     const handleAddIngredient = () => {
-        const trimmed = newIngredient.trim();
-        if (!trimmed) return;
-        setIngredients((prev) => [...prev, trimmed]);
-        setNewIngredient('');
+        const name = normalizeIngredientName(newIngredientName);
+        const amount = normalizeIngredientAmount(newIngredientAmount);
+        if (!name) return;
+
+        setIngredientsDetailed((prev) => [...prev, { id: makeId(), name, amount }]);
+        setNewIngredientName('');
+        setNewIngredientAmount('');
     };
 
-    const handleRemoveIngredient = (index: number) => {
-        setIngredients((prev) => prev.filter((_, idx) => idx !== index));
+    const handleIngredientChange = (id: string, field: 'name' | 'amount', value: string) => {
+        setIngredientsDetailed((prev) =>
+            prev.map((x) => (x.id === id ? { ...x, [field]: value } : x)),
+        );
+    };
+
+    const handleRemoveIngredient = (id: string) => {
+        setIngredientsDetailed((prev) => prev.filter((x) => x.id !== id));
     };
 
     const handleAddStep = () => {
@@ -366,8 +526,6 @@ const EditRecipePage: React.FC = () => {
         if (!file) return;
 
         setCoverImageFile(file);
-
-        // preview for denne session
         const previewUrl = URL.createObjectURL(file);
         setCoverImagePreview(previewUrl);
     };
@@ -395,10 +553,22 @@ const EditRecipePage: React.FC = () => {
             description: s.description,
         }));
 
+        const ingredientsForDb = ingredientsDetailed
+            .map((x) => ({
+                id: x.id,
+                name: normalizeIngredientName(x.name),
+                amount: normalizeIngredientAmount(x.amount),
+            }))
+            .filter((x) => x.name.length > 0);
+
         try {
             await updateDoc(doc(firestore, 'recipes', recipeId), {
                 ...recipeData,
-                ingredients,
+                // legacy
+                ingredients: ingredientsForDb.map((x) => x.name),
+                // ny
+                ingredientsDetailed: ingredientsForDb,
+
                 temperature,
                 cookingTime,
                 cookingSteps: stepsForDb,
@@ -433,7 +603,7 @@ const EditRecipePage: React.FC = () => {
                     <button
                         type="submit"
                         form="edit-recipe-form"
-                        className="h-10 px-4 rounded-full bg-slate-900 text-white text-sm font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition"
+                        className="h-10 px-4 rounded-full bg-cyan-100 text-sm font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition"
                     >
                         Lagre
                     </button>
@@ -442,6 +612,7 @@ const EditRecipePage: React.FC = () => {
 
             <div className="mx-auto max-w-xl px-4 py-6 pb-28">
                 <form id="edit-recipe-form" onSubmit={handleSubmit} className="space-y-4">
+                    {/* Basic info */}
                     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                         <label className="block text-sm font-semibold text-slate-900 mb-2">Tittel</label>
                         <input
@@ -463,6 +634,7 @@ const EditRecipePage: React.FC = () => {
                         />
                     </div>
 
+                    {/* Cover */}
                     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                         <div className="flex items-center justify-between mb-2">
                             <h2 className="text-base font-semibold text-slate-900">Forsidebilde</h2>
@@ -498,16 +670,25 @@ const EditRecipePage: React.FC = () => {
                         ) : null}
                     </div>
 
+                    {/* Ingredients + meta */}
                     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                         <h2 className="text-base font-semibold text-slate-900 mb-3">Ingredienser</h2>
 
-                        <div className="flex gap-2">
+                        {/* add row */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <input
                                 type="text"
-                                placeholder="Legg til ingrediens..."
-                                value={newIngredient}
-                                onChange={(e) => setNewIngredient(e.target.value)}
-                                className="flex-1 p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                placeholder="Ingrediens (f.eks. Hvetemel)"
+                                value={newIngredientName}
+                                onChange={(e) => setNewIngredientName(e.target.value)}
+                                className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Mengde (f.eks. 200 g)"
+                                value={newIngredientAmount}
+                                onChange={(e) => setNewIngredientAmount(e.target.value)}
+                                className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                         e.preventDefault();
@@ -515,31 +696,43 @@ const EditRecipePage: React.FC = () => {
                                     }
                                 }}
                             />
+                        </div>
+
+                        <div className="mt-2 flex justify-end">
                             <button
                                 type="button"
                                 onClick={handleAddIngredient}
-                                className="px-4 rounded-2xl bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition disabled:opacity-50"
-                                disabled={!newIngredient.trim()}
+                                className="px-4 py-2 rounded-full bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition disabled:opacity-50"
+                                disabled={!newIngredientName.trim()}
                             >
                                 Legg til
                             </button>
                         </div>
 
-                        {ingredients.length > 0 && (
-                            <ul className="mt-4 space-y-2">
-                                {ingredients.map((ing, idx) => (
-                                    <li
-                                        key={`${ing}-${idx}`}
-                                        className="flex items-center justify-between rounded-2xl border border-slate-200 px-3 py-2"
-                                    >
-                                        <span className="text-slate-800">{ing}</span>
-                                        <button type="button" onClick={() => handleRemoveIngredient(idx)}>
-                                            <span className="material-symbols-outlined text-slate-600">delete</span>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
+                        {/* sortable list */}
+                        <div className="mt-4">
+                            <DndContext sensors={sensorsIngredients} collisionDetection={closestCenter} onDragEnd={onDragEndIngredients}>
+                                <SortableContext items={ingredientsDetailed.map((x) => x.id)} strategy={verticalListSortingStrategy}>
+                                    <div className="space-y-3">
+                                        {ingredientsDetailed.map((item, index) => (
+                                            <SortableIngredientCard
+                                                key={item.id}
+                                                item={item}
+                                                index={index}
+                                                onChange={handleIngredientChange}
+                                                onRemove={handleRemoveIngredient}
+                                            />
+                                        ))}
+
+                                        {ingredientsDetailed.length === 0 && (
+                                            <p className="text-slate-600">
+                                                Ingen ingredienser ennå — legg til over.
+                                            </p>
+                                        )}
+                                    </div>
+                                </SortableContext>
+                            </DndContext>
+                        </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
                             <div>
@@ -566,6 +759,7 @@ const EditRecipePage: React.FC = () => {
                         </div>
                     </div>
 
+                    {/* Steps */}
                     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="text-base font-semibold text-slate-900">Steg</h2>
@@ -579,7 +773,7 @@ const EditRecipePage: React.FC = () => {
                             </button>
                         </div>
 
-                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                        <DndContext sensors={sensorsSteps} collisionDetection={closestCenter} onDragEnd={onDragEndSteps}>
                             <SortableContext items={cookingSteps.map((s) => s.id)} strategy={verticalListSortingStrategy}>
                                 <div className="space-y-3">
                                     {cookingSteps.map((step, index) => (
@@ -602,10 +796,11 @@ const EditRecipePage: React.FC = () => {
                         </DndContext>
                     </div>
 
+                    {/* bottom save */}
                     <div className="sm:hidden pt-2">
                         <button
                             type="submit"
-                            className="w-full rounded-full py-3 font-semibold text-white shadow-lg bg-slate-900 hover:opacity-95 active:scale-[0.99] transition"
+                            className="w-full rounded-full py-3 font-semibold  shadow-lg bg-cyan-100 hover:opacity-95 active:scale-[0.99] transition"
                         >
                             Lagre
                         </button>

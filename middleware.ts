@@ -1,4 +1,3 @@
-// middleware.ts (at project root)
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -6,26 +5,27 @@ export function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
     const token = req.cookies.get('yourAuthToken')?.value;
 
-    // Always allow static assets, login & logout pages
-    const isPublicAsset = pathname.startsWith('/_next/')
-        || pathname === '/favicon.ico'
-        || pathname === '/login'
-        || pathname === '/logout';
-    if (isPublicAsset) {
+    // Always allow Next assets
+    const isNextAsset =
+        pathname.startsWith('/_next/') ||
+        pathname === '/favicon.ico';
+
+    if (isNextAsset) return NextResponse.next();
+
+    // ✅ If you're on /login and already have token => go home
+    if (pathname === '/login') {
+        if (token) return NextResponse.redirect(new URL('/', req.url));
         return NextResponse.next();
     }
 
-    // If no token: force into /login
+    // Allow logout page
+    if (pathname === '/logout') return NextResponse.next();
+
+    // ✅ Protect everything else
     if (!token) {
         return NextResponse.redirect(new URL('/login', req.url));
     }
 
-    // If token exists but somehow hit /login: send to /
-    if (token && pathname === '/login') {
-        return NextResponse.redirect(new URL('/', req.url));
-    }
-
-    // Otherwise let them through
     return NextResponse.next();
 }
 

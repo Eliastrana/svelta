@@ -130,7 +130,7 @@ const AddFriendsPage: React.FC = () => {
     if (!currentUser) return null; // redirected to /login
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen">
             {/* Top bar */}
             <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
                 <div className="mx-auto max-w-xl px-4 py-3 flex items-center justify-between">

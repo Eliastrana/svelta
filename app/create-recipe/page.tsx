@@ -29,10 +29,16 @@ const LOCAL_STORAGE_KEY = 'createRecipeForm';
 
 type StepWithId = CookingStep & { id: string };
 
-const makeId = (): string =>
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+type Ingredient = { name: string; amount: string };
+type IngredientWithId = Ingredient & { id: string };
+
+const makeId = (prefix: 'step' | 'ing'): string => {
+    const base =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    return `${prefix}_${base}`;
+};
 
 function SortableStepCard(props: {
     step: StepWithId;
@@ -44,6 +50,7 @@ function SortableStepCard(props: {
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: step.id,
+        data: { type: 'step' as const },
     });
 
     const style: React.CSSProperties = {
@@ -62,7 +69,6 @@ function SortableStepCard(props: {
             <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                        {/* Drag handle */}
                         <button
                             type="button"
                             className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition cursor-grab active:cursor-grabbing"
@@ -73,9 +79,7 @@ function SortableStepCard(props: {
                             <span className="material-symbols-outlined text-slate-600">drag_indicator</span>
                         </button>
 
-                        <label className="block text-sm font-semibold text-slate-900">
-                            Steg {index + 1} – tittel
-                        </label>
+                        <label className="block text-sm font-semibold text-slate-900">Steg {index + 1} – tittel</label>
                     </div>
 
                     <input
@@ -87,9 +91,7 @@ function SortableStepCard(props: {
                         required
                     />
 
-                    <label className="block text-sm font-semibold text-slate-900 mt-3 mb-2">
-                        Beskrivelse
-                    </label>
+                    <label className="block text-sm font-semibold text-slate-900 mt-3 mb-2">Beskrivelse</label>
                     <textarea
                         placeholder="Hva gjør man her?"
                         value={step.description}
@@ -112,6 +114,73 @@ function SortableStepCard(props: {
     );
 }
 
+function SortableIngredientCard(props: {
+    item: IngredientWithId;
+    index: number;
+    onChange: (id: string, field: 'name' | 'amount', value: string) => void;
+    onRemove: (id: string) => void;
+}) {
+    const { item, index, onChange, onRemove } = props;
+
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: item.id,
+        data: { type: 'ingredient' as const },
+    });
+
+    const style: React.CSSProperties = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`rounded-2xl border border-slate-200 bg-white px-3 py-2 ${
+                isDragging ? 'shadow-lg ring-2 ring-slate-200' : ''
+            }`}
+        >
+            <div className="flex items-center gap-2">
+                <button
+                    type="button"
+                    className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition cursor-grab active:cursor-grabbing"
+                    aria-label={`Dra for å flytte ingrediens ${index + 1}`}
+                    {...attributes}
+                    {...listeners}
+                >
+                    <span className="material-symbols-outlined text-slate-600">drag_indicator</span>
+                </button>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1">
+                    <input
+                        type="text"
+                        placeholder="Mengde (f.eks. 2 ss / 150 g)"
+                        value={item.amount}
+                        onChange={(e) => onChange(item.id, 'amount', e.target.value)}
+                        className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200 sm:col-span-1"
+                    />
+                    <input
+                        type="text"
+                        placeholder="Ingrediens (f.eks. sukker)"
+                        value={item.name}
+                        onChange={(e) => onChange(item.id, 'name', e.target.value)}
+                        className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200 sm:col-span-2"
+                    />
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => onRemove(item.id)}
+                    className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition"
+                    aria-label="Slett ingrediens"
+                >
+                    <span className="material-symbols-outlined text-slate-600">delete</span>
+                </button>
+            </div>
+        </div>
+    );
+}
+
 const CreateRecipe = () => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -124,8 +193,11 @@ const CreateRecipe = () => {
     const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
     const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
 
-    const [ingredients, setIngredients] = useState<string[]>([]);
-    const [newIngredient, setNewIngredient] = useState('');
+    // ✅ NEW ingredients: amount + name + drag
+    const [ingredients, setIngredients] = useState<IngredientWithId[]>([]);
+    const [newIngredientName, setNewIngredientName] = useState('');
+    const [newIngredientAmount, setNewIngredientAmount] = useState('');
+
     const [temperature, setTemperature] = useState('');
     const [cookingTime, setCookingTime] = useState('');
 
@@ -143,8 +215,12 @@ const CreateRecipe = () => {
             bgColor?: string;
             fontStyle?: string;
             cookingSteps?: Array<CookingStep | StepWithId>;
+            // old drafts may have string[]
             ingredients?: string[];
-            newIngredient?: string;
+            // new drafts
+            ingredientsDetailed?: Array<Ingredient | IngredientWithId>;
+            newIngredientName?: string;
+            newIngredientAmount?: string;
             temperature?: string;
             cookingTime?: string;
             coverImagePreview?: string | null;
@@ -155,14 +231,27 @@ const CreateRecipe = () => {
         setSvgData(formData.svgData || '');
         setBgColor(formData.bgColor || '#ffffff');
         setFontStyle(formData.fontStyle || 'sans-serif');
-        setIngredients(formData.ingredients || []);
-        setNewIngredient(formData.newIngredient || '');
         setTemperature(formData.temperature || '');
         setCookingTime(formData.cookingTime || '');
         setCoverImagePreview(formData.coverImagePreview || null);
 
+        // steps
         const loadedSteps = formData.cookingSteps || [];
-        setCookingSteps(loadedSteps.map((s) => ('id' in s ? s : { ...s, id: makeId() })));
+        setCookingSteps(loadedSteps.map((s) => ('id' in s ? (s as StepWithId) : { ...(s as CookingStep), id: makeId('step') })));
+
+        // ingredients (prefer new format; fallback to old string[] -> name only)
+        const detailed = formData.ingredientsDetailed || [];
+        if (detailed.length > 0) {
+            setIngredients(
+                detailed.map((i) => ('id' in i ? (i as IngredientWithId) : { ...(i as Ingredient), id: makeId('ing') })),
+            );
+        } else {
+            const old = formData.ingredients || [];
+            setIngredients(old.map((name) => ({ id: makeId('ing'), name, amount: '' })));
+        }
+
+        setNewIngredientName(formData.newIngredientName || '');
+        setNewIngredientAmount(formData.newIngredientAmount || '');
     }, []);
 
     // Persist draft to localStorage
@@ -174,8 +263,13 @@ const CreateRecipe = () => {
             bgColor,
             fontStyle,
             cookingSteps,
-            ingredients,
-            newIngredient,
+            // keep BOTH for compatibility with the rest of the app
+            ingredients: ingredients
+                .map((i) => `${(i.amount || '').trim()} ${(i.name || '').trim()}`.trim())
+                .filter(Boolean),
+            ingredientsDetailed: ingredients,
+            newIngredientName,
+            newIngredientAmount,
             temperature,
             cookingTime,
             coverImagePreview,
@@ -189,7 +283,8 @@ const CreateRecipe = () => {
         fontStyle,
         cookingSteps,
         ingredients,
-        newIngredient,
+        newIngredientName,
+        newIngredientAmount,
         temperature,
         cookingTime,
         coverImagePreview,
@@ -197,7 +292,7 @@ const CreateRecipe = () => {
 
     // Steps handlers
     const handleAddStep = () => {
-        setCookingSteps((prev) => [...prev, { id: makeId(), title: '', description: '' }]);
+        setCookingSteps((prev) => [...prev, { id: makeId('step'), title: '', description: '' }]);
     };
 
     const handleStepChange = (id: string, field: 'title' | 'description', value: string) => {
@@ -208,16 +303,23 @@ const CreateRecipe = () => {
         setCookingSteps((prev) => prev.filter((s) => s.id !== id));
     };
 
-    // Ingredients handlers
+    // ✅ Ingredients handlers
     const handleAddIngredient = () => {
-        if (newIngredient.trim()) {
-            setIngredients((prev) => [...prev, newIngredient.trim()]);
-            setNewIngredient('');
-        }
+        const name = newIngredientName.trim();
+        const amount = newIngredientAmount.trim();
+        if (!name) return;
+
+        setIngredients((prev) => [...prev, { id: makeId('ing'), name, amount }]);
+        setNewIngredientName('');
+        setNewIngredientAmount('');
     };
 
-    const handleRemoveIngredient = (index: number) => {
-        setIngredients((prev) => prev.filter((_, idx) => idx !== index));
+    const handleIngredientChange = (id: string, field: 'name' | 'amount', value: string) => {
+        setIngredients((prev) => prev.map((i) => (i.id === id ? { ...i, [field]: value } : i)));
+    };
+
+    const handleRemoveIngredient = (id: string) => {
+        setIngredients((prev) => prev.filter((i) => i.id !== id));
     };
 
     // Cover image
@@ -236,7 +338,7 @@ const CreateRecipe = () => {
         };
     }, [coverImagePreview]);
 
-    // DnD sensors + handler
+    // DnD sensors + handler (handles BOTH lists)
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -246,12 +348,28 @@ const CreateRecipe = () => {
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
-        setCookingSteps((prev) => {
-            const oldIndex = prev.findIndex((s) => s.id === active.id);
-            const newIndex = prev.findIndex((s) => s.id === over.id);
-            if (oldIndex === -1 || newIndex === -1) return prev;
-            return arrayMove(prev, oldIndex, newIndex);
-        });
+        const activeType = active.data.current?.type as 'step' | 'ingredient' | undefined;
+        const overType = over.data.current?.type as 'step' | 'ingredient' | undefined;
+        if (!activeType || !overType || activeType !== overType) return;
+
+        if (activeType === 'step') {
+            setCookingSteps((prev) => {
+                const oldIndex = prev.findIndex((s) => s.id === active.id);
+                const newIndex = prev.findIndex((s) => s.id === over.id);
+                if (oldIndex === -1 || newIndex === -1) return prev;
+                return arrayMove(prev, oldIndex, newIndex);
+            });
+            return;
+        }
+
+        if (activeType === 'ingredient') {
+            setIngredients((prev) => {
+                const oldIndex = prev.findIndex((i) => i.id === active.id);
+                const newIndex = prev.findIndex((i) => i.id === over.id);
+                if (oldIndex === -1 || newIndex === -1) return prev;
+                return arrayMove(prev, oldIndex, newIndex);
+            });
+        }
     };
 
     const trimmedTitle = useMemo(() => title.trim(), [title]);
@@ -270,11 +388,21 @@ const CreateRecipe = () => {
             coverImageUrl = await getDownloadURL(snapshot.ref);
         }
 
-        // store steps without ids
+        // steps without ids
         const stepsForDb: CookingStep[] = cookingSteps.map((s) => ({
             title: s.title,
             description: s.description,
         }));
+
+        // ✅ ingredients without ids (new)
+        const ingredientsDetailedForDb: Ingredient[] = ingredients
+            .map((i) => ({ name: i.name.trim(), amount: i.amount.trim() }))
+            .filter((i) => i.name.length > 0);
+
+        // ✅ keep old string[] too so the rest of the app doesn’t break yet
+        const ingredientsStringsForDb: string[] = ingredientsDetailedForDb
+            .map((i) => `${i.amount} ${i.name}`.trim())
+            .filter(Boolean);
 
         try {
             await addDoc(collection(firestore, 'recipes'), {
@@ -284,7 +412,11 @@ const CreateRecipe = () => {
                 bgColor,
                 fontStyle,
                 cookingSteps: stepsForDb,
-                ingredients,
+
+                // ✅ both formats
+                ingredients: ingredientsStringsForDb,
+                ingredientsDetailed: ingredientsDetailedForDb,
+
                 temperature,
                 cookingTime,
                 userId: user.uid,
@@ -302,7 +434,7 @@ const CreateRecipe = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen ">
             {/* Top bar */}
             <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
                 <div className="mx-auto max-w-xl px-4 py-3 flex items-center justify-between">
@@ -320,7 +452,7 @@ const CreateRecipe = () => {
                     <button
                         type="submit"
                         form="create-recipe-form"
-                        className="h-10 px-4 rounded-full bg-slate-900 text-white text-sm font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition"
+                        className="h-10 px-4 rounded-full bg-cyan-200  text-sm font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition"
                     >
                         Publiser
                     </button>
@@ -342,9 +474,7 @@ const CreateRecipe = () => {
                             required
                         />
 
-                        <label className="block text-sm font-semibold text-slate-900 mt-4 mb-2">
-                            Beskrivelse
-                        </label>
+                        <label className="block text-sm font-semibold text-slate-900 mt-4 mb-2">Beskrivelse</label>
                         <textarea
                             placeholder="Kort og fristende…"
                             value={description}
@@ -386,88 +516,107 @@ const CreateRecipe = () => {
                     </div>
 
                     {/* Ingredients + meta */}
-                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
-                        <h2 className="text-base font-semibold text-slate-900 mb-3">Ingredienser</h2>
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <h2 className="text-base font-semibold text-slate-900">Ingredienser</h2>
 
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                placeholder="Legg til ingrediens..."
-                                value={newIngredient}
-                                onChange={(e) => setNewIngredient(e.target.value)}
-                                className="flex-1 p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        handleAddIngredient();
-                                    }
-                                }}
-                            />
-                            <button
-                                type="button"
-                                onClick={handleAddIngredient}
-                                className="px-4 rounded-2xl bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition"
-                            >
-                                Legg til
-                            </button>
-                        </div>
+                                <button
+                                    type="button"
+                                    onClick={handleAddIngredient}
+                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition disabled:opacity-50"
+                                    disabled={!newIngredientName.trim()}
+                                >
+                                    <span className="material-symbols-outlined text-base">add</span>
+                                    Legg til
+                                </button>
+                            </div>
 
-                        {ingredients.length > 0 && (
-                            <ul className="mt-4 space-y-2">
-                                {ingredients.map((ing, idx) => (
-                                    <li
-                                        key={idx}
-                                        className="flex items-center justify-between rounded-2xl border border-slate-200 px-3 py-2"
-                                    >
-                                        <span className="text-slate-800">{ing}</span>
-                                        <button type="button" onClick={() => handleRemoveIngredient(idx)}>
-                                            <span className="material-symbols-outlined text-slate-600">delete</span>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-900 mb-2">Temperatur</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <input
                                     type="text"
-                                    placeholder="f.eks. 200°C"
-                                    value={temperature}
-                                    onChange={(e) => setTemperature(e.target.value)}
+                                    placeholder="Mengde (f.eks. 2 ss)"
+                                    value={newIngredientAmount}
+                                    onChange={(e) => setNewIngredientAmount(e.target.value)}
                                     className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') e.preventDefault();
+                                    }}
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Ingrediens (f.eks. sukker)"
+                                    value={newIngredientName}
+                                    onChange={(e) => setNewIngredientName(e.target.value)}
+                                    className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200 sm:col-span-2"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            handleAddIngredient();
+                                        }
+                                    }}
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-900 mb-2">Koketid</label>
-                                <input
-                                    type="text"
-                                    placeholder="f.eks. 45 minutter"
-                                    value={cookingTime}
-                                    onChange={(e) => setCookingTime(e.target.value)}
-                                    className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                                />
+                            {ingredients.length > 0 ? (
+                                <SortableContext items={ingredients.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                                    <div className="mt-4 space-y-2">
+                                        {ingredients.map((item, index) => (
+                                            <SortableIngredientCard
+                                                key={item.id}
+                                                item={item}
+                                                index={index}
+                                                onChange={handleIngredientChange}
+                                                onRemove={handleRemoveIngredient}
+                                            />
+                                        ))}
+                                    </div>
+                                </SortableContext>
+                            ) : (
+                                <p className="text-slate-600 mt-4">
+                                    Ingen ingredienser ennå — legg til over, og dra for å sortere.
+                                </p>
+                            )}
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-900 mb-2">Temperatur</label>
+                                    <input
+                                        type="text"
+                                        placeholder="f.eks. 200°C"
+                                        value={temperature}
+                                        onChange={(e) => setTemperature(e.target.value)}
+                                        className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-900 mb-2">Koketid</label>
+                                    <input
+                                        type="text"
+                                        placeholder="f.eks. 45 minutter"
+                                        value={cookingTime}
+                                        onChange={(e) => setCookingTime(e.target.value)}
+                                        className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Steps with drag & drop */}
-                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <h2 className="text-base font-semibold text-slate-900">Steg</h2>
-                            <button
-                                type="button"
-                                onClick={handleAddStep}
-                                className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition"
-                            >
-                                <span className="material-symbols-outlined text-base">add</span>
-                                Legg til
-                            </button>
-                        </div>
+                        {/* Steps with drag & drop */}
+                        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <h2 className="text-base font-semibold text-slate-900">Steg</h2>
+                                <button
+                                    type="button"
+                                    onClick={handleAddStep}
+                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition"
+                                >
+                                    <span className="material-symbols-outlined text-base">add</span>
+                                    Legg til
+                                </button>
+                            </div>
 
-                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
                             <SortableContext items={cookingSteps.map((s) => s.id)} strategy={verticalListSortingStrategy}>
                                 <div className="space-y-3">
                                     {cookingSteps.map((step, index) => (
@@ -487,14 +636,14 @@ const CreateRecipe = () => {
                                     )}
                                 </div>
                             </SortableContext>
-                        </DndContext>
-                    </div>
+                        </div>
+                    </DndContext>
 
                     {/* Bottom publish (nice on mobile) */}
                     <div className="sm:hidden pt-2">
                         <button
                             type="submit"
-                            className="w-full rounded-full py-3 font-semibold text-white shadow-lg bg-slate-900 hover:opacity-95 active:scale-[0.99] transition"
+                            className="w-full rounded-full py-3 font-semibold  shadow-lg bg-cyan-100 hover:opacity-95 active:scale-[0.99] transition"
                         >
                             Publiser
                         </button>

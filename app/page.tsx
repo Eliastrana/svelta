@@ -182,6 +182,19 @@ const Home: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            <div className="text-xl text-center">
+                Vet du fortsatt ikke hva du vil ha?
+
+                <button
+                    type="button"
+                    onClick={() => router.push('/?recommend=1')}
+                    className="mt-4 inline-flex items-center gap-2 rounded-full px-5 py-2 bg-cyan-100 hover:bg-cyan-200 transition"
+                >
+                    <span className="material-symbols-outlined">skillet</span>
+                    Anbefal meg noe
+                </button>
+            </div>
         </div>
     );
 };

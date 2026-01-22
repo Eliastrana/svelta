@@ -1,10 +1,10 @@
 @import 'tailwindcss';
 
 :root {
-    --background: #ffffff;
+    --background: #eafdff;
     --foreground: #0f172a;
     --accent: #7dbbff;
-    --accent-strong: #4a9bff;
+    --accent-strong: #CFFAFE;
     --accent-soft: #e7f2ff;
 }
 
@@ -27,11 +27,9 @@ body {
 
 .confirm-button {
     background-color: var(--accent-strong);
-    color: #ffffff;
 }
 .confirm-button:hover {
-    background-color: #2f86f5;
-    color: #ffffff;
+
 }
 
 h1 {

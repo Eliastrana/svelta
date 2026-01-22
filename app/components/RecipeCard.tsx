@@ -127,7 +127,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
             >
                 {recipe.coverImage && (
                     <Image
-                        src={recipe.coverImage}
+                        src={recipe.coverImage ?? '/images/icons/corpcore.gif'}
                         alt="Cover"
                         fill
                         className="object-cover w-full h-full transition-transform duration-300 ease-out group-hover:scale-105"
