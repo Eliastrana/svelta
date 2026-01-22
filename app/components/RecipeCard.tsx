@@ -6,6 +6,12 @@ import { Timestamp } from 'firebase/firestore';
 import Image from 'next/image';
 import { Recipe } from '@/app/types/Recipe';
 import { RecipeDetail } from '@/app/types/RecipeDetail';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/nb';
+
+dayjs.extend(relativeTime);
+dayjs.locale('nb');
 
 // CombinedRecipe may include detail fields, but we primarily use Recipe fields
 type CombinedRecipe = Recipe & Partial<RecipeDetail>;
@@ -132,7 +138,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
             {/* tooltip */}
             {tip.show && (
                 <div
-                    className="fixed z-50 pointer-events-none bg-white/95 backdrop-blur-sm rounded-lg px-3 py-1 shadow-xl text-sm font-medium text-slate-900"
+                    className="fixed z-50 pointer-events-none bg-white/95 backdrop-blur-sm rounded-lg px-3 py-1 shadow-xl text-sm font-medium text-slate-900 hidden md:block"
                     style={{ top: tip.y + 12, left: tip.x + 12 }}
                 >
                     <img
@@ -146,8 +152,8 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
 
             {/* text content */}
             <div className="mt-4">
-                <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">{recipe.title}</h1>
-                <p className="text-base mt-1 text-slate-600 line-clamp-2">{recipe.description}</p>
+                <h1 className="text-2xl md:text-3xl font-semibold ">{recipe.title}</h1>
+                <p className="text-base mt-1  line-clamp-2">{recipe.description}</p>
             </div>
 
             <div className="flex justify-between mt-4 w-full">
@@ -160,17 +166,9 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                         <p className="text-xl font-semibold">{userName}</p>
 
                         <p className="text-xs text-slate-600">
-                            {createdAtDate
-                                ? createdAtDate.toLocaleString('nb-NO', {
-                                    timeZone: 'Europe/Oslo',
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                })
-                                : 'Ingen dato funnet'}
+                            {createdAtDate ? dayjs(createdAtDate).fromNow() : 'Akkurat nå'}
                         </p>
+
                     </div>
                 </div>
 
