@@ -186,7 +186,7 @@ const UserProfile: React.FC = () => {
             </div>
 
             {/* Recipe list */}
-            <div className="grid grid-cols-1 gap-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 {displayedRecipes.length === 0 ? (
                     <div>
                         <p className="text-slate-600">Ingen oppskrifter funnet.</p>

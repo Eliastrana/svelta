@@ -1,15 +1,25 @@
 'use client';
 
+import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useCollections } from '@/hooks/collections/useCollections';
 import { useCollectionRecipes } from '@/hooks/collections/useCollectionRecipies';
 import { fetchManyUsers } from '@/helpers/fetchManyUsers';
 import { useQuery } from '@tanstack/react-query';
-import { getFirestore, collection, getCountFromServer } from 'firebase/firestore';
 import RecipeCard from '@/app/components/RecipeCard';
 import { Recipe } from '@/app/types/Recipe';
-import React from 'react';
+import { Timestamp } from 'firebase/firestore';
+import { UserDoc } from '@/hooks/useUserData';
+
+type CollectionEntry = { recipe: Recipe };
+
+const createdAtToMillis = (createdAt: Timestamp | Date | number | undefined): number => {
+    if (!createdAt) return 0;
+    if (createdAt instanceof Timestamp) return createdAt.toMillis();
+    if (createdAt instanceof Date) return createdAt.getTime();
+    return createdAt; // number (assumes millis)
+};
 
 export default function CollectionPage() {
     const { id } = useParams<{ id: string }>();
@@ -18,46 +28,33 @@ export default function CollectionPage() {
     const user = useAuthUser();
     const uid = user?.uid ?? '';
 
+
+
     // user's own collections
     const { data: collections = [], isLoading: collectionsLoading } = useCollections(uid);
 
     // raw entries of recipes in this collection
     const { data: entries = [], isLoading: recipesLoading } = useCollectionRecipes(id);
 
-    // hydrate recipes with live counts
-    const [hydrated, setHydrated] = React.useState<{ recipe: Recipe }[]>([]);
-    React.useEffect(() => {
-        if (!entries.length) {
-            setHydrated([]);
-            return;
-        }
-        const db = getFirestore();
-        (async () => {
-            const results = await Promise.all(
-                entries.map(async ({ recipe }) => {
-                    const likesSnap = await getCountFromServer(
-                        collection(db, 'recipes', recipe.id, 'likes')
-                    );
-                    const commentsSnap = await getCountFromServer(
-                        collection(db, 'recipes', recipe.id, 'comments')
-                    );
-                    return { recipe: { ...recipe, likes: likesSnap.data().count, comments: commentsSnap.data().count } };
-                })
-            );
-            results.sort((a, b) => Number(b.recipe.createdAt) - Number(a.recipe.createdAt));
-            setHydrated(results);
-        })();
+    // ✅ no hydration; recipes already contain likeCount/commentCount
+    const recipes: Recipe[] = React.useMemo(() => {
+        const list = (entries as CollectionEntry[]).map((e) => e.recipe);
+        // stable sort (createdAt is Timestamp)
+        return list.sort((a, b) => createdAtToMillis(b.createdAt) - createdAtToMillis(a.createdAt));
     }, [entries]);
 
-    const recipes = hydrated.map(({ recipe }) => recipe);
-
     // fetch creators
-    const uniqueUserIds = [...new Set(recipes.map((r) => r.userId))];
-    const { data: usersMap = {} } = useQuery({
+    const uniqueUserIds = React.useMemo(
+        () => Array.from(new Set(recipes.map((r) => r.userId))),
+        [recipes],
+    );
+
+    const { data: usersMap = {} } = useQuery<Record<string, UserDoc>, Error>({
         queryKey: ['usersMap', uniqueUserIds],
         queryFn: () => fetchManyUsers(uniqueUserIds),
         enabled: uniqueUserIds.length > 0,
-        placeholderData: {},
+        placeholderData: (prev) => prev ?? {},
+        staleTime: 60_000,
     });
 
     if (collectionsLoading || recipesLoading) return <div className="p-4">Laster…</div>;
@@ -66,25 +63,21 @@ export default function CollectionPage() {
     const title = currentCollection?.name ?? 'Liste';
 
     return (
-        <div className="p-4 md:mb-20">
+        <div className="p-4 md:mb-20 md:max-w-5xl md:w-2/3 md:mx-auto">
             <button onClick={() => router.back()} className="mb-4">
                 <span className="material-symbols-outlined">arrow_back</span>
             </button>
 
-            <h1 className="md:text-8xl text-4xl font-bold mb-6">{title}</h1>
+            <h1 className="md:text-5xl text-4xl font-bold mb-6">{title}</h1>
 
             {recipes.length === 0 ? (
                 <p>
                     Ingen oppskrifter i listen <em>{title}</em>.
                 </p>
             ) : (
-                <div className="grid md:grid-cols-3 grid-cols-1 md:gap-10 gap-20 mb-20">
+                <div className="grid md:grid-cols-2 grid-cols-1 md:gap-10 gap-20 mb-20 ">
                     {recipes.map((recipe) => (
-                        <RecipeCard
-                            key={recipe.id}
-                            recipe={recipe}
-                            creator={usersMap[recipe.userId]}
-                        />
+                        <RecipeCard key={recipe.id} recipe={recipe} creator={usersMap[recipe.userId]} />
                     ))}
                 </div>
             )}

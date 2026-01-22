@@ -44,9 +44,19 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     const handleEdit   = (e: React.MouseEvent) => { e.stopPropagation(); router.push(`/recipe/edit/${recipe.id}`); };
     const handleDelete = (e: React.MouseEvent) => { e.stopPropagation(); onDelete?.(recipe.id); };
 
+
+    const createdAtToDate = (createdAt?: Timestamp | Date | number): Date | null => {
+        if (!createdAt) return null;
+        if (createdAt instanceof Timestamp) return createdAt.toDate();
+        if (createdAt instanceof Date) return createdAt;
+        return new Date(createdAt);
+    };
+
     /* compute display counts --------------------------------- */
-    const displayLikes    = recipe.likes    ?? (recipe.likeCount)    ?? 0;
-    const displayComments = recipe.comments ?? (recipe.commentCount) ?? 0;
+    const displayLikes = recipe.likeCount ?? 0;
+    const displayComments = recipe.commentCount ?? 0;
+
+    const createdAtDate = createdAtToDate(recipe.createdAt);
 
     /* render -------------------------------------------------- */
     return (
@@ -107,9 +117,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                     </div>
                     <div>
                         <p className="text-xl font-semibold">{userName}</p>
+
                         <p className="text-xs">
-                            {recipe.createdAt
-                                ? (recipe.createdAt as Timestamp).toDate().toLocaleString('nb-NO', {
+                            {createdAtDate
+                                ? createdAtDate.toLocaleString('nb-NO', {
                                     timeZone: 'Europe/Oslo',
                                     day: '2-digit',
                                     month: '2-digit',
@@ -119,6 +130,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                                 })
                                 : 'Ingen dato funnet'}
                         </p>
+
                     </div>
                 </div>
 

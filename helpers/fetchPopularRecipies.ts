@@ -1,16 +1,10 @@
-import {
-    getFirestore,
-    collection,
-    query,
-    getDocs,
-    limit,
-    orderBy,
-    getCountFromServer,
-} from 'firebase/firestore';
+import { getFirestore, collection, query, getDocs, limit, orderBy } from 'firebase/firestore';
 import { Recipe } from '@/app/types/Recipe';
 
 export async function fetchPopularRecipes(top = 50): Promise<Recipe[]> {
     const db = getFirestore();
+
+    // You can tune this; no more expensive per-doc count calls now
     const scanLimit = Math.max(top, 100);
 
     const q = query(
@@ -21,35 +15,26 @@ export async function fetchPopularRecipes(top = 50): Promise<Recipe[]> {
 
     const snap = await getDocs(q);
 
-    const recipes = await Promise.all(
-        snap.docs.map(async (doc) => {
-            const data = doc.data() as Omit<Recipe, 'id' | 'likeCount' | 'commentCount'>;
-            const id = doc.id;
+    const recipes = snap.docs.map((d) => {
+        const data = d.data() as Omit<Recipe, 'id'>;
+        return { id: d.id, ...data } as Recipe;
+    });
 
-            const [likesSnap, commentsSnap] = await Promise.all([
-                getCountFromServer(collection(db, 'recipes', id, 'likes')),
-                getCountFromServer(collection(db, 'recipes', id, 'comments')),
-            ]);
+    // popularity score from stored counts
+    const scored = recipes.map((r) => {
+        const likeCount = r.likeCount ?? 0;
+        const commentCount = r.commentCount ?? 0;
 
-            const likeCount = likesSnap.data().count;
-            const commentCount = commentsSnap.data().count;
+        const createdAtDate =
+            (r.createdAt as any)?.toDate ? (r.createdAt as any).toDate() : new Date(r.createdAt as any);
+        const ageInHours = (Date.now() - createdAtDate.getTime()) / (1000 * 60 * 60);
 
-            const createdAt = data.createdAt ? data.createdAt.toDate() : new Date();
-            const ageInHours =
-                (new Date().getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-            const popularityScore = (likeCount + commentCount * 2) / (ageInHours + 2);
+        const popularityScore = (likeCount + commentCount * 2) / (ageInHours + 2);
 
-            return {
-                id,
-                ...data,
-                likeCount,
-                commentCount,
-                popularityScore,
-            };
-        })
-    );
+        return { ...r, popularityScore };
+    });
 
-    return recipes
+    return scored
         .sort((a, b) => (b.popularityScore ?? 0) - (a.popularityScore ?? 0))
         .slice(0, top);
 }

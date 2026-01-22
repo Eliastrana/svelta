@@ -42,45 +42,58 @@ const RecipeDetail: React.FC = () => {
                     </button>
                 </div>
 
+
                 {/* Header */}
-                <div className="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
+                <div className="overflow-hidden ">
+                    {/* Cover image */}
                     {recipe.coverImage && (
-                        <div className="absolute inset-0">
+                        <div className="relative w-full aspect-[16/9] md:aspect-[16/9]">
                             <Image
                                 src={recipe.coverImage}
-                                alt="Cover"
+                                alt={`${recipe.title} cover`}
                                 fill
-                                className="object-cover"
+                                className="object-cover rounded-2xl"
+                                priority
                             />
                         </div>
                     )}
-                    <div className="relative z-10 bg-white/80 backdrop-blur-sm">
-                        <div className="p-6 md:p-8 grid gap-6 md:grid-cols-[1fr_auto]">
-                            <div>
-                                <h2 className="text-3xl md:text-4xl font-semibold text-slate-900 mb-2">
-                                    {recipe.title}
-                                </h2>
-                                <p className="text-base md:text-lg text-slate-600">
-                                    {recipe.description}
-                                </p>
+
+                    {/* Content under image */}
+                    <div className=" mt-6">
+                        <h2 className="text-3xl md:text-4xl font-semibold text-slate-900 mb-2">
+                            {recipe.title}
+                        </h2>
+
+                        {recipe.description && (
+                            <p className="text-base md:text-lg text-slate-600">
+                                {recipe.description}
+                            </p>
+                        )}
+
+           {/*             <div className="mt-6 w-24 h-24 md:w-28 md:h-28 flex items-center justify-center overflow-hidden">
+                            <div className="w-full h-full flex items-center justify-center">
+                                <div
+                                    className="w-20 h-20 md:w-24 md:h-24"
+                                    dangerouslySetInnerHTML={{
+                                        __html: recipe.image
+                                            .replace(/class="[^"]*bg-white[^"]*"/, 'class=""')
+                                            .replace(/fill="white"/, 'fill="none"')
+                                            .replace(/width="\d+"/, 'width="100%"')
+                                            .replace(/height="\d+"/, 'height="100%"')
+                                            .replace(
+                                                /<svg([^>]*?)>/,
+                                                '<svg$1 viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">',
+                                            ),
+                                    }}
+                                />
                             </div>
-                            <div
-                                className="w-24 h-24 md:w-28 md:h-28 overflow-hidden flex items-center justify-center"
-                                dangerouslySetInnerHTML={{
-                                    __html: recipe.image
-                                        .replace(/class="[^"]*bg-white[^"]*"/, 'class=""')
-                                        .replace(/fill="white"/, 'fill="none"')
-                                        .replace(/width="\d+"/, '')
-                                        .replace(/height="\d+"/, '')
-                                        .replace(
-                                            /<svg([^>]*?)>/,
-                                            '<svg$1 viewBox="0 0 400 400" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">',
-                                        ),
-                                }}
-                            />
                         </div>
+*/}
+
                     </div>
                 </div>
+
+
             </div>
 
             {/* Creator */}
