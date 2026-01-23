@@ -1,38 +1,26 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
 
 import { firestore } from '@/firebase';
 import { fetchManyUsers } from '@/helpers/fetchManyUsers';
 import { UserDoc } from '@/hooks/useUserData';
+import CreatorStoriesModal from '@/app/components/CreatorStoriesModal';
 
-type CreatorCount = {
-    uid: string;
-    recipeCount: number;
-};
+type CreatorCount = { uid: string; recipeCount: number };
+type RecipeMinimal = { userId: string; createdAt?: unknown };
 
-type RecipeMinimal = {
-    userId: string;
-    createdAt?: unknown;
-};
-
-async function fetchTopActiveCreators(opts?: {
-    topN?: number;
-    scanLimit?: number;
-}): Promise<CreatorCount[]> {
+async function fetchTopActiveCreators(opts?: { topN?: number; scanLimit?: number }): Promise<CreatorCount[]> {
     const topN = opts?.topN ?? 2;
     const scanLimit = opts?.scanLimit ?? 200;
 
-    // Scan latest N recipes and count posts per userId
     const recipesRef = collection(firestore, 'recipes');
     const q = query(recipesRef, orderBy('createdAt', 'desc'), limit(scanLimit));
     const snap = await getDocs(q);
 
     const counts = new Map<string, number>();
-
     snap.forEach((d) => {
         const data = d.data() as RecipeMinimal;
         const uid = (data.userId || '').trim();
@@ -46,9 +34,67 @@ async function fetchTopActiveCreators(opts?: {
         .slice(0, topN);
 }
 
-const MostActiveCreators: React.FC = () => {
-    const router = useRouter();
+function StoryAvatar(props: { src?: string; name: string; animateKey?: number }) {
+    const { src, name, animateKey } = props;
 
+    // ✅ re-mount ringen når animateKey endrer seg (restart anim)
+    return (
+        <div key={animateKey} className="relative h-10 w-10 shrink-0 rounded-full" aria-hidden="true">
+            <div className="absolute inset-[-3px] rounded-full storyRing storyRingIntro" />
+
+            <div className="absolute inset-0 rounded-full bg-white p-[2px]">
+                <div className="h-full w-full rounded-full overflow-hidden bg-slate-100">
+                    {src ? (
+                        <img src={src} alt={name} className="h-full w-full object-cover" />
+                    ) : (
+                        <div className="h-full w-full grid place-items-center text-slate-500">🧑‍🍳</div>
+                    )}
+                </div>
+            </div>
+
+            <style jsx>{`
+                .storyRing {
+                    background: conic-gradient(
+                            from 180deg,
+                            rgba(120, 78, 52, 0.25),
+                            rgba(176, 120, 84, 0.98),
+                            rgba(120, 78, 52, 0.35),
+                            rgba(210, 164, 122, 0.92),
+                            rgba(120, 78, 52, 0.25)
+                    );
+                    box-shadow:
+                            0 0 0 1px rgba(15, 23, 42, 0.10),
+                            0 10px 24px rgba(120, 78, 52, 0.18);
+                    opacity: 0.98;
+                    transform: rotate(0deg);
+                }
+
+                /* ✅ intro anim (one spin + pop) */
+                .storyRingIntro {
+                    animation: ringSpinOnce 1100ms ease-out 1, ringPop 520ms ease-out 1;
+                    will-change: transform, opacity;
+                }
+
+                @keyframes ringSpinOnce {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+
+                @keyframes ringPop {
+                    0% {
+                        filter: saturate(1) brightness(1);
+                        transform: scale(0.92);
+                        opacity: 0.15;
+                    }
+                    45% { transform: scale(1.06); opacity: 1; }
+                    100% { transform: scale(1); opacity: 0.98; }
+                }
+            `}</style>
+        </div>
+    );
+}
+
+export default function MostActiveCreators() {
     const { data: topCreators = [], isLoading } = useQuery<CreatorCount[], Error>({
         queryKey: ['topActiveCreators'],
         queryFn: () => fetchTopActiveCreators({ topN: 2, scanLimit: 250 }),
@@ -57,12 +103,48 @@ const MostActiveCreators: React.FC = () => {
 
     const creatorIds = React.useMemo(() => topCreators.map((c) => c.uid), [topCreators]);
 
-    const { data: usersMap = {} } = useQuery<Record<string, UserDoc>, Error>({
+    const { data: usersMap = {}, isLoading: usersLoading } = useQuery<Record<string, UserDoc>, Error>({
         queryKey: ['topCreatorsUsersMap', creatorIds],
         queryFn: () => fetchManyUsers(creatorIds),
         enabled: creatorIds.length > 0,
         placeholderData: (prev) => prev ?? {},
     });
+
+    // ✅ modal state
+    const [storiesOpen, setStoriesOpen] = React.useState(false);
+    const [initialCreatorUid, setInitialCreatorUid] = React.useState<string>('');
+
+    // ✅ creators array som modal forventer
+    const creators = React.useMemo(
+        () =>
+            creatorIds.map((uid) => ({
+                uid,
+                name: usersMap[uid]?.name,
+                photoURL: usersMap[uid]?.photoURL,
+            })),
+        [creatorIds, usersMap],
+    );
+
+    /**
+     * ✅ Run intro animation exactly once, but ONLY after we actually have creators rendered.
+     * We do this by bumping a key (`ringAnimKey`) after creators are ready.
+     */
+    const [ringAnimKey, setRingAnimKey] = React.useState(0);
+    const introPlayedRef = React.useRef(false);
+
+    const creatorsReady = !isLoading && !usersLoading && creators.length > 0;
+
+    React.useEffect(() => {
+        if (!creatorsReady) return;
+        if (introPlayedRef.current) return;
+
+        introPlayedRef.current = true;
+
+        // next paint -> bump key so ring mounts right when visible
+        requestAnimationFrame(() => {
+            setRingAnimKey((k) => k + 1);
+        });
+    }, [creatorsReady]);
 
     return (
         <div className="mt-6">
@@ -83,9 +165,7 @@ const MostActiveCreators: React.FC = () => {
                         <div className="mt-2 h-3 w-16 rounded bg-slate-100" />
                     </div>
                 </div>
-            ) : topCreators.length === 0 ? (
-                <p className="mt-3 text-slate-600"></p>
-            ) : (
+            ) : creators.length === 0 ? null : (
                 <div className="mt-3 grid grid-cols-2 gap-3">
                     {topCreators.map((c) => {
                         const u = usersMap[c.uid];
@@ -96,17 +176,15 @@ const MostActiveCreators: React.FC = () => {
                             <button
                                 key={c.uid}
                                 type="button"
-                                onClick={() => router.push(`/user/${c.uid}`)}
+                                onClick={() => {
+                                    setInitialCreatorUid(c.uid);
+                                    setStoriesOpen(true);
+                                }}
                                 className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-slate-50 transition text-left hover:cursor-pointer"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 shrink-0">
-                                        {photoURL ? (
-                                            <img src={photoURL} alt={name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full grid place-items-center text-slate-500">🧑‍🍳</div>
-                                        )}
-                                    </div>
+                                    {/* ✅ ring anim triggers when creators are actually visible */}
+                                    <StoryAvatar src={photoURL} name={name} animateKey={ringAnimKey} />
 
                                     <div className="min-w-0">
                                         <p className="font-semibold text-slate-900 truncate">{name}</p>
@@ -118,8 +196,15 @@ const MostActiveCreators: React.FC = () => {
                     })}
                 </div>
             )}
+
+            <CreatorStoriesModal
+                open={storiesOpen}
+                creators={creators}
+                initialCreatorUid={initialCreatorUid}
+                onClose={() => setStoriesOpen(false)}
+                autoAdvanceMs={10000}
+                maxRecipesPerCreator={25}
+            />
         </div>
     );
-};
-
-export default MostActiveCreators;
+}

@@ -60,10 +60,9 @@ export default function RootLayout({
                 href="https://fonts.gstatic.com"
                 crossOrigin="anonymous"
             />
-            <link
-                href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&family=Righteous&display=swap"
-                rel="stylesheet"
-            />
+
+            <link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap"
+                  rel="stylesheet" />
 
             <link
                 href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
@@ -75,7 +74,7 @@ export default function RootLayout({
 
         <ReactQueryProvider>
             <Suspense fallback={null}>
-            <Navbar />
+                <Navbar />
             </Suspense>
             {children}
         </ReactQueryProvider>
