@@ -12,6 +12,7 @@ import AddToCollectionModal from '@/app/components/AddToCollectionModal';
 import { useRecipe } from '@/hooks/useRecipe';
 import { useUserData } from '@/hooks/useUserData';
 import { auth, firestore } from '@/firebase';
+import RatingStars from '@/app/components/RatingStars';
 
 type IngredientDetailed = { name: string; amount: string };
 
@@ -166,7 +167,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                             {recipe.title}
                         </h2>
                         {recipe.description && (
-                            <p className="text-base md:text-lg text-slate-600">{recipe.description}</p>
+                            <p className="text-base md:text-lg text-neutral-600">{recipe.description}</p>
                         )}
                     </div>
                 </div>
@@ -174,7 +175,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
 
             {/* Creator */}
             <div
-                className="flex space-x-2 items-center max-w-4xl mx-auto px-4 py-2 cursor-pointer"
+                className="flex space-x-2 items-center max-w-4xl mx-auto px-4 md:px-0 py-2 cursor-pointer"
                 onClick={() => router.push(`/user/${recipe.userId}`)}
             >
                 <div className="h-16 w-16 rounded-full overflow-hidden bg-slate-100">
@@ -194,14 +195,19 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                         router.push(`/login?next=${encodeURIComponent(next)}`);
                     }}
                 />
+
+                <div className="mt-4 md:mt-0">
+                <RatingStars recipeId={recipe.id} />
+                </div>
+
             </div>
 
             {/* Ingredients */}
-            <div className="max-w-4xl mx-auto p-4 md:flex md:justify-between gap-8">
+            <div className="max-w-4xl mx-auto p-4 md:p-0 md:flex md:justify-between gap-8">
                 <h2 className="text-2xl font-semibold">Ingredienser</h2>
             </div>
 
-            <div className="max-w-4xl mx-auto p-4 md:flex md:justify-between gap-8">
+            <div className="max-w-4xl mx-auto p-4 md:px-0 md:flex md:justify-between gap-8">
                 <div className="flex-1">
                     {ingredientsToRender.length > 0 && (
                         <ul className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -246,11 +252,11 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
             </div>
 
             {/* Steps */}
-            <div className="max-w-4xl mx-auto p-4 md:flex md:justify-between gap-8">
+            <div className="max-w-4xl mx-auto p-4 md:px-0 md:flex md:justify-between gap-8">
                 <h2 className="text-2xl font-semibold">Fremgangsmåte</h2>
             </div>
 
-            <div className="max-w-4xl mx-auto px-4 pb-6">
+            <div className="max-w-4xl mx-auto px-4 md:px-0 pb-6">
                 <div className="space-y-4">
                     {recipe.cookingSteps.map((step, i) => (
                         <div key={`step-${i}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -264,7 +270,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
             </div>
 
             {/* Comments (if not logged in -> click CTA -> login) */}
-            <div className="max-w-4xl mx-auto p-4">
+            <div className="max-w-4xl mx-auto p-4 md:px-0">
                 {isLoggedIn ? (
                     <CommentSection recipeId={recipe.id} />
                 ) : (

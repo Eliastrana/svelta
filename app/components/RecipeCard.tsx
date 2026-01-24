@@ -111,6 +111,11 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
 
     const createdAtDate = createdAtToDate(recipe.createdAt);
 
+    const ratingSum = typeof recipe.ratingSum === 'number' ? recipe.ratingSum : 0;
+    const ratingCount = typeof recipe.ratingCount === 'number' ? recipe.ratingCount : 0;
+    const avg = ratingCount > 0 ? ratingSum / ratingCount : 0;
+    const avgText = avg.toFixed(1).replace('.', ',');
+
     /* render -------------------------------------------------- */
     return (
         <div
@@ -147,6 +152,8 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                         className="w-4 h-4 inline-block mr-1 mb-0.5"
                     />
                     {recipe.cookingTime ?? '?'}
+
+
                 </div>
             )}
 
@@ -154,7 +161,19 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
             <div className="mt-4">
                 <h1 className="text-2xl md:text-3xl font-semibold ">{recipe.title}</h1>
                 <p className="text-base mt-1  line-clamp-2">{recipe.description}</p>
+
             </div>
+
+
+            {ratingCount > 0 ? (
+                <div className="flex items-center gap-2 text-sm mt-2 mb-2">
+                    <span className="material-symbols-outlined text-[18px]">grade</span>
+                    <span className="font-semibold tabular-nums pt-1">
+      {avgText} <span className="text-slate-400 font-normal">({ratingCount})</span>
+    </span>
+                </div>
+            ) : null}
+
 
             <div className="flex justify-between mt-4 w-full">
                 {/* creator */}

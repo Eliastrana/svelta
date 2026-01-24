@@ -24,6 +24,10 @@ export type Recipe = {
     temperature?: string;
     cookingTime?: string;
 
+    ratingSum?: number;
+    ratingCount?: number;
+
+
     createdAt?: Timestamp;
 
     // Denormalized counts

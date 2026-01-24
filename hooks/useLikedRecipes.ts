@@ -11,6 +11,7 @@ import {
     doc,
     DocumentData,
     QueryDocumentSnapshot,
+    DocumentReference,
 } from 'firebase/firestore';
 import { Recipe } from '@/app/types/Recipe';
 
@@ -28,9 +29,19 @@ type LikeDoc = {
     createdAt?: unknown;
 };
 
-const getRecipeRefFromLike = (
+// ✅ Shape of your recipe docs in Firestore (add fields you use)
+type RecipeDocData = Omit<Recipe, 'id'> & {
+    likeCount?: number;
+    commentCount?: number;
+    ratingSum?: number;
+    ratingCount?: number;
+};
+
+function getRecipeRefFromLike(
     likeDoc: QueryDocumentSnapshot<DocumentData>
-) => likeDoc.ref.parent.parent ?? null;
+): DocumentReference<DocumentData> | null {
+    return likeDoc.ref.parent.parent ?? null;
+}
 
 export function useUserLikedRecipes(userId: string): RecipeWithCreator[] {
     const [likedRecipes, setLikedRecipes] = useState<RecipeWithCreator[]>([]);
@@ -48,7 +59,6 @@ export function useUserLikedRecipes(userId: string): RecipeWithCreator[] {
             q,
             async (snapshot) => {
                 const recipePromises = snapshot.docs.map(async (likeDoc) => {
-                    // If your likes docs sometimes miss userId, this keeps TS happy:
                     const likeData = likeDoc.data() as Partial<LikeDoc>;
                     if (!likeData.userId) return null;
 
@@ -58,8 +68,14 @@ export function useUserLikedRecipes(userId: string): RecipeWithCreator[] {
                     const recipeSnap = await getDoc(recipeRef);
                     if (!recipeSnap.exists()) return null;
 
-                    const recipeData = recipeSnap.data() as Omit<Recipe, 'id'>;
                     const recipeId = recipeSnap.id;
+                    const recipeData = recipeSnap.data() as RecipeDocData;
+
+                    // ✅ safe numeric defaults (no any)
+                    const likeCount = typeof recipeData.likeCount === 'number' ? recipeData.likeCount : 0;
+                    const commentCount = typeof recipeData.commentCount === 'number' ? recipeData.commentCount : 0;
+                    const ratingSum = typeof recipeData.ratingSum === 'number' ? recipeData.ratingSum : 0;
+                    const ratingCount = typeof recipeData.ratingCount === 'number' ? recipeData.ratingCount : 0;
 
                     let creator: Creator | undefined;
                     if (recipeData.userId) {
@@ -73,15 +89,19 @@ export function useUserLikedRecipes(userId: string): RecipeWithCreator[] {
                     return {
                         id: recipeId,
                         ...recipeData,
+                        likeCount,
+                        commentCount,
+                        ratingSum,
+                        ratingCount,
                         creator,
                     } as RecipeWithCreator;
                 });
 
                 const resolved = (await Promise.all(recipePromises)).filter(
-                    (x): x is RecipeWithCreator => Boolean(x)
+                    (x): x is RecipeWithCreator => x !== null
                 );
 
-                // Optional: sort newest first if you have createdAt on recipe
+                // Optional: sort newest first if createdAt is Firestore Timestamp
                 resolved.sort((a, b) => {
                     const ta =
                         typeof (a.createdAt as { toMillis?: () => number } | undefined)?.toMillis === 'function'
@@ -97,7 +117,7 @@ export function useUserLikedRecipes(userId: string): RecipeWithCreator[] {
                 setLikedRecipes(resolved);
             },
             (err) => {
-                console.error('useUserLikedRecipes snapshot error:', err.code, err.message);
+                console.error('useUserLikedRecipes snapshot error:', (err as { code?: string }).code, err.message);
                 setLikedRecipes([]);
             }
         );
