@@ -12,16 +12,13 @@ type Props = {
 };
 
 function StarIcon({ filled }: { filled: boolean }) {
-    // Material Symbols: grade
     return (
-        <span
-            className={[
-                'material-symbols-outlined leading-none select-none',
-                filled ? 'text-neutral-800' : 'text-slate-300',
-            ].join(' ')}
-        >
-      grade
-    </span>
+        <img
+            src={filled ? '/icons/star-filled.svg' : '/icons/star.svg'}
+            alt=""
+            className="h-5 w-5 select-none"
+            draggable={false}
+        />
     );
 }
 
@@ -98,7 +95,7 @@ export default function RatingStars({ recipeId, className }: Props) {
                         <button
                             key={v}
                             type="button"
-                            className="p-1 pt-2 rounded-full hover:bg-white transition active:scale-[0.98] "
+                            className="p-1 rounded-full hover:bg-white transition active:scale-[0.98] "
                             onMouseEnter={() => setHover(v)}
                             onClick={() => onPick(v)}
                             disabled={saving}
