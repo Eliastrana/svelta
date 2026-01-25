@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
     collection,
     query,
@@ -31,6 +32,7 @@ interface Comment {
 interface UserDoc {
     name?: string;
     photoURL?: string;
+    favoriteFood?: string; // ✅ add
 }
 
 interface CommentSectionProps {
@@ -42,6 +44,8 @@ type RecipeDoc = {
 };
 
 const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
+    const router = useRouter();
+
     const [comments, setComments] = useState<Comment[]>([]);
     const [commentText, setCommentText] = useState('');
     const [usersMap, setUsersMap] = useState<Record<string, UserDoc>>({});
@@ -60,6 +64,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
         () => commentText.trim().length > 0 && !submitting,
         [commentText, submitting],
     );
+
+    const goToProfile = (uid: string) => {
+        if (!uid) return;
+        router.push(`/user/${uid}`);
+    };
 
     // fetch recipe owner
     useEffect(() => {
@@ -189,13 +198,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
             setDeletingId(commentId);
 
             await runTransaction(firestore, async (tx) => {
-                // ✅ READS først
                 const commentSnap = await tx.get(commentRef);
                 if (!commentSnap.exists()) return;
 
                 const recipeSnap = await tx.get(recipeRef);
 
-                // ✅ beregn ny count (trygt)
                 const currentCountRaw = recipeSnap.exists()
                     ? (recipeSnap.data().commentCount as number | undefined)
                     : undefined;
@@ -203,7 +210,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                 const currentCount = typeof currentCountRaw === 'number' ? currentCountRaw : 0;
                 const nextCount = Math.max(0, currentCount - 1);
 
-                // ✅ WRITES etterpå
                 tx.delete(commentRef);
 
                 if (recipeSnap.exists()) {
@@ -240,7 +246,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                     className={[
                         'h-12 w-12 grid place-items-center rounded-2xl shadow-sm transition',
                         canSubmit
-                            ? 'brown-button  hover:opacity-95 active:scale-[0.98] cursor-pointer'
+                            ? 'brown-button hover:opacity-95 active:scale-[0.98] cursor-pointer'
                             : 'bg-slate-200 text-slate-500 cursor-not-allowed',
                     ].join(' ')}
                     aria-label="Send kommentar"
@@ -266,45 +272,62 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                         return (
                             <div key={comment.id} className="rounded-2xl bg-white shadow-sm p-3">
                                 <div className="flex items-start gap-3">
-                                    {userInfo?.photoURL ? (
-                                        <img
-                                            src={userInfo.photoURL}
-                                            alt={userInfo.name || 'User'}
-                                            className="w-12 h-12 rounded-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-12 h-12 rounded-full bg-slate-200" />
-                                    )}
-
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <div className=" items-center min-w-0">
-                                                <h3 className="text-sm font-semibold text-slate-900 truncate">
-                                                    {userInfo?.name || 'Ukjent bruker'}
-                                                </h3>
-                                                <span className="text-xs text-slate-500 whitespace-nowrap">
-                                                    {timeText}
-                                                </span>
-                                            </div>
-
-                                            {showDelete ? (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setDeleteConfirmId(comment.id)}
-                                                    className="h-9 px-3 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold flex items-center gap-2"
-                                                    aria-label="Slett kommentar"
-                                                >
-                                                    <span className="material-symbols-outlined text-[18px]">delete</span>
-                                                    Slett
-                                                </button>
-                                            ) : null}
+                                    {/* ✅ clickable avatar + name */}
+                                    <button
+                                        type="button"
+                                        onClick={() => goToProfile(comment.userId)}
+                                        className="flex items-center gap-3 text-left group"
+                                        aria-label={`Åpne profil for ${userInfo?.name ?? 'bruker'}`}
+                                    >
+                                        <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200 shrink-0 ring-1 ring-slate-200 group-hover:ring-slate-300 transition hover:cursor-pointer">
+                                            {userInfo?.photoURL ? (
+                                                <img
+                                                    src={userInfo.photoURL}
+                                                    alt={userInfo.name || 'User'}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full grid place-items-center text-slate-500">🧑‍🍳</div>
+                                            )}
                                         </div>
 
-                                        <p className="mt-1 text-sm text-slate-700 break-words">{comment.text}</p>
+                                        <div className="min-w-0">
+                                            <div className="flex items-baseline gap-2 min-w-0 group-hover:cursor-pointer">
+                                                <h3 className="text-sm font-semibold text-slate-900 truncate ">
+                                                    {userInfo?.name || 'Ukjent bruker'}
+                                                </h3>
+                                                <span className="text-xs text-slate-500 whitespace-nowrap">{timeText}</span>
+                                            </div>
+
+                                            {/* ✅ favorite food */}
+                                            {userInfo?.favoriteFood ? (
+                                                <p className="mt-0.5 text-xs  truncate">
+                                                    <span className="font-semibold ">Favorittmat:</span>{' '}
+                                                    {userInfo.favoriteFood}
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                    </button>
+
+                                    {/* right side actions */}
+                                    <div className="ml-auto">
+                                        {showDelete ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setDeleteConfirmId(comment.id)}
+                                                className="h-9 px-3 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold flex items-center gap-2"
+                                                aria-label="Slett kommentar"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                Slett
+                                            </button>
+                                        ) : null}
                                     </div>
                                 </div>
 
-                                {/* Inline confirm (only for this comment) */}
+                                <p className="mt-2 text-sm  break-words">{comment.text}</p>
+
+                                {/* Inline confirm */}
                                 {deleteConfirmId === comment.id ? (
                                     <div className="mt-3 flex items-center justify-end gap-2">
                                         <button
@@ -331,7 +354,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                 )}
             </div>
 
-            {/* space for bottom navbar */}
             <div className="h-20" />
         </div>
     );

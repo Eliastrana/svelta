@@ -105,6 +105,11 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
         return new Date(createdAt);
     };
 
+    const handleCreatorClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        router.push(`/user/${recipe.userId}`);
+    };
+
     /* compute display counts --------------------------------- */
     const displayLikes = recipe.likeCount ?? 0;
     const displayComments = recipe.commentCount ?? 0;
@@ -177,19 +182,23 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
 
             <div className="flex justify-between mt-4 w-full">
                 {/* creator */}
-                <div className="flex space-x-2 items-center">
+                <button
+                    type="button"
+                    onClick={handleCreatorClick}
+                    className="flex space-x-2 items-center text-left hover:opacity-90 transition hover:cursor-pointer"
+                    aria-label={`Gå til profilen til ${userName}`}
+                >
                     <div className="h-10 w-10 rounded-full overflow-hidden bg-slate-100">
                         {userPhoto && <img src={userPhoto} alt="Creator" className="w-full h-full object-cover" />}
                     </div>
+
                     <div>
                         <p className="text-xl font-semibold">{userName}</p>
-
                         <p className="text-xs text-slate-600">
                             {createdAtDate ? dayjs(createdAtDate).fromNow() : 'Akkurat nå'}
                         </p>
-
                     </div>
-                </div>
+                </button>
 
                 {/* likes / comments with fallback */}
                 <div className="flex space-x-4 text-sm ">
