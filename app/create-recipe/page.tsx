@@ -226,6 +226,7 @@ const CreateRecipe = () => {
             cookingTime?: string;
             portions?: string;
             coverImagePreview?: string | null;
+            tags?: string[];
         } = JSON.parse(savedData);
 
         setTitle(formData.title || '');
@@ -253,6 +254,7 @@ const CreateRecipe = () => {
 
         setNewIngredientName(formData.newIngredientName || '');
         setNewIngredientAmount(formData.newIngredientAmount || '');
+        setTags(Array.isArray(formData.tags) ? formData.tags : []);
     }, []);
 
     // Persist draft
@@ -274,6 +276,7 @@ const CreateRecipe = () => {
             cookingTime,
             portions,
             coverImagePreview,
+            tags,
         };
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(formData));
     }, [
@@ -370,6 +373,68 @@ const CreateRecipe = () => {
         }
     };
 
+    const [tags, setTags] = useState<string[]>([]);
+    const [newTag, setNewTag] = useState('');
+    const [generatingTags, setGeneratingTags] = useState(false);
+
+    const addTag = (value: string) => {
+        const t = value.trim();
+        if (!t) return;
+        setTags((prev) => {
+            const exists = prev.some((x) => x.toLowerCase() === t.toLowerCase());
+            if (exists) return prev;
+            return [...prev, t].slice(0, 12);
+        });
+        setNewTag('');
+    };
+
+    const removeTag = (t: string) => {
+        setTags((prev) => prev.filter((x) => x !== t));
+    };
+
+    const generateTags = async () => {
+        if (generatingTags) return;
+
+        try {
+            setGeneratingTags(true);
+
+            const payload = {
+                title,
+                description,
+                ingredientsDetailed: ingredients.map((i) => ({
+                    name: i.name.trim(),
+                    amount: i.amount.trim(),
+                })),
+                cookingSteps: cookingSteps.map((s) => ({
+                    title: s.title.trim(),
+                    description: s.description.trim(),
+                })),
+            };
+
+            const res = await fetch('/api/generate-tags', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const data = (await res.json()) as { tags?: string[]; error?: string };
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Kunne ikke generere tags.');
+            }
+
+            if (Array.isArray(data.tags)) {
+                setTags(data.tags);
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Kunne ikke generere tags.');
+        } finally {
+            setGeneratingTags(false);
+        }
+    };
+
+
     const trimmedTitle = useMemo(() => title.trim(), [title]);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -421,6 +486,7 @@ const CreateRecipe = () => {
                 coverImage: coverImageUrl,
                 likeCount: 0,
                 commentCount: 0,
+                tags,
             });
 
             localStorage.removeItem(LOCAL_STORAGE_KEY);
@@ -669,6 +735,76 @@ const CreateRecipe = () => {
                             </button>
                         </div>
                     </DndContext>
+
+                    {/* Tags */}
+                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                            <h2 className="text-base font-semibold text-slate-900">Tags</h2>
+
+                            <button
+                                type="button"
+                                onClick={generateTags}
+                                disabled={generatingTags}
+                                className={[
+                                    'inline-flex items-center gap-2 px-3 py-2 rounded-full font-semibold transition',
+                                    generatingTags
+                                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                                        : 'brown-button hover:opacity-95 active:scale-[0.99]',
+                                ].join(' ')}
+                            >
+                                {generatingTags ? (
+                                    <span className="inline-block h-4 w-4 rounded-full border-2 border-white/60 border-t-white animate-spin" />
+                                ) : (
+                                    <span className="material-symbols-outlined text-base"></span>
+                                )}
+                                {generatingTags ? 'Genererer…' : 'Generer tags'}
+                            </button>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <input
+                                value={newTag}
+                                onChange={(e) => setNewTag(e.target.value)}
+                                placeholder="Legg til tag (f.eks. middag)"
+                                className="flex-1 p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        addTag(newTag);
+                                    }
+                                }}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => addTag(newTag)}
+                                disabled={!newTag.trim()}
+                                className="px-3 py-2 rounded-full bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition disabled:opacity-50"
+                            >
+                                Legg til
+                            </button>
+                        </div>
+
+                        {tags.length > 0 ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {tags.map((t) => (
+                                    <button
+                                        key={t}
+                                        type="button"
+                                        onClick={() => removeTag(t)}
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold transition"
+                                        aria-label={`Fjern tag ${t}`}
+                                        title="Klikk for å fjerne"
+                                    >
+                                        #{t}
+                                        <span className="material-symbols-outlined text-[18px]">close</span>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="mt-3 text-sm text-slate-600">Ingen tags ennå.</p>
+                        )}
+                    </div>
+
 
                     {/* Bottom publish */}
                     <div className="sm:hidden pt-2">

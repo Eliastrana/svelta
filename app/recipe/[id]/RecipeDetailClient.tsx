@@ -28,6 +28,7 @@ type RecipeForDetail = {
     portions?: string;
     ingredients?: string[];
     ingredientsDetailed?: IngredientDetailed[];
+    tags?: string[];
 };
 
 type Props = {
@@ -170,8 +171,23 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                             <p className="text-base md:text-lg text-neutral-600">{recipe.description}</p>
                         )}
                     </div>
+
+                    {Array.isArray(recipe.tags) && recipe.tags.length > 0 ? (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                            {recipe.tags.map((t) => (
+                                <span
+                                    key={t}
+                                    className="inline-flex items-center rounded-full bg-white border border-neutral-200 px-3 py-1 text-xs"
+                                >
+        #{t}
+      </span>
+                            ))}
+                        </div>
+                    ) : null}
                 </div>
             </div>
+
+
 
             {/* Creator */}
             <div

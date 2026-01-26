@@ -6,12 +6,22 @@ import {
     orderBy,
     getDocs,
     limit,
+    Timestamp,
 } from 'firebase/firestore';
 import { Recipe } from '@/app/types/Recipe';
 
 type RawRecipe = Omit<Recipe, 'id'> & { id: string };
 
-const toMillis = (t: any) => (t?.toMillis ? t.toMillis() : Number(t) || 0);
+function toMillis(value: unknown): number {
+    if (value instanceof Timestamp) return value.toMillis();
+    if (value instanceof Date) return value.getTime();
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+    }
+    return 0;
+}
 
 export async function fetchFollowedRecipes(
     followingIds: string[],
@@ -21,7 +31,6 @@ export async function fetchFollowedRecipes(
 
     const db = getFirestore();
 
-    // Firestore 'in' supports <=10 values
     const chunks: string[][] = [];
     for (let i = 0; i < followingIds.length; i += 10) {
         chunks.push(followingIds.slice(i, i + 10));
@@ -42,6 +51,7 @@ export async function fetchFollowedRecipes(
         });
     }
 
-    // Ensure stable sorting even if createdAt is Timestamp
-    return raws.sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
+    return raws
+        .sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt))
+        .map((r) => ({ ...r })); // allerede Recipe-shape (id + fields)
 }

@@ -34,6 +34,9 @@ export type Recipe = {
     likeCount?: number;
     commentCount?: number;
 
+    tags?: string[];
+
+
     // Optional (used for popular sorting only, not stored)
     popularityScore?: number;
 };

@@ -1,10 +1,23 @@
-import { getFirestore, collection, query, getDocs, limit, orderBy } from 'firebase/firestore';
+import { getFirestore, collection, query, getDocs, limit, orderBy, Timestamp } from 'firebase/firestore';
 import { Recipe } from '@/app/types/Recipe';
+
+function toDate(value: unknown): Date {
+    if (value instanceof Date) return value;
+    if (value instanceof Timestamp) return value.toDate();
+
+    if (typeof value === 'number') return new Date(value);
+    if (typeof value === 'string') {
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? new Date(0) : d;
+    }
+
+    // Fallback (ukjent type)
+    return new Date(0);
+}
 
 export async function fetchPopularRecipes(top = 50): Promise<Recipe[]> {
     const db = getFirestore();
 
-    // You can tune this; no more expensive per-doc count calls now
     const scanLimit = Math.max(top, 100);
 
     const q = query(
@@ -15,18 +28,16 @@ export async function fetchPopularRecipes(top = 50): Promise<Recipe[]> {
 
     const snap = await getDocs(q);
 
-    const recipes = snap.docs.map((d) => {
+    const recipes: Recipe[] = snap.docs.map((d) => {
         const data = d.data() as Omit<Recipe, 'id'>;
-        return { id: d.id, ...data } as Recipe;
+        return { id: d.id, ...data };
     });
 
-    // popularity score from stored counts
     const scored = recipes.map((r) => {
         const likeCount = r.likeCount ?? 0;
         const commentCount = r.commentCount ?? 0;
 
-        const createdAtDate =
-            (r.createdAt as any)?.toDate ? (r.createdAt as any).toDate() : new Date(r.createdAt as any);
+        const createdAtDate = toDate(r.createdAt);
         const ageInHours = (Date.now() - createdAtDate.getTime()) / (1000 * 60 * 60);
 
         const popularityScore = (likeCount + commentCount * 2) / (ageInHours + 2);

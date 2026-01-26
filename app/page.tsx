@@ -114,7 +114,8 @@ const Home: React.FC = () => {
                 ? r.ingredientsDetailed.map((i) => `${i.amount ?? ''} ${i.name ?? ''}`).join(' ')
                 : '';
 
-            const hay = `${title} ${desc} ${normalize(ingLegacy)} ${normalize(ingDetailed)}`;
+            const tags = Array.isArray(r.tags) ? r.tags.join(' ') : '';
+            const hay = `${title} ${desc} ${normalize(ingLegacy)} ${normalize(ingDetailed)} ${normalize(tags)}`;
             return hay.includes(q);
         });
     }, [baseRecipes, q]);
