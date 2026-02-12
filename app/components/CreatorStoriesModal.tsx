@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { firestore } from '@/firebase';
+import AppModal from '@/app/components/AppModal';
 
 type CreatorLite = {
     uid: string;
@@ -56,8 +57,6 @@ async function fetchCreatorRecipes(uid: string, maxRecipes: number): Promise<Sto
     });
 }
 
-const ANIM_MS = 220;
-
 const CreatorStoriesModal: React.FC<Props> = ({
                                                   open,
                                                   creators,
@@ -66,7 +65,7 @@ const CreatorStoriesModal: React.FC<Props> = ({
                                                   autoAdvanceMs = 10_000,
                                                   maxRecipesPerCreator = 25,
                                               }) => {
-    const [closing, setClosing] = useState(false);
+    const closeWithAnimRef = useRef<() => void>(() => {});
 
     const initialCreatorIndex = useMemo(() => {
         const idx = creators.findIndex((c) => c.uid === initialCreatorUid);
@@ -87,14 +86,7 @@ const CreatorStoriesModal: React.FC<Props> = ({
     const recipes = recipesByUid[currentUid] ?? [];
     const currentRecipe = recipes[recipeIndex];
 
-    const closeWithAnim = () => {
-        if (closing) return;
-        setClosing(true);
-        window.setTimeout(() => {
-            onClose();
-            setClosing(false);
-        }, ANIM_MS);
-    };
+    const closeWithAnim = () => closeWithAnimRef.current();
 
     // reset when opening
     useEffect(() => {
@@ -166,7 +158,7 @@ const CreatorStoriesModal: React.FC<Props> = ({
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, closing, creatorIndex, recipeIndex, currentUid]);
+    }, [open, creatorIndex, recipeIndex, currentUid]);
 
     // fetch current + prefetch next creator
     useEffect(() => {
@@ -240,27 +232,17 @@ const CreatorStoriesModal: React.FC<Props> = ({
     const openHref = currentRecipe ? `/recipe/${currentRecipe.id}` : '#';
 
     return (
-        <div
-            className={[
-                'fixed inset-0 z-[999] bg-black/60 backdrop-blur-sm',
-                'transition-opacity duration-200',
-                closing ? 'opacity-0' : 'opacity-100',
-            ].join(' ')}
-            onClick={closeWithAnim}
-            aria-hidden="true"
+        <AppModal
+            onClose={onClose}
+            overlayClassName="z-[999] bg-black/60"
+            useDefaultPanelStyle={false}
+            panelClassName="fixed inset-0 md:inset-6 md:mx-auto md:max-w-3xl bg-black rounded-none md:rounded-[28px] overflow-hidden shadow-2xl border border-white/10"
         >
-            <div
-                className={[
-                    'fixed inset-0 md:inset-6 md:mx-auto md:max-w-3xl',
-                    'bg-black rounded-none md:rounded-[28px] overflow-hidden',
-                    'shadow-2xl border border-white/10',
-                    'transition-transform duration-200',
-                    closing ? 'scale-[0.98]' : 'scale-100',
-                ].join(' ')}
-                onClick={(e) => e.stopPropagation()}
-                role="dialog"
-                aria-modal="true"
-            >
+            {({ closeWithAnim: modalCloseWithAnim }) => {
+                closeWithAnimRef.current = modalCloseWithAnim;
+
+                return (
+                    <>
                 {/* tap zones */}
                 <button type="button" aria-label="Forrige" onClick={prev} className="absolute inset-y-0 left-0 w-1/3 z-20" />
                 <button type="button" aria-label="Neste" onClick={next} className="absolute inset-y-0 right-0 w-2/3 z-20" />
@@ -379,17 +361,19 @@ const CreatorStoriesModal: React.FC<Props> = ({
 
                 {/* keyframes */}
                 <style jsx>{`
-          @keyframes storyfill {
-            from {
+                    @keyframes storyfill {
+                        from {
               width: 0%;
             }
             to {
               width: 100%;
             }
-          }
-        `}</style>
-            </div>
-        </div>
+                    }
+                `}</style>
+                    </>
+                );
+            }}
+        </AppModal>
     );
 };
 

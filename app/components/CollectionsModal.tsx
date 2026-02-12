@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import AppModal from '@/app/components/AppModal';
 
 export interface CollectionDoc {
     id: string;
@@ -15,8 +16,6 @@ interface CollectionsModalProps {
     onClose: () => void;
 }
 
-const ANIM_MS = 180;
-
 const CollectionsModal: React.FC<CollectionsModalProps> = ({
                                                                collections,
                                                                loading,
@@ -26,25 +25,6 @@ const CollectionsModal: React.FC<CollectionsModalProps> = ({
     const router = useRouter();
     const [newListName, setNewListName] = useState('');
 
-    // ✅ local open state so we can animate in/out before unmount
-    const [open, setOpen] = useState(false);
-    const [closing, setClosing] = useState(false);
-
-    // animate in on mount
-    useEffect(() => {
-        const t = setTimeout(() => setOpen(true), 10);
-        return () => clearTimeout(t);
-    }, []);
-
-    const closeWithAnim = () => {
-        if (closing) return;
-        setClosing(true);
-        setOpen(false);
-        window.setTimeout(() => {
-            onClose();
-        }, ANIM_MS);
-    };
-
     const handleSubmit = () => {
         const trimmed = newListName.trim();
         if (!trimmed) return;
@@ -52,41 +32,10 @@ const CollectionsModal: React.FC<CollectionsModalProps> = ({
         setNewListName('');
     };
 
-    // ✅ ESC closes
-    useEffect(() => {
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') closeWithAnim();
-        };
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [closing]);
-
     return (
-        // ✅ overlay catches outside clicks (also over navbar)
-        <div
-            className={[
-                'fixed inset-0 z-[999] bg-black/30 backdrop-blur-sm',
-                'transition-opacity duration-200',
-                open ? 'opacity-100' : 'opacity-0',
-            ].join(' ')}
-            onClick={closeWithAnim}
-            aria-hidden="true"
-        >
-            {/* ✅ Modal box: stop bubbling so inside clicks don't close */}
-            <div
-                className={[
-                    'fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 w-[90vw] max-w-md',
-                    'p-4 rounded-2xl shadow-xl backdrop-blur bg-white/95 border border-slate-200',
-                    'transition-all duration-200 ease-out',
-                    open
-                        ? 'opacity-100 translate-y-0 scale-100'
-                        : 'opacity-0 translate-y-3 scale-[0.98]',
-                ].join(' ')}
-                onClick={(e) => e.stopPropagation()}
-                role="dialog"
-                aria-modal="true"
-            >
+        <AppModal onClose={onClose} overlayClassName="z-[999]">
+            {({ closeWithAnim, closing }) => (
+            <div className="p-4">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold">Mine lister</h3>
@@ -150,7 +99,8 @@ const CollectionsModal: React.FC<CollectionsModalProps> = ({
                     </ul>
                 )}
             </div>
-        </div>
+            )}
+        </AppModal>
     );
 };
 

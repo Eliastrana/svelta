@@ -8,6 +8,7 @@ import { useCollections } from '@/hooks/collections/useCollections';
 import { useToggleRecipeInCollection } from '@/hooks/collections/useToggleRecipeInCollection';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { createCollection } from '@/helpers/collectionHelpers';
+import AppModal from '@/app/components/AppModal';
 
 type CollectionItem = {
     id: string;
@@ -122,8 +123,9 @@ export default function AddToCollectionModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30">
-            <div className="bg-white rounded-2xl p-6 w-[90vw] max-w-md border border-slate-200 shadow-xl">
+        <AppModal onClose={onClose}>
+            {({ closeWithAnim }) => (
+            <div className="p-6">
                 <h3 className="text-lg font-semibold mb-4 text-slate-900">Legg til i liste</h3>
 
                 {/* ✅ Create new list inline */}
@@ -202,10 +204,11 @@ export default function AddToCollectionModal({
                     </ul>
                 )}
 
-                <button className="mt-6 w-full py-2 rounded-full confirm-button" onClick={onClose}>
+                <button className="mt-6 w-full py-2 rounded-full confirm-button" onClick={closeWithAnim}>
                     Ferdig
                 </button>
             </div>
-        </div>
+            )}
+        </AppModal>
     );
 }

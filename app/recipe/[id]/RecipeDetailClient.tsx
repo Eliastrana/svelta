@@ -8,6 +8,7 @@ import { deleteDoc, doc } from 'firebase/firestore';
 import LikeButton from '@/app/components/LikeButton';
 import CommentSection from '@/app/components/CommentSection';
 import AddToCollectionModal from '@/app/components/AddToCollectionModal';
+import AppModal from '@/app/components/AppModal';
 
 import { useRecipe } from '@/hooks/useRecipe';
 import { useUserData } from '@/hooks/useUserData';
@@ -96,7 +97,6 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
             console.error('Error deleting recipe:', err);
         } finally {
             setDeleting(false);
-            setShowDeleteConfirm(false);
         }
     };
 
@@ -314,32 +314,37 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
             )}
 
             {showDeleteConfirm && (
-                <div className="fixed inset-0 z-50 bg-slate-900/30 flex items-center justify-center px-4">
-                    <div className="w-full max-w-sm rounded-2xl bg-white border border-slate-200 shadow-xl p-6">
+                <AppModal onClose={() => setShowDeleteConfirm(false)}>
+                    {({ closeWithAnim, closing }) => (
+                    <div className="p-6">
                         <h2 className="text-xl font-semibold text-slate-900">Slette oppskriften?</h2>
                         <p className="text-slate-600 mt-2">Dette kan ikke angres.</p>
 
                         <div className="mt-5 flex justify-end gap-2">
                             <button
                                 type="button"
-                                onClick={() => setShowDeleteConfirm(false)}
-                                className="px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-50"
-                                disabled={deleting}
+                                onClick={closeWithAnim}
+                                className="px-4 py-2 rounded-full hover:bg-neutral-200 cursor-pointer"
+                                disabled={deleting || closing}
                             >
                                 Avbryt
                             </button>
 
                             <button
                                 type="button"
-                                onClick={handleDelete}
-                                className="px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white disabled:opacity-60"
-                                disabled={deleting}
+                                onClick={async () => {
+                                    await handleDelete();
+                                    closeWithAnim();
+                                }}
+                                className="px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white disabled:opacity-60 cursor-pointer"
+                                disabled={deleting || closing}
                             >
                                 {deleting ? 'Sletter…' : 'Slett'}
                             </button>
                         </div>
                     </div>
-                </div>
+                    )}
+                </AppModal>
             )}
         </div>
     );

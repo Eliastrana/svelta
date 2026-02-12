@@ -15,6 +15,7 @@ import {
 } from "firebase/firestore";
 import { auth, firestore } from "@/firebase";
 import { User } from "firebase/auth";
+import AppModal from '@/app/components/AppModal';
 
 interface UserData {
     name?: string;
@@ -112,24 +113,15 @@ const UserSearchModal: React.FC<UserSearchModalProps> = ({ onClose }) => {
     };
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30"
-            onClick={onClose}
-        >
-            <div
-                    className="relative   w-[90vw] max-w-md z-50
-                    p-4 rounded-2xl shadow-xl backdrop-blur
-                    bg-white/95
-                    border border-slate-200"
-
-                onClick={(e) => e.stopPropagation()}
-            >
+        <AppModal onClose={onClose}>
+            {({ closeWithAnim }) => (
+            <div className="relative p-4">
                 {/* Inner content */}
                 <div className="relative">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-2xl font-bold text-slate-900">Søk etter kokker</h2>
                         <button
-                            onClick={onClose}
+                            onClick={closeWithAnim}
                             className="cursor-pointer text-2xl leading-none text-slate-500"
                             aria-label="Lukk"
                         >
@@ -183,7 +175,8 @@ const UserSearchModal: React.FC<UserSearchModalProps> = ({ onClose }) => {
                     )}
                 </div>
             </div>
-        </div>
+            )}
+        </AppModal>
     );
 };
 

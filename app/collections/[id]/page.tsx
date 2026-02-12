@@ -8,6 +8,7 @@ import { useCollectionRecipes } from '@/hooks/collections/useCollectionRecipies'
 import { fetchManyUsers } from '@/helpers/fetchManyUsers';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import RecipeCard from '@/app/components/RecipeCard';
+import AppModal from '@/app/components/AppModal';
 import { Recipe } from '@/app/types/Recipe';
 import {
     Timestamp,
@@ -94,7 +95,6 @@ export default function CollectionPage() {
             await queryClient.invalidateQueries({ queryKey: ['collectionRecipes', id] });
         } finally {
             setRemovingRecipe(false);
-            setRemoveRecipeId(null);
         }
     };
 
@@ -133,7 +133,6 @@ export default function CollectionPage() {
             console.error('Error deleting list:', e);
         } finally {
             setDeletingList(false);
-            setShowDeleteListConfirm(false);
         }
     };
 
@@ -187,38 +186,44 @@ export default function CollectionPage() {
 
             {/* Confirm: remove one recipe */}
             {removeRecipeId && (
-                <div className="fixed inset-0 z-50 bg-slate-900/30 flex items-center justify-center px-4">
-                    <div className="w-full max-w-sm rounded-2xl bg-white border border-slate-200 shadow-xl p-6">
+                <AppModal onClose={() => setRemoveRecipeId(null)}>
+                    {({ closeWithAnim, closing }) => (
+                    <div className="p-6">
                         <h2 className="text-xl font-semibold text-slate-900">Fjerne fra listen?</h2>
                         <p className="text-slate-600 mt-2">Oppskriften blir bare fjernet fra denne listen.</p>
 
                         <div className="mt-5 flex justify-end gap-2">
                             <button
                                 type="button"
-                                onClick={() => setRemoveRecipeId(null)}
+                                onClick={closeWithAnim}
                                 className="px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-50"
-                                disabled={removingRecipe}
+                                disabled={removingRecipe || closing}
                             >
                                 Avbryt
                             </button>
 
                             <button
                                 type="button"
-                                onClick={() => void removeOneRecipeFromList(removeRecipeId)}
+                                onClick={async () => {
+                                    await removeOneRecipeFromList(removeRecipeId);
+                                    closeWithAnim();
+                                }}
                                 className="px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white disabled:opacity-60"
-                                disabled={removingRecipe}
+                                disabled={removingRecipe || closing}
                             >
                                 {removingRecipe ? 'Fjerner…' : 'Fjern'}
                             </button>
                         </div>
                     </div>
-                </div>
+                    )}
+                </AppModal>
             )}
 
             {/* Confirm: delete whole list */}
             {showDeleteListConfirm && (
-                <div className="fixed inset-0 z-50 bg-slate-900/30 flex items-center justify-center px-4">
-                    <div className="w-full max-w-sm rounded-2xl bg-white border border-slate-200 shadow-xl p-6">
+                <AppModal onClose={() => setShowDeleteListConfirm(false)}>
+                    {({ closeWithAnim, closing }) => (
+                    <div className="p-6">
                         <h2 className="text-xl font-semibold text-slate-900">Slette listen?</h2>
                         <p className="text-slate-600 mt-2">
                             Dette sletter listen og alle referanser til oppskrifter i listen. Oppskriftene i seg selv blir ikke slettet.
@@ -227,24 +232,28 @@ export default function CollectionPage() {
                         <div className="mt-5 flex justify-end gap-2">
                             <button
                                 type="button"
-                                onClick={() => setShowDeleteListConfirm(false)}
+                                onClick={closeWithAnim}
                                 className="px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-50"
-                                disabled={deletingList}
+                                disabled={deletingList || closing}
                             >
                                 Avbryt
                             </button>
 
                             <button
                                 type="button"
-                                onClick={() => void deleteWholeList()}
+                                onClick={async () => {
+                                    await deleteWholeList();
+                                    closeWithAnim();
+                                }}
                                 className="px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white disabled:opacity-60"
-                                disabled={deletingList}
+                                disabled={deletingList || closing}
                             >
                                 {deletingList ? 'Sletter…' : 'Slett liste'}
                             </button>
                         </div>
                     </div>
-                </div>
+                    )}
+                </AppModal>
             )}
         </div>
     );

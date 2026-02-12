@@ -20,6 +20,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useUserRecipes } from '@/hooks/useUserRecipes';
 import RecipeCard from '@/app/components/RecipeCard';
 import { useUserLikedRecipes } from '@/hooks/useLikedRecipes';
+import AppModal from '@/app/components/AppModal';
 
 interface UserData {
     name?: string;
@@ -160,7 +161,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         setPhotoPreview(url);
     };
 
-    const save = async () => {
+    const save = async (closeWithAnim: () => void) => {
         setBusy(true);
         setError(null);
 
@@ -186,7 +187,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 photoURL: nextPhotoURL,
             });
 
-            onClose();
+            closeWithAnim();
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
             setError(msg);
@@ -196,13 +197,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center px-4">
-            <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-xl p-4 relative">
+        <AppModal onClose={onClose}>
+            {({ closeWithAnim, closing }) => (
+            <div className="w-full p-4 relative">
                 <button
                     type="button"
-                    onClick={onClose}
+                    onClick={closeWithAnim}
                     className="absolute top-3 right-3 h-9 w-9 rounded-full hover:bg-slate-100 grid place-items-center"
                     aria-label="Lukk"
+                    disabled={closing}
                 >
                     <span className="material-symbols-outlined ">close</span>
                 </button>
@@ -252,23 +255,24 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 <div className="mt-4 flex justify-end gap-2">
                     <button
                         type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 font-semibold"
-                        disabled={busy}
+                        onClick={closeWithAnim}
+                        className="px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 font-semibold cursor-pointer"
+                        disabled={busy || closing}
                     >
                         Avbryt
                     </button>
                     <button
                         type="button"
-                        onClick={save}
-                        className="px-4 py-2 rounded-full bg-cyan-100 font-semibold hover:opacity-95 disabled:opacity-50"
-                        disabled={busy}
+                        onClick={() => void save(closeWithAnim)}
+                        className=" brown-button px-4 py-2 rounded-full font-semibold hover:opacity-95 disabled:opacity-50"
+                        disabled={busy || closing}
                     >
                         {busy ? 'Lagrer…' : 'Lagre'}
                     </button>
                 </div>
             </div>
-        </div>
+            )}
+        </AppModal>
     );
 };
 
@@ -550,33 +554,40 @@ const UserProfile: React.FC = () => {
 
             {/* Delete confirmation */}
             {showConfirm && pendingDeleteId && (
-                <div className="fixed inset-0 bg-slate-900/30 flex justify-center items-center z-50">
-                    <div className="p-6 rounded-2xl max-w-sm w-full bg-white border border-slate-200 shadow-xl">
+                <AppModal
+                    onClose={() => {
+                        setShowConfirm(false);
+                        setPendingDeleteId(null);
+                    }}
+                >
+                    {({ closeWithAnim, closing }) => (
+                    <div className="p-6">
                         <h1 className="text-2xl font-semibold mb-4 text-slate-900">Vil du slette denne oppskriften?</h1>
                         <p className="text-slate-600">Var den ikke noe god?</p>
                         <div className="flex justify-end gap-2 mt-4">
                             <button
                                 onClick={() => {
-                                    setShowConfirm(false);
-                                    setPendingDeleteId(null);
+                                    closeWithAnim();
                                 }}
-                                className="confirm-button px-4 py-2 rounded-full"
+                                className=" px-4 py-2 rounded-full hover:bg-neutral-200 cursor-pointer"
+                                disabled={closing}
                             >
                                 Avbryt
                             </button>
                             <button
                                 onClick={async () => {
                                     await deleteDoc(doc(firestore, 'recipes', pendingDeleteId));
-                                    setShowConfirm(false);
-                                    setPendingDeleteId(null);
+                                    closeWithAnim();
                                 }}
-                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full"
+                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full cursor-pointer"
+                                disabled={closing}
                             >
                                 Slett
                             </button>
                         </div>
                     </div>
-                </div>
+                    )}
+                </AppModal>
             )}
 
             {/* Edit profile modal */}

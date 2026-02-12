@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-
-const ANIM_MS = 180;
+import AppModal from '@/app/components/AppModal';
 
 type ConfettiParticle = {
     x: number;
@@ -168,39 +167,13 @@ export type RecipeCreatedModalProps = {
 };
 
 const RecipeCreatedModal: React.FC<RecipeCreatedModalProps> = ({ recipeId, onClose }) => {
-    const [open, setOpen] = useState(false);
-    const [closing, setClosing] = useState(false);
     const [copied, setCopied] = useState(false);
     const [confettiRun, setConfettiRun] = useState(true);
-
-    useEffect(() => {
-        const t = window.setTimeout(() => setOpen(true), 10);
-        return () => window.clearTimeout(t);
-    }, []);
 
     const recipeUrl = useMemo(() => {
         const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.svelta.no';
         return `${origin}/recipe/${recipeId}`;
     }, [recipeId]);
-
-    const closeWithAnim = () => {
-        if (closing) return;
-        setClosing(true);
-        setOpen(false);
-        window.setTimeout(() => {
-            setConfettiRun(false);
-            onClose();
-        }, ANIM_MS);
-    };
-
-    useEffect(() => {
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') closeWithAnim();
-        };
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [closing]);
 
     const copyLink = async () => {
         try {
@@ -225,27 +198,9 @@ const RecipeCreatedModal: React.FC<RecipeCreatedModalProps> = ({ recipeId, onClo
         <>
             <ConfettiBurstFromBottom run={confettiRun} durationMs={2200} />
 
-            <div
-                className={[
-                    'fixed inset-0 z-[70] bg-black/30 backdrop-blur-sm',
-                    'transition-opacity duration-200',
-                    open ? 'opacity-100' : 'opacity-0',
-                ].join(' ')}
-                onClick={closeWithAnim}
-                aria-hidden="true"
-            >
-                <div
-                    className={[
-                        'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
-                        'w-[92vw] max-w-md',
-                        'rounded-2xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur',
-                        'transition-all duration-200 ease-out',
-                        open ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]',
-                    ].join(' ')}
-                    onClick={(e) => e.stopPropagation()}
-                    role="dialog"
-                    aria-modal="true"
-                >
+            <AppModal onClose={onClose} overlayClassName="z-[70]">
+                {({ closeWithAnim, closing }) => (
+                <div>
                     <div className="p-5">
                         <div className="flex items-start justify-between gap-3">
                             <div>
@@ -259,7 +214,10 @@ const RecipeCreatedModal: React.FC<RecipeCreatedModalProps> = ({ recipeId, onClo
 
                             <button
                                 type="button"
-                                onClick={closeWithAnim}
+                                onClick={() => {
+                                    setConfettiRun(false);
+                                    closeWithAnim();
+                                }}
                                 disabled={closing}
                                 className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition active:scale-95"
                                 aria-label="Lukk"
@@ -284,14 +242,18 @@ const RecipeCreatedModal: React.FC<RecipeCreatedModalProps> = ({ recipeId, onClo
 
                         <button
                             type="button"
-                            onClick={closeWithAnim}
+                            onClick={() => {
+                                setConfettiRun(false);
+                                closeWithAnim();
+                            }}
                             className="mt-3 w-full rounded-full py-2 font-semibold bg-white border border-slate-200 hover:bg-slate-50 transition"
                         >
                             Se oppskriften
                         </button>
                     </div>
                 </div>
-            </div>
+                )}
+            </AppModal>
         </>
     );
 };

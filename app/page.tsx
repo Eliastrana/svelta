@@ -142,7 +142,7 @@ const Home: React.FC = () => {
     });
 
     return (
-        <div className="p-4 md:max-w-5xl md:w-2/3 md:mx-auto md:mb-24">
+        <div className="p-4 md:max-w-5xl lg:w-2/3 md:mx-auto md:mb-24">
             {/* Header & feed toggle */}
             <div className="md:flex items-center justify-between ">
                 <h2 className="md:text-3xl text-2xl font-semibold text-slate-900">Oppskrifter</h2>

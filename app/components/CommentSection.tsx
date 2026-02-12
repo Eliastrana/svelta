@@ -18,6 +18,7 @@ import { auth, firestore } from '@/firebase';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/nb';
+import AppModal from '@/app/components/AppModal';
 
 dayjs.extend(relativeTime);
 dayjs.locale('nb');
@@ -216,8 +217,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                     tx.update(recipeRef, { commentCount: nextCount });
                 }
             });
-
-            setDeleteConfirmId(null);
         } catch (error) {
             console.error('Error deleting comment:', error);
         } finally {
@@ -327,32 +326,44 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
 
                                 <p className="mt-2 text-sm  break-words">{comment.text}</p>
 
-                                {/* Inline confirm */}
-                                {deleteConfirmId === comment.id ? (
-                                    <div className="mt-3 flex items-center justify-end gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setDeleteConfirmId(null)}
-                                            className="px-3 py-2 rounded-full border border-slate-200 hover:bg-slate-50 text-sm font-semibold"
-                                            disabled={deletingId === comment.id}
-                                        >
-                                            Avbryt
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => void handleDeleteComment(comment.id)}
-                                            className="px-3 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white text-sm font-semibold disabled:opacity-60"
-                                            disabled={deletingId === comment.id}
-                                        >
-                                            {deletingId === comment.id ? 'Sletter…' : 'Slett'}
-                                        </button>
-                                    </div>
-                                ) : null}
                             </div>
                         );
                     })
                 )}
             </div>
+
+            {deleteConfirmId ? (
+                <AppModal onClose={() => setDeleteConfirmId(null)}>
+                    {({ closeWithAnim, closing }) => (
+                        <div className="p-6">
+                            <h2 className="text-xl font-semibold text-slate-900">Slette kommentaren?</h2>
+                            <p className="text-slate-600 mt-2">Dette kan ikke angres.</p>
+
+                            <div className="mt-5 flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={closeWithAnim}
+                                    className="px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-50"
+                                    disabled={deletingId === deleteConfirmId || closing}
+                                >
+                                    Avbryt
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        await handleDeleteComment(deleteConfirmId);
+                                        closeWithAnim();
+                                    }}
+                                    className="px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white disabled:opacity-60"
+                                    disabled={deletingId === deleteConfirmId || closing}
+                                >
+                                    {deletingId === deleteConfirmId ? 'Sletter…' : 'Slett'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </AppModal>
+            ) : null}
 
             <div className="h-20" />
         </div>

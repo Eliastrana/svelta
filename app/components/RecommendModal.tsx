@@ -8,6 +8,7 @@ import { useAuthUser }             from '@/hooks/useAuthUser';
 import { useUserFollowing }        from '@/hooks/useUserFollowing';
 import { fetchFollowedRecipes }    from '@/helpers/fetchFollowedRecipies';
 import { Recipe }                  from '@/app/types/Recipe';
+import AppModal from '@/app/components/AppModal';
 
 interface Props {
     onClose: () => void;
@@ -64,15 +65,11 @@ export default function RecommendModal({ onClose }: Props) {
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/30 flex items-center justify-center z-50">
-            <div
-                className="fixed md:bottom-30 bottom-24 left-1/2 -translate-x-1/2 w-[90vw] max-w-md z-50
-                   p-4 rounded-2xl shadow-xl backdrop-blur
-                   bg-white/95
-                   border border-slate-200"
-            >
+        <AppModal onClose={onClose}>
+            {({ closeWithAnim }) => (
+            <div className="relative p-4">
                 <button
-                    onClick={onClose}
+                    onClick={closeWithAnim}
                     className="absolute top-3 right-3 text-slate-500 hover:text-slate-700"
                 >
                     ✕
@@ -114,6 +111,7 @@ export default function RecommendModal({ onClose }: Props) {
 
                 {error && <p className="text-red-600 mt-3">{error}</p>}
             </div>
-        </div>
+            )}
+        </AppModal>
     );
 }

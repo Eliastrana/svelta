@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { firestore } from '@/firebase';
 import { useAuthUser } from '@/hooks/useAuthUser';
+import AppModal from '@/app/components/AppModal';
 
 interface LikeButtonProps {
     recipeId: string;
@@ -29,40 +30,12 @@ interface LikedUser {
     photoURL?: string;
 }
 
-const ANIM_MS = 180;
-
 const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
                                                                                   recipeId,
                                                                                   onClose,
                                                                               }) => {
     const [likedUsers, setLikedUsers] = useState<LikedUser[]>([]);
     const [loading, setLoading] = useState(true);
-
-    // animate in/out
-    const [open, setOpen] = useState(false);
-    const [closing, setClosing] = useState(false);
-
-    useEffect(() => {
-        const t = window.setTimeout(() => setOpen(true), 10);
-        return () => window.clearTimeout(t);
-    }, []);
-
-    const closeWithAnim = () => {
-        if (closing) return;
-        setClosing(true);
-        setOpen(false);
-        window.setTimeout(() => onClose(), ANIM_MS);
-    };
-
-    // ESC closes
-    useEffect(() => {
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') closeWithAnim();
-        };
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [closing]);
 
     useEffect(() => {
         let cancelled = false;
@@ -114,30 +87,9 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
     }, [recipeId]);
 
     return (
-        // overlay catches outside clicks
-        <div
-            className={[
-                'fixed inset-0 z-50',
-                'bg-black/30 backdrop-blur-sm',
-                'transition-opacity duration-200',
-                open ? 'opacity-100' : 'opacity-0',
-            ].join(' ')}
-            onClick={closeWithAnim}
-            aria-hidden="true"
-        >
-            {/* modal */}
-            <div
-                className={[
-                    'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
-                    'w-[92vw] max-w-md',
-                    'rounded-2xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur',
-                    'transition-all duration-200 ease-out',
-                    open ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]',
-                ].join(' ')}
-                onClick={(e) => e.stopPropagation()}
-                role="dialog"
-                aria-modal="true"
-            >
+        <AppModal onClose={onClose}>
+            {({ closeWithAnim, closing }) => (
+                <>
                 {/* header */}
                 <div className="flex items-start justify-between gap-3 p-4 border-b border-slate-200">
                     <div>
@@ -217,8 +169,9 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
                         Ferdig
                     </button>
                 </div>
-            </div>
-        </div>
+                </>
+            )}
+        </AppModal>
     );
 };
 
