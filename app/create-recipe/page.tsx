@@ -34,6 +34,7 @@ type StepWithId = CookingStep & { id: string };
 type Ingredient = { name: string; amount: string };
 type IngredientWithId = Ingredient & { id: string };
 
+
 const makeId = (prefix: 'step' | 'ing'): string => {
     const base =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -202,6 +203,85 @@ const CreateRecipe = () => {
     const [publishing, setPublishing] = useState(false);
 
     const router = useRouter();
+
+    type ImportRecipeResponse = {
+        title?: string;
+        description?: string;
+        ingredientsDetailed?: Array<{ name: string; amount?: string }>;
+        cookingSteps?: Array<{ title: string; description: string }>;
+        temperature?: string;
+        cookingTime?: string;
+        portions?: string;
+        coverImageUrl?: string; // valgfritt
+    };
+
+    const [importUrl, setImportUrl] = useState('');
+    const [importing, setImporting] = useState(false);
+    const [importError, setImportError] = useState<string | null>(null);
+
+    const importFromUrl = async () => {
+        const url = importUrl.trim();
+        if (!url || importing) return;
+
+        try {
+            setImporting(true);
+            setImportError(null);
+
+            const res = await fetch('/api/import-recipe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url }),
+            });
+
+            const data = (await res.json()) as ImportRecipeResponse & { error?: string };
+
+            if (!res.ok) throw new Error(data.error || 'Kunne ikke importere oppskrift.');
+
+            // Prefyll felter (jeg overskriver her – enklest og mest forutsigbart)
+            if (data.title) setTitle(data.title);
+            if (data.description) setDescription(data.description);
+
+            if (data.temperature) setTemperature(data.temperature);
+            if (data.cookingTime) setCookingTime(data.cookingTime);
+            if (data.portions) setPortions(data.portions);
+
+            if (Array.isArray(data.ingredientsDetailed)) {
+                setIngredients(
+                    data.ingredientsDetailed
+                        .map((i) => ({
+                            id: makeId('ing'),
+                            name: (i.name ?? '').trim(),
+                            amount: (i.amount ?? '').trim(),
+                        }))
+                        .filter((i) => i.name.length > 0),
+                );
+            }
+
+            if (Array.isArray(data.cookingSteps)) {
+                setCookingSteps(
+                    data.cookingSteps
+                        .map((s) => ({
+                            id: makeId('step'),
+                            title: (s.title ?? '').trim() || 'Steg',
+                            description: (s.description ?? '').trim(),
+                        }))
+                        .filter((s) => s.description.length > 0),
+                );
+            }
+
+            // Valgfritt: bruke coverImage fra import som preview (ekstern URL)
+            if (data.coverImageUrl) {
+                setCoverImageFile(null);
+                setCoverImagePreview(data.coverImageUrl);
+            }
+        } catch (e) {
+            console.error(e);
+            setImportError(e instanceof Error ? e.message : 'Kunne ikke importere oppskrift.');
+        } finally {
+            setImporting(false);
+        }
+    };
+
 
     // ✅ success modal state
     const [createdRecipeId, setCreatedRecipeId] = useState<string>('');
@@ -549,6 +629,42 @@ const CreateRecipe = () => {
             {/* Content */}
             <div className="mx-auto max-w-xl px-4 py-6 pb-28">
                 <form id="create-recipe-form" onSubmit={handleSubmit} className="space-y-4">
+
+                    {/* Import from URL */}
+                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                            <h2 className="text-base font-semibold text-slate-900">Importer fra URL</h2>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <input
+                                value={importUrl}
+                                onChange={(e) => setImportUrl(e.target.value)}
+                                placeholder="Lim inn lenke til oppskrift…"
+                                className="flex-1 p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                            />
+                            <button
+                                type="button"
+                                onClick={importFromUrl}
+                                disabled={importing || !importUrl.trim()}
+                                className={[
+                                    'px-4 rounded-full font-semibold transition brown-button',
+                                    importing || !importUrl.trim() ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95 active:scale-[0.99]',
+                                ].join(' ')}
+                            >
+      <span className="inline-flex items-center gap-2">
+        {importing ? (
+            <span className="inline-block h-4 w-4 rounded-full border-2 border-white/60 border-t-white animate-spin" />
+        ) : null}
+          {importing ? 'Importerer…' : 'Importer'}
+      </span>
+                            </button>
+                        </div>
+
+                        {importError ? <p className="mt-2 text-sm text-red-600">{importError}</p> : null}
+                    </div>
+
+
                     {/* Basic info */}
                     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                         <label className="block text-sm font-semibold text-slate-900 mb-2">Tittel</label>
