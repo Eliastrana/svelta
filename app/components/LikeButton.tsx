@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
     doc,
     getDoc,
@@ -90,85 +91,98 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
         <AppModal onClose={onClose}>
             {({ closeWithAnim, closing }) => (
                 <>
-                {/* header */}
-                <div className="flex items-start justify-between gap-3 p-4 border-b border-slate-200">
-                    <div>
-                        <h3 className="text-lg font-semibold text-slate-900">Tok av seg hatten</h3>
-                        <p className="text-sm text-slate-600 mt-0.5">Folk som har likt denne oppskriften.</p>
+                    {/* header */}
+                    <div className="flex items-start justify-between gap-3 p-4 border-b border-slate-200">
+                        <div>
+                            <h3 className="text-lg font-semibold text-slate-900">Tok av seg hatten</h3>
+                            <p className="text-sm text-slate-600 mt-0.5">
+                                Folk som har likt denne oppskriften.
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={closeWithAnim}
+                            disabled={closing}
+                            className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition active:scale-95"
+                            aria-label="Lukk"
+                        >
+                            <span className="material-symbols-outlined text-slate-700">close</span>
+                        </button>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={closeWithAnim}
-                        disabled={closing}
-                        className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition active:scale-95"
-                        aria-label="Lukk"
-                    >
-                        <span className="material-symbols-outlined text-slate-700">close</span>
-                    </button>
-                </div>
-
-                {/* content */}
-                <div className="p-4">
-                    {loading ? (
-                        <div className="space-y-3">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                                <div
-                                    key={`sk-${i}`}
-                                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3"
-                                >
-                                    <div className="h-10 w-10 rounded-full bg-slate-200 animate-pulse" />
-                                    <div className="flex-1">
-                                        <div className="h-4 w-32 rounded bg-slate-200 animate-pulse" />
-                                        <div className="h-3 w-24 rounded bg-slate-100 mt-2" />
+                    {/* content */}
+                    <div className="p-4">
+                        {loading ? (
+                            <div className="space-y-3">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <div
+                                        key={`sk-${i}`}
+                                        className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3"
+                                    >
+                                        <div className="h-10 w-10 rounded-full bg-slate-200 animate-pulse" />
+                                        <div className="flex-1">
+                                            <div className="h-4 w-32 rounded bg-slate-200 animate-pulse" />
+                                            <div className="h-3 w-24 rounded bg-slate-100 mt-2" />
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : likedUsers.length === 0 ? (
-                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                            <p className="text-slate-700 font-medium">Ingen likes enda.</p>
-                            <p className="text-sm text-slate-600 mt-1">Vær den første til å ta av deg hatten 👨‍🍳</p>
-                        </div>
-                    ) : (
-                        <ul className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
-                            {likedUsers.map((u) => (
-                                <li
-                                    key={u.userId}
-                                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3"
-                                >
-                                    <div className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 shrink-0">
-                                        {u.photoURL ? (
-                                            <img
-                                                src={u.photoURL}
-                                                alt={u.name || 'User'}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full grid place-items-center text-slate-500">🧑‍🍳</div>
-                                        )}
-                                    </div>
+                                ))}
+                            </div>
+                        ) : likedUsers.length === 0 ? (
+                            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                                <p className="text-slate-700 font-medium">Ingen likes enda.</p>
+                                <p className="text-sm text-slate-600 mt-1">
+                                    Vær den første til å ta av deg hatten 👨‍🍳
+                                </p>
+                            </div>
+                        ) : (
+                            <ul className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+                                {likedUsers.map((u) => (
+                                    <li key={u.userId}>
+                                        <Link
+                                            href={`/user/${u.userId}`} // Change if your profile route is different (e.g. /profil/[id] or /users/[id])
+                                            onClick={() => closeWithAnim()}
+                                            className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 hover:bg-slate-50 transition active:scale-[0.99]"
+                                        >
+                                            <div className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 shrink-0">
+                                                {u.photoURL ? (
+                                                    <img
+                                                        src={u.photoURL}
+                                                        alt={u.name || 'User'}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full grid place-items-center text-slate-500">
+                                                        🧑‍🍳
+                                                    </div>
+                                                )}
+                                            </div>
 
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-semibold text-slate-900 truncate">
-                                            {u.name || 'Ukjent bruker'}
-                                        </p>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-semibold text-slate-900 truncate">
+                                                    {u.name || 'Ukjent bruker'}
+                                                </p>
+                                            </div>
 
-                    <button
-                        type="button"
-                        onClick={closeWithAnim}
-                        className="mt-4 w-full rounded-full py-2 font-semibold shadow-sm
+                                            <span className="material-symbols-outlined text-slate-400 text-[20px] shrink-0">
+                                                chevron_right
+                                            </span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={closeWithAnim}
+                            className="mt-4 w-full rounded-full py-2 font-semibold shadow-sm
                        bg-slate-100 hover:bg-slate-200 transition active:scale-[0.99]"
-                        disabled={closing}
-                    >
-                        Ferdig
-                    </button>
-                </div>
+                            disabled={closing}
+                        >
+                            Ferdig
+                        </button>
+                    </div>
                 </>
             )}
         </AppModal>
@@ -266,19 +280,19 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId, onRequireLogin }) => 
                 ].join(' ')}
                 aria-label={likeLabel}
             >
-        <span className="h-7 w-7 grid place-items-center">
-          {hasLiked ? (
-              <img src="/icons/chef_white.png" alt="Liked" className="invert w-6 h-6" />
-          ) : (
-              <img src="/icons/chef.png" alt="Not liked" className="w-6 h-6" />
-          )}
-        </span>
+                <span className="h-7 w-7 grid place-items-center">
+                    {hasLiked ? (
+                        <img src="/icons/chef_white.png" alt="Liked" className="invert w-6 h-6" />
+                    ) : (
+                        <img src="/icons/chef.png" alt="Not liked" className="w-6 h-6" />
+                    )}
+                </span>
 
                 <span className="text-lg font-semibold text-slate-900 tabular-nums">{likeCount}</span>
 
                 <span className="text-sm font-semibold text-slate-700 hidden sm:inline">
-          {hasLiked ? 'Likt' : 'Lik'}
-        </span>
+                    {hasLiked ? 'Likt' : 'Lik'}
+                </span>
             </button>
 
             {/* Open modal */}

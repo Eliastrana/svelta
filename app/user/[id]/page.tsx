@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
     doc,
@@ -29,6 +30,160 @@ interface UserData {
     bio?: string;
     favoriteFood?: string;
 }
+
+interface ProfileListUser {
+    userId: string;
+    name?: string;
+    photoURL?: string;
+}
+
+const FollowersModal: React.FC<{
+    profileUserId: string;
+    profileName?: string;
+    onClose: () => void;
+}> = ({ profileUserId, profileName, onClose }) => {
+    const [followers, setFollowers] = useState<ProfileListUser[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const fetchFollowers = async () => {
+            setLoading(true);
+            try {
+                const usersSnap = await getDocs(collection(firestore, 'users'));
+
+                const results: ProfileListUser[] = usersSnap.docs
+                    .filter((d) => {
+                        const data = d.data() as UserData;
+                        return Array.isArray(data.following) && data.following.includes(profileUserId);
+                    })
+                    .map((d) => {
+                        const data = d.data() as UserData;
+                        return {
+                            userId: d.id,
+                            name: data.name,
+                            photoURL: data.photoURL,
+                        };
+                    });
+
+                results.sort((a, b) => {
+                    const an = (a.name || a.userId).toLowerCase();
+                    const bn = (b.name || b.userId).toLowerCase();
+                    return an.localeCompare(bn);
+                });
+
+                if (!cancelled) setFollowers(results);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        };
+
+        void fetchFollowers();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [profileUserId]);
+
+    return (
+        <AppModal onClose={onClose}>
+            {({ closeWithAnim, closing }) => (
+                <>
+                    {/* header */}
+                    <div className="flex items-start justify-between gap-3 p-4 border-b border-slate-200">
+                        <div>
+                            <h3 className="text-lg font-semibold text-slate-900">Følgere</h3>
+                            <p className="text-sm text-slate-600 mt-0.5">
+                                {profileName ? `Folk som følger ${profileName}.` : 'Folk som følger denne brukeren.'}
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={closeWithAnim}
+                            disabled={closing}
+                            className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition active:scale-95"
+                            aria-label="Lukk"
+                        >
+                            <span className="material-symbols-outlined text-slate-700">close</span>
+                        </button>
+                    </div>
+
+                    {/* content */}
+                    <div className="p-4">
+                        {loading ? (
+                            <div className="space-y-3">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <div
+                                        key={`sk-${i}`}
+                                        className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3"
+                                    >
+                                        <div className="h-10 w-10 rounded-full bg-slate-200 animate-pulse" />
+                                        <div className="flex-1">
+                                            <div className="h-4 w-32 rounded bg-slate-200 animate-pulse" />
+                                            <div className="h-3 w-24 rounded bg-slate-100 mt-2" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : followers.length === 0 ? (
+                            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                                <p className="text-slate-700 font-medium">Ingen følgere enda.</p>
+                                <p className="text-sm text-slate-600 mt-1">Vær den første til å følge 👨‍🍳</p>
+                            </div>
+                        ) : (
+                            <ul className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+                                {followers.map((u) => (
+                                    <li key={u.userId}>
+                                        <Link
+                                            href={`/user/${u.userId}`}
+                                            onClick={() => closeWithAnim()}
+                                            className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 hover:bg-slate-50 transition active:scale-[0.99]"
+                                        >
+                                            <div className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 shrink-0">
+                                                {u.photoURL ? (
+                                                    <img
+                                                        src={u.photoURL}
+                                                        alt={u.name || 'User'}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full grid place-items-center text-slate-500">
+                                                        🧑‍🍳
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-semibold text-slate-900 truncate">
+                                                    {u.name || 'Ukjent bruker'}
+                                                </p>
+                                            </div>
+
+                                            <span className="material-symbols-outlined text-slate-400 text-[20px] shrink-0">
+                                                chevron_right
+                                            </span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={closeWithAnim}
+                            className="mt-4 w-full rounded-full py-2 font-semibold shadow-sm bg-slate-100 hover:bg-slate-200 transition active:scale-[0.99]"
+                            disabled={closing}
+                        >
+                            Ferdig
+                        </button>
+                    </div>
+                </>
+            )}
+        </AppModal>
+    );
+};
 
 // Ensure a Firestore doc exists for every signed-in user
 const createUserDocumentIfNotExists = async (user: User) => {
@@ -199,78 +354,78 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     return (
         <AppModal onClose={onClose}>
             {({ closeWithAnim, closing }) => (
-            <div className="w-full p-4 relative">
-                <button
-                    type="button"
-                    onClick={closeWithAnim}
-                    className="absolute top-3 right-3 h-9 w-9 rounded-full hover:bg-slate-100 grid place-items-center"
-                    aria-label="Lukk"
-                    disabled={closing}
-                >
-                    <span className="material-symbols-outlined ">close</span>
-                </button>
-
-                <h2 className="text-xl font-semibold ">Rediger profil</h2>
-                <p className="text-sm  mt-1">Oppdater bio, favorittmat og profilbilde.</p>
-
-                <div className="mt-4 flex items-center gap-3">
-                    <div className="h-16 w-16 rounded-full overflow-hidden border border-slate-200 bg-slate-50">
-                        {photoPreview ? (
-                            <img src={photoPreview} alt="Profilbilde" className="w-full h-full object-cover" />
-                        ) : null}
-                    </div>
-
-                    <div className="flex-1">
-                        <p className="text-sm font-semibold ">{initialName}</p>
-                        <label className="mt-2 inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition cursor-pointer w-fit">
-                            <span className="material-symbols-outlined text-base">photo_camera</span>
-                            <span className="text-sm font-semibold">Bytt bilde</span>
-                            <input type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
-                        </label>
-                    </div>
-                </div>
-
-                <div className="mt-4">
-                    <label className="block text-sm font-semibold text-slate-900 mb-2">Favorittmat</label>
-                    <input
-                        value={favoriteFood}
-                        onChange={(e) => setFavoriteFood(e.target.value)}
-                        placeholder="f.eks. carbonara"
-                        className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    />
-                </div>
-
-                <div className="mt-4">
-                    <label className="block text-sm font-semibold text-slate-900 mb-2">Bio</label>
-                    <textarea
-                        value={bio}
-                        onChange={(e) => setBio(e.target.value)}
-                        placeholder="Skriv litt om deg selv..."
-                        className="w-full min-h-[120px] p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    />
-                </div>
-
-                {error ? <p className="text-red-600 text-sm mt-3">{error}</p> : null}
-
-                <div className="mt-4 flex justify-end gap-2">
+                <div className="w-full p-4 relative">
                     <button
                         type="button"
                         onClick={closeWithAnim}
-                        className="px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 font-semibold cursor-pointer"
-                        disabled={busy || closing}
+                        className="absolute top-3 right-3 h-9 w-9 rounded-full hover:bg-slate-100 grid place-items-center"
+                        aria-label="Lukk"
+                        disabled={closing}
                     >
-                        Avbryt
+                        <span className="material-symbols-outlined ">close</span>
                     </button>
-                    <button
-                        type="button"
-                        onClick={() => void save(closeWithAnim)}
-                        className=" brown-button px-4 py-2 rounded-full font-semibold hover:opacity-95 disabled:opacity-50"
-                        disabled={busy || closing}
-                    >
-                        {busy ? 'Lagrer…' : 'Lagre'}
-                    </button>
+
+                    <h2 className="text-xl font-semibold ">Rediger profil</h2>
+                    <p className="text-sm  mt-1">Oppdater bio, favorittmat og profilbilde.</p>
+
+                    <div className="mt-4 flex items-center gap-3">
+                        <div className="h-16 w-16 rounded-full overflow-hidden border border-slate-200 bg-slate-50">
+                            {photoPreview ? (
+                                <img src={photoPreview} alt="Profilbilde" className="w-full h-full object-cover" />
+                            ) : null}
+                        </div>
+
+                        <div className="flex-1">
+                            <p className="text-sm font-semibold ">{initialName}</p>
+                            <label className="mt-2 inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition cursor-pointer w-fit">
+                                <span className="material-symbols-outlined text-base">photo_camera</span>
+                                <span className="text-sm font-semibold">Bytt bilde</span>
+                                <input type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="mt-4">
+                        <label className="block text-sm font-semibold text-slate-900 mb-2">Favorittmat</label>
+                        <input
+                            value={favoriteFood}
+                            onChange={(e) => setFavoriteFood(e.target.value)}
+                            placeholder="f.eks. carbonara"
+                            className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                        />
+                    </div>
+
+                    <div className="mt-4">
+                        <label className="block text-sm font-semibold text-slate-900 mb-2">Bio</label>
+                        <textarea
+                            value={bio}
+                            onChange={(e) => setBio(e.target.value)}
+                            placeholder="Skriv litt om deg selv..."
+                            className="w-full min-h-[120px] p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                        />
+                    </div>
+
+                    {error ? <p className="text-red-600 text-sm mt-3">{error}</p> : null}
+
+                    <div className="mt-4 flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={closeWithAnim}
+                            className="px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 font-semibold cursor-pointer"
+                            disabled={busy || closing}
+                        >
+                            Avbryt
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => void save(closeWithAnim)}
+                            className=" brown-button px-4 py-2 rounded-full font-semibold hover:opacity-95 disabled:opacity-50"
+                            disabled={busy || closing}
+                        >
+                            {busy ? 'Lagrer…' : 'Lagre'}
+                        </button>
+                    </div>
                 </div>
-            </div>
             )}
         </AppModal>
     );
@@ -294,6 +449,7 @@ const UserProfile: React.FC = () => {
     const [profileLoading, setProfileLoading] = useState(true);
 
     const [showEditProfile, setShowEditProfile] = useState(false);
+    const [showFollowersModal, setShowFollowersModal] = useState(false);
 
     const logout = async () => {
         try {
@@ -377,12 +533,15 @@ const UserProfile: React.FC = () => {
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/35" />
 
                     {/* small “story-like” chip on mobile */}
-                    <div className="absolute left-4 bottom-3 inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur px-3 py-1.5 border border-white/40 shadow-sm">
+                    <button
+                        type="button"
+                        onClick={() => setShowFollowersModal(true)}
+                        className="absolute left-4 bottom-3 inline-flex items-center gap-2 rounded-full bg-white/80 backdrop-blur px-3 py-1.5 border border-white/40 shadow-sm hover:bg-white transition active:scale-[0.99]"
+                        aria-label="Se følgere"
+                    >
                         <span className="material-symbols-outlined text-[18px] ">group</span>
-                        <span className="text-sm font-semibold text-slate-900">
-        {followerCount} følgere
-      </span>
-                    </div>
+                        <span className="text-sm font-semibold text-slate-900">{followerCount} følgere</span>
+                    </button>
                 </div>
 
                 <div className="relative p-5 md:p-6">
@@ -408,9 +567,7 @@ const UserProfile: React.FC = () => {
                             {/* text */}
                             <div className="min-w-0 w-full">
                                 <div className="flex items-center gap-2">
-                                    <h1 className="text-2xl md:text-3xl font-semibold  truncate">
-                                        {name}
-                                    </h1>
+                                    <h1 className="text-2xl md:text-3xl font-semibold  truncate">{name}</h1>
 
                                     {isOwner && (
                                         <button
@@ -427,37 +584,36 @@ const UserProfile: React.FC = () => {
 
                                 {/* ✅ On desktop show follower count here; on mobile it’s already on the cover */}
                                 <div className="mt-1 hidden md:flex flex-wrap items-center gap-x-3 gap-y-1 text-sm ">
-            <span className="inline-flex items-center gap-1">
-              <span className="material-symbols-outlined text-[18px]">group</span>
-              <span className="font-medium">{followerCount}</span> følgere
-            </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowFollowersModal(true)}
+                                        className="inline-flex items-center gap-1 rounded-full px-2 py-1 -ml-2 hover:bg-white/70 transition active:scale-[0.99]"
+                                        aria-label="Se følgere"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">group</span>
+                                        <span className="font-medium">{followerCount}</span> følgere
+                                    </button>
 
-                                    {(favoriteFood || bio) ? <span className="text-slate-300">•</span> : null}
+                                    {favoriteFood || bio ? <span className="text-slate-300">•</span> : null}
 
                                     {favoriteFood ? (
                                         <span className="inline-flex items-center gap-1 min-w-0">
-                <span className="material-symbols-outlined text-[18px]">restaurant</span>
-                <span className="truncate">
-                  <span className="font-medium ">Favorittmat:</span>{' '}
-                    {favoriteFood}
-                </span>
-              </span>
+                                            <span className="material-symbols-outlined text-[18px]">restaurant</span>
+                                            <span className="truncate">
+                                                <span className="font-medium ">Favorittmat:</span> {favoriteFood}
+                                            </span>
+                                        </span>
                                     ) : null}
                                 </div>
 
                                 {/* ✅ On mobile show favoriteFood under name */}
                                 {favoriteFood ? (
                                     <p className="mt-1 md:hidden text-sm ">
-                                        <span className="font-semibold ">Favorittmat:</span>{' '}
-                                        {favoriteFood}
+                                        <span className="font-semibold ">Favorittmat:</span> {favoriteFood}
                                     </p>
                                 ) : null}
 
-                                {bio ? (
-                                    <p className="mt-2 text-sm md:text-base  max-w-xl leading-relaxed">
-                                        {bio}
-                                    </p>
-                                ) : null}
+                                {bio ? <p className="mt-2 text-sm md:text-base  max-w-xl leading-relaxed">{bio}</p> : null}
                             </div>
                         </div>
 
@@ -477,7 +633,9 @@ const UserProfile: React.FC = () => {
                                         await updateDoc(meRef, {
                                             following: isFollowing ? arrayRemove(id) : arrayUnion(id),
                                         });
-                                        setIsFollowing(!isFollowing);
+
+                                        setIsFollowing((prev) => !prev);
+                                        setFollowerCount((prev) => prev + (isFollowing ? -1 : 1));
                                     }}
                                     className={[
                                         'rounded-full px-5 py-2 font-semibold shadow-sm transition active:scale-[0.99]',
@@ -552,6 +710,15 @@ const UserProfile: React.FC = () => {
                 )}
             </div>
 
+            {/* Followers modal */}
+            {showFollowersModal && (
+                <FollowersModal
+                    profileUserId={id}
+                    profileName={name}
+                    onClose={() => setShowFollowersModal(false)}
+                />
+            )}
+
             {/* Delete confirmation */}
             {showConfirm && pendingDeleteId && (
                 <AppModal
@@ -561,31 +728,33 @@ const UserProfile: React.FC = () => {
                     }}
                 >
                     {({ closeWithAnim, closing }) => (
-                    <div className="p-6">
-                        <h1 className="text-2xl font-semibold mb-4 text-slate-900">Vil du slette denne oppskriften?</h1>
-                        <p className="text-slate-600">Var den ikke noe god?</p>
-                        <div className="flex justify-end gap-2 mt-4">
-                            <button
-                                onClick={() => {
-                                    closeWithAnim();
-                                }}
-                                className=" px-4 py-2 rounded-full hover:bg-neutral-200 cursor-pointer"
-                                disabled={closing}
-                            >
-                                Avbryt
-                            </button>
-                            <button
-                                onClick={async () => {
-                                    await deleteDoc(doc(firestore, 'recipes', pendingDeleteId));
-                                    closeWithAnim();
-                                }}
-                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full cursor-pointer"
-                                disabled={closing}
-                            >
-                                Slett
-                            </button>
+                        <div className="p-6">
+                            <h1 className="text-2xl font-semibold mb-4 text-slate-900">
+                                Vil du slette denne oppskriften?
+                            </h1>
+                            <p className="text-slate-600">Var den ikke noe god?</p>
+                            <div className="flex justify-end gap-2 mt-4">
+                                <button
+                                    onClick={() => {
+                                        closeWithAnim();
+                                    }}
+                                    className=" px-4 py-2 rounded-full hover:bg-neutral-200 cursor-pointer"
+                                    disabled={closing}
+                                >
+                                    Avbryt
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        await deleteDoc(doc(firestore, 'recipes', pendingDeleteId));
+                                        closeWithAnim();
+                                    }}
+                                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full cursor-pointer"
+                                    disabled={closing}
+                                >
+                                    Slett
+                                </button>
+                            </div>
                         </div>
-                    </div>
                     )}
                 </AppModal>
             )}
@@ -602,9 +771,7 @@ const UserProfile: React.FC = () => {
                     uid={id}
                     onSaved={(next) => {
                         setUserData((prev) =>
-                            prev
-                                ? { ...prev, bio: next.bio, favoriteFood: next.favoriteFood, photoURL: next.photoURL }
-                                : prev,
+                            prev ? { ...prev, bio: next.bio, favoriteFood: next.favoriteFood, photoURL: next.photoURL } : prev,
                         );
                     }}
                 />
