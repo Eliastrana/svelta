@@ -2,19 +2,20 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 import RecipeCard from '@/app/components/RecipeCard';
+import MostActiveCreators from '@/app/components/MostActiveCreators';
+
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useUserFollowing } from '@/hooks/useUserFollowing';
-
 import { fetchManyUsers } from '@/helpers/fetchManyUsers';
 import { fetchFollowedRecipes } from '@/helpers/fetchFollowedRecipies';
-import { fetchPopularRecipes } from '@/helpers/fetchPopularRecipies';
+import { fetchPopularRecipesPage } from '@/helpers/fetchPopularRecipesPage';
 
 import { Recipe } from '@/app/types/Recipe';
 import { UserDoc } from '@/hooks/useUserData';
-import MostActiveCreators from '@/app/components/MostActiveCreators';
+import { QueryDocumentSnapshot } from 'firebase/firestore';
 
 type Feed = 'following' | 'popular';
 
@@ -64,14 +65,13 @@ const normalize = (s: string) =>
         .replace(/[\u0300-\u036f]/g, '')
         .trim();
 
+const PAGE_SIZE = 8;
+
 const Home: React.FC = () => {
     const router = useRouter();
     const user = useAuthUser();
 
-    // ✅ Default: Populære
     const [activeFeed, setActiveFeed] = React.useState<Feed>('popular');
-
-    // ✅ Search state
     const [search, setSearch] = React.useState('');
 
     const following = useUserFollowing(user?.uid ?? '');
@@ -87,18 +87,61 @@ const Home: React.FC = () => {
         placeholderData: (prev) => prev ?? [],
     });
 
-    const { data: popularRecipes = [], isLoading: loadingPopular } = useQuery<Recipe[], Error>({
-        queryKey: ['popularRecipes'],
-        queryFn: () => fetchPopularRecipes(),
+    const {
+        data: popularData,
+        isLoading: loadingPopular,
+        fetchNextPage: fetchNextPopular,
+        hasNextPage: hasNextPopular,
+        isFetchingNextPage: fetchingNextPopular,
+        isError: popularIsError,
+        error: popularErr,
+    } = useInfiniteQuery({
+
+        queryKey: ['popularRecipesInfinite', PAGE_SIZE],
         enabled: activeFeed === 'popular',
-        placeholderData: (prev) => prev ?? [],
+        initialPageParam: null as QueryDocumentSnapshot | null,
+        queryFn: ({ pageParam }) =>
+            fetchPopularRecipesPage({
+                pageSize: PAGE_SIZE,
+                cursor: pageParam,
+            }),
+        getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     });
 
 
-    const baseRecipes: SearchableRecipe[] =
-        activeFeed === 'following' ? (followedRecipes as SearchableRecipe[]) : (popularRecipes as SearchableRecipe[]);
+    const popularRecipes: Recipe[] = React.useMemo(
+        () => popularData?.pages.flatMap((p) => p.items) ?? [],
+        [popularData],
+    );
 
-// ✅ Client-side filtering (uten any)
+    const loadMoreRef = React.useRef<HTMLDivElement | null>(null);
+
+    React.useEffect(() => {
+        if (activeFeed !== 'popular') return;
+        if (!hasNextPopular) return;
+
+        const el = loadMoreRef.current;
+        if (!el) return;
+
+        const obs = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting && !fetchingNextPopular) {
+                    fetchNextPopular();
+                }
+            },
+            { rootMargin: '600px' },
+        );
+
+        obs.observe(el);
+        return () => obs.disconnect();
+    }, [activeFeed, hasNextPopular, fetchNextPopular, fetchingNextPopular]);
+
+    const baseRecipes: SearchableRecipe[] =
+        activeFeed === 'following'
+            ? (followedRecipes as SearchableRecipe[])
+            : (popularRecipes as SearchableRecipe[]);
+
+
     const q = React.useMemo(() => normalize(search), [search]);
 
     const recipes: SearchableRecipe[] = React.useMemo(() => {
@@ -120,14 +163,11 @@ const Home: React.FC = () => {
         });
     }, [baseRecipes, q]);
 
-
-    // ✅ SKELETON-LOGIKK
-    const showPopularSkeleton = activeFeed === 'popular' && (loadingPopular || popularRecipes.length === 0);
+    const showPopularSkeleton = activeFeed === 'popular' && loadingPopular;
     const showFollowingCTA = activeFeed === 'following' && followsNobody;
     const showFollowingSkeleton = activeFeed === 'following' && followsSomebody && loadingFollowed;
     const showSkeletonGrid = showPopularSkeleton || showFollowingSkeleton;
 
-    /* ─────────── Creator map (uid → UserDoc) ─────────── */
     const uniqueUserIds = React.useMemo(() => {
         const set = new Set<string>();
         recipes.forEach((r) => set.add(r.userId));
@@ -175,20 +215,12 @@ const Home: React.FC = () => {
                 </div>
             </div>
 
-
-            {activeFeed === 'popular' && (
-
-                <MostActiveCreators />
-
-            )}
-
+            {activeFeed === 'popular' && <MostActiveCreators />}
 
             {/* ✅ Search field */}
-            <div className="mt-4 sticky top-0 z-30  py-2">
+            <div className="mt-4 sticky top-0 z-30 py-2">
                 <div className="relative">
-
-
-                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
             search
           </span>
 
@@ -212,9 +244,7 @@ const Home: React.FC = () => {
                 </div>
 
                 {q && !showSkeletonGrid && (
-                    <p className="mt-2 text-sm text-slate-600">
-                        Viser {recipes.length} treff
-                    </p>
+                    <p className="mt-2 text-sm text-slate-600">Viser {recipes.length} treff</p>
                 )}
             </div>
 
@@ -223,6 +253,12 @@ const Home: React.FC = () => {
                 onClick={() => (user ? router.push(`/user/${user.uid}`) : alert('No user logged in'))}
                 className="flex items-center justify-between mb-4 cursor-pointer"
             />
+
+            {activeFeed === 'popular' && popularIsError && (
+                <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    Klarte ikke å hente populære oppskrifter: {String(popularErr?.message ?? popularErr)}
+                </div>
+            )}
 
             {/* Content */}
             <div className="mb-40">
@@ -253,6 +289,19 @@ const Home: React.FC = () => {
                                 <RecipeCard key={recipe.id} recipe={recipe} creator={usersMap[recipe.userId]} />
                             ))}
                         </div>
+
+                        {/* Auto-pagination sentinel (popular) */}
+                        {activeFeed === 'popular' && hasNextPopular && <div ref={loadMoreRef} className="h-10" />}
+
+                        {/* Bottom-loading skeletons (popular) */}
+                        {activeFeed === 'popular' && fetchingNextPopular && (
+                            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-10">
+                                {Array.from({ length: 2 }).map((_, i) => (
+                                    <SkeletonCard key={`sk-next-${i}`} />
+                                ))}
+                            </div>
+                        )}
+
                     </div>
                 )}
             </div>
