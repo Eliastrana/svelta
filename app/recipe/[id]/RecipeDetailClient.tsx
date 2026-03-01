@@ -36,6 +36,114 @@ type Props = {
     id: string;
 };
 
+const RecipeDetailSkeleton: React.FC = () => {
+    return (
+        <div className="pb-20 animate-pulse">
+            <div className="max-w-4xl md:mx-auto m-4 rounded-2xl">
+                {/* Top bar */}
+                <div className="flex items-center justify-between gap-2">
+                    <div className="mb-4 h-10 w-28 rounded-full bg-slate-100" />
+                </div>
+
+                {/* Header */}
+                <div className="overflow-hidden">
+                    {/* Cover image skeleton */}
+                    <div className="relative w-full aspect-square md:aspect-[16/9] rounded-2xl bg-slate-100" />
+
+                    <div className="mt-6">
+                        <div className="md:flex items-center justify-between">
+                            <div className="mb-4 h-10 w-48 rounded-full bg-slate-100" />
+
+                            <div className="mb-4 flex items-center gap-2">
+                                <div className="h-10 w-28 rounded-full bg-slate-100" />
+                                <div className="h-10 w-24 rounded-full bg-slate-100" />
+                            </div>
+                        </div>
+
+                        <div className="h-10 w-3/4 rounded-xl bg-slate-100" />
+                        <div className="mt-3 h-5 w-full rounded-xl bg-slate-100" />
+                        <div className="mt-2 h-5 w-5/6 rounded-xl bg-slate-100" />
+                    </div>
+
+                    {/* Tags skeleton */}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                            <div key={`tag-sk-${i}`} className="h-7 w-16 rounded-full bg-slate-100" />
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Creator skeleton */}
+            <div className="flex space-x-2 items-center max-w-4xl mx-auto px-4 md:px-0 py-2">
+                <div className="h-16 w-16 rounded-full bg-slate-100" />
+                <div className="h-6 w-44 rounded-xl bg-slate-100" />
+            </div>
+
+            {/* Like / Rating skeleton */}
+            <div className="max-w-4xl mx-auto p-4 md:flex md:justify-between gap-8">
+                <div className="h-10 w-44 rounded-full bg-slate-100" />
+                <div className="mt-4 md:mt-0 h-10 w-40 rounded-full bg-slate-100" />
+            </div>
+
+            {/* Ingredients header */}
+            <div className="max-w-4xl mx-auto p-4 md:p-0 md:flex md:justify-between gap-8">
+                <div className="h-8 w-44 rounded-xl bg-slate-100" />
+            </div>
+
+            <div className="max-w-4xl mx-auto p-4 md:px-0 md:flex md:justify-between gap-8">
+                {/* Ingredients list */}
+                <div className="flex-1">
+                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                        {Array.from({ length: 8 }).map((_, i) => (
+                            <div
+                                key={`ing-sk-${i}`}
+                                className="flex items-start justify-between px-4 py-3 border-b border-slate-200 last:border-b-0"
+                            >
+                                <div className="h-5 w-48 rounded-xl bg-slate-100" />
+                                <div className="h-5 w-20 rounded-xl bg-slate-100" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Side meta box */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 self-start md:mt-0 mt-6 shadow-sm w-full md:w-48">
+                    <div className="h-5 w-32 rounded-xl bg-slate-100" />
+                    <div className="mt-3 h-5 w-28 rounded-xl bg-slate-100" />
+                    <div className="mt-3 h-5 w-24 rounded-xl bg-slate-100" />
+                </div>
+            </div>
+
+            {/* Steps header */}
+            <div className="max-w-4xl mx-auto p-4 md:px-0 md:flex md:justify-between gap-8">
+                <div className="h-8 w-52 rounded-xl bg-slate-100" />
+            </div>
+
+            {/* Steps skeleton */}
+            <div className="max-w-4xl mx-auto px-4 md:px-0 pb-6">
+                <div className="space-y-4">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={`step-sk-${i}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                            <div className="h-6 w-2/3 rounded-xl bg-slate-100" />
+                            <div className="mt-3 h-4 w-full rounded-xl bg-slate-100" />
+                            <div className="mt-2 h-4 w-5/6 rounded-xl bg-slate-100" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Comments skeleton */}
+            <div className="max-w-4xl mx-auto p-4 md:px-0">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="h-5 w-2/3 rounded-xl bg-slate-100" />
+                    <div className="mt-3 h-10 w-32 rounded-full bg-slate-100" />
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const RecipeDetailClient: React.FC<Props> = ({ id }) => {
     const router = useRouter();
 
@@ -80,7 +188,8 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                 .filter((i) => i.name.length > 0);
     }, [recipe]);
 
-    if (loading) return <div className="p-4">Laster…</div>;
+    // ✅ skeleton instead of "Laster…"
+    if (loading) return <RecipeDetailSkeleton />;
     if (!recipe) return <div className="p-4">Oppskrift ikke funnet.</div>;
 
     const userName = creatorDoc?.name || 'Ukjent brukernavn';
@@ -125,6 +234,8 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                 fill
                                 className="object-cover rounded-2xl"
                                 priority
+                                sizes="(max-width: 768px) 100vw, 896px"
+                                quality={70}
                             />
                         </div>
                     )}
@@ -164,12 +275,8 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                             )}
                         </div>
 
-                        <h2 className="text-3xl md:text-4xl font-semibold text-slate-900 mb-2">
-                            {recipe.title}
-                        </h2>
-                        {recipe.description && (
-                            <p className="text-base md:text-lg text-neutral-600">{recipe.description}</p>
-                        )}
+                        <h2 className="text-3xl md:text-4xl font-semibold text-slate-900 mb-2">{recipe.title}</h2>
+                        {recipe.description && <p className="text-base md:text-lg text-neutral-600">{recipe.description}</p>}
                     </div>
 
                     {Array.isArray(recipe.tags) && recipe.tags.length > 0 ? (
@@ -179,15 +286,13 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                     key={t}
                                     className="inline-flex items-center rounded-full bg-white border border-neutral-200 px-3 py-1 text-xs"
                                 >
-        #{t}
-      </span>
+                  #{t}
+                </span>
                             ))}
                         </div>
                     ) : null}
                 </div>
             </div>
-
-
 
             {/* Creator */}
             <div
@@ -195,14 +300,12 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                 onClick={() => router.push(`/user/${recipe.userId}`)}
             >
                 <div className="h-16 w-16 rounded-full overflow-hidden bg-slate-100">
-                    {userPhoto ? (
-                        <img src={userPhoto} alt="Creator" className="w-full h-full object-cover" />
-                    ) : null}
+                    {userPhoto ? <img src={userPhoto} alt="Creator" className="w-full h-full object-cover" /> : null}
                 </div>
                 <h1 className="text-xl font-medium text-slate-900">{userName}</h1>
             </div>
 
-            {/* Like (now redirects to login for BOTH like + show who liked) */}
+            {/* Like + Rating */}
             <div className="max-w-4xl mx-auto p-4 md:flex md:justify-between gap-8">
                 <LikeButton
                     recipeId={recipe.id}
@@ -213,9 +316,8 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                 />
 
                 <div className="mt-4 md:mt-0">
-                <RatingStars recipeId={recipe.id} />
+                    <RatingStars recipeId={recipe.id} />
                 </div>
-
             </div>
 
             {/* Ingredients */}
@@ -235,9 +337,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                     <div className="flex-1">
                                         <span className="font-semibold">{ing.name}</span>
                                     </div>
-                                    {ing.amount ? (
-                                        <span className="shrink-0 text-neutral-600">{ing.amount}</span>
-                                    ) : null}
+                                    {ing.amount ? <span className="shrink-0 text-neutral-600">{ing.amount}</span> : null}
                                 </li>
                             ))}
                         </ul>
@@ -285,15 +385,13 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                 </div>
             </div>
 
-            {/* Comments (if not logged in -> click CTA -> login) */}
+            {/* Comments */}
             <div className="max-w-4xl mx-auto p-4 md:px-0">
                 {isLoggedIn ? (
                     <CommentSection recipeId={recipe.id} />
                 ) : (
                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <p className="text-slate-700">
-                            Logg inn for å lese og skrive kommentarer.
-                        </p>
+                        <p className="text-slate-700">Logg inn for å lese og skrive kommentarer.</p>
                         <button
                             type="button"
                             onClick={goLogin}
@@ -306,43 +404,38 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                 )}
             </div>
 
-            {showAddModal && (
-                <AddToCollectionModal
-                    recipeId={recipe.id}
-                    onClose={() => setShowAddModal(false)}
-                />
-            )}
+            {showAddModal && <AddToCollectionModal recipeId={recipe.id} onClose={() => setShowAddModal(false)} />}
 
             {showDeleteConfirm && (
                 <AppModal onClose={() => setShowDeleteConfirm(false)}>
                     {({ closeWithAnim, closing }) => (
-                    <div className="p-6">
-                        <h2 className="text-xl font-semibold text-slate-900">Slette oppskriften?</h2>
-                        <p className="text-slate-600 mt-2">Dette kan ikke angres.</p>
+                        <div className="p-6">
+                            <h2 className="text-xl font-semibold text-slate-900">Slette oppskriften?</h2>
+                            <p className="text-slate-600 mt-2">Dette kan ikke angres.</p>
 
-                        <div className="mt-5 flex justify-end gap-2">
-                            <button
-                                type="button"
-                                onClick={closeWithAnim}
-                                className="px-4 py-2 rounded-full hover:bg-neutral-200 cursor-pointer"
-                                disabled={deleting || closing}
-                            >
-                                Avbryt
-                            </button>
+                            <div className="mt-5 flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={closeWithAnim}
+                                    className="px-4 py-2 rounded-full hover:bg-neutral-200 cursor-pointer"
+                                    disabled={deleting || closing}
+                                >
+                                    Avbryt
+                                </button>
 
-                            <button
-                                type="button"
-                                onClick={async () => {
-                                    await handleDelete();
-                                    closeWithAnim();
-                                }}
-                                className="px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white disabled:opacity-60 cursor-pointer"
-                                disabled={deleting || closing}
-                            >
-                                {deleting ? 'Sletter…' : 'Slett'}
-                            </button>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        await handleDelete();
+                                        closeWithAnim();
+                                    }}
+                                    className="px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white disabled:opacity-60 cursor-pointer"
+                                    disabled={deleting || closing}
+                                >
+                                    {deleting ? 'Sletter…' : 'Slett'}
+                                </button>
+                            </div>
                         </div>
-                    </div>
                     )}
                 </AppModal>
             )}
