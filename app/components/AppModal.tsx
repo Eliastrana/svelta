@@ -22,10 +22,10 @@ type AppModalProps = {
 };
 
 const DEFAULT_OVERLAY =
-    'fixed inset-0 z-50 bg-black/30 backdrop-blur-sm transition-opacity duration-200';
+    'fixed inset-0 z-[9999] bg-black/30 backdrop-blur-sm transition-opacity duration-200';
 
 const DEFAULT_PANEL =
-    'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-md rounded-2xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur transition-all duration-200 ease-out';
+    'fixed z-[10000] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-md rounded-2xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur transition-all duration-200 ease-out';
 
 export default function AppModal({
     onClose,

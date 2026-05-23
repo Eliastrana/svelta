@@ -33,7 +33,7 @@ interface Comment {
 interface UserDoc {
     name?: string;
     photoURL?: string;
-    favoriteFood?: string; // ✅ add
+    favoriteFood?: string;
 }
 
 interface CommentSectionProps {
@@ -41,7 +41,7 @@ interface CommentSectionProps {
 }
 
 type RecipeDoc = {
-    userId?: string; // owner of recipe
+    userId?: string;
 };
 
 const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
@@ -52,10 +52,8 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
     const [usersMap, setUsersMap] = useState<Record<string, UserDoc>>({});
     const [submitting, setSubmitting] = useState(false);
 
-    // recipe owner
     const [recipeOwnerId, setRecipeOwnerId] = useState<string>('');
 
-    // delete state
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -71,12 +69,12 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
         router.push(`/user/${uid}`);
     };
 
-    // fetch recipe owner
     useEffect(() => {
         const fetchOwner = async () => {
             try {
                 const recipeRef = doc(firestore, 'recipes', recipeId);
                 const snap = await getDoc(recipeRef);
+
                 if (snap.exists()) {
                     const data = snap.data() as RecipeDoc;
                     setRecipeOwnerId(data.userId ?? '');
@@ -92,7 +90,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
         if (recipeId) void fetchOwner();
     }, [recipeId]);
 
-    // subscribe to comments
     useEffect(() => {
         const commentsRef = collection(firestore, 'recipes', recipeId, 'comments');
         const commentsQuery = query(commentsRef, orderBy('createdAt', 'asc'));
@@ -102,13 +99,13 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                 const data = d.data() as Omit<Comment, 'id'>;
                 return { id: d.id, ...data };
             });
+
             setComments(commentsData);
         });
 
         return () => unsubscribe();
     }, [recipeId]);
 
-    // fetch user info for commenters
     useEffect(() => {
         const fetchUserData = async () => {
             const uniqueUserIds = Array.from(new Set(comments.map((c) => c.userId)));
@@ -119,7 +116,10 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                     if (!usersMap[uid]) {
                         const userDocRef = doc(firestore, 'users', uid);
                         const docSnap = await getDoc(userDocRef);
-                        if (docSnap.exists()) newUsers[uid] = docSnap.data() as UserDoc;
+
+                        if (docSnap.exists()) {
+                            newUsers[uid] = docSnap.data() as UserDoc;
+                        }
                     }
                 }),
             );
@@ -137,12 +137,14 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
         e.preventDefault();
 
         const user = auth.currentUser;
+
         if (!user) {
             alert('Please sign in to comment.');
             return;
         }
 
         const text = commentText.trim();
+
         if (!text || submitting) return;
 
         const recipeRef = doc(firestore, 'recipes', recipeId);
@@ -153,11 +155,13 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
 
             await runTransaction(firestore, async (tx) => {
                 const newCommentRef = doc(commentsRef);
+
                 tx.set(newCommentRef, {
                     text,
                     userId: user.uid,
                     createdAt: serverTimestamp(),
                 });
+
                 tx.update(recipeRef, { commentCount: increment(1) });
             });
 
@@ -200,6 +204,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
 
             await runTransaction(firestore, async (tx) => {
                 const commentSnap = await tx.get(commentRef);
+
                 if (!commentSnap.exists()) return;
 
                 const recipeSnap = await tx.get(recipeRef);
@@ -225,8 +230,20 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
     };
 
     return (
-        <div className="w-full mt-6">
-            <h2 className="text-base font-semibold text-slate-900 mb-3">Kommentarer</h2>
+        <div className="w-full text-[#12340d]">
+            <div className="mb-5 flex items-end justify-between gap-3">
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight">
+                        Kommentarer
+                    </h2>
+
+                    <p className="mt-1 text-sm text-[#496444]">
+                        {comments.length === 1
+                            ? '1 kommentar'
+                            : `${comments.length} kommentarer`}
+                    </p>
+                </div>
+            </div>
 
             {/* Composer */}
             <form onSubmit={handleAddComment} className="flex items-center gap-2">
@@ -235,32 +252,42 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder="Skriv en kommentar..."
-                    className="flex-1 p-3 rounded-2xl bg-white shadow-sm
-                     focus:outline-none focus:ring-2 focus:ring-slate-200"
+                    className="min-w-0 flex-1 rounded-xl border border-[#d8d7cb] bg-[#fbfaf4] px-4 py-3 text-[#12340d] placeholder:text-[#6f8068] outline-none transition focus:border-[#12340d] focus:ring-2 focus:ring-[#12340d]/10"
                 />
 
                 <button
                     type="submit"
                     disabled={!canSubmit}
                     className={[
-                        'h-12 w-12 grid place-items-center rounded-2xl shadow-sm transition',
+                        'grid h-12 w-12 shrink-0 place-items-center rounded-xl transition active:scale-[0.98]',
                         canSubmit
-                            ? 'brown-button hover:opacity-95 active:scale-[0.98] cursor-pointer'
-                            : 'bg-slate-200 text-slate-500 cursor-not-allowed',
+                            ? 'bg-[#12340d] text-white hover:opacity-90 cursor-pointer'
+                            : 'bg-[#deded0] text-[#7a8774] cursor-not-allowed',
                     ].join(' ')}
                     aria-label="Send kommentar"
                 >
-                    <span className="material-symbols-outlined">send</span>
+                    <span className="material-symbols-outlined">
+                        {submitting ? 'progress_activity' : 'send'}
+                    </span>
                 </button>
             </form>
 
             {/* Comments list */}
-            <div className="mt-4 space-y-3">
+            <div className="mt-5 space-y-3">
                 {comments.length === 0 ? (
-                    <p className="text-slate-600">Vær den første til å kommentere!</p>
+                    <div className="rounded-xl border border-[#d8d7cb] bg-[#fbfaf4] p-4">
+                        <p className="font-medium text-[#12340d]">
+                            Vær den første til å kommentere!
+                        </p>
+
+                        <p className="mt-1 text-sm text-[#496444]">
+                            Del et tips, en erfaring eller bare litt matglede.
+                        </p>
+                    </div>
                 ) : (
                     comments.map((comment) => {
                         const userInfo = usersMap[comment.userId];
+
                         const timeText =
                             comment.createdAt instanceof Timestamp
                                 ? dayjs(comment.createdAt.toDate()).fromNow()
@@ -269,64 +296,72 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                         const showDelete = canDelete(comment);
 
                         return (
-                            <div key={comment.id} className="rounded-2xl bg-white shadow-sm p-3">
+                            <article
+                                key={comment.id}
+                                className="rounded-xl border border-[#d8d7cb] bg-[#fbfaf4] p-4"
+                            >
                                 <div className="flex items-start gap-3">
-                                    {/* ✅ clickable avatar + name */}
                                     <button
                                         type="button"
                                         onClick={() => goToProfile(comment.userId)}
-                                        className="flex items-center gap-3 text-left group"
+                                        className="group flex min-w-0 items-start gap-3 text-left"
                                         aria-label={`Åpne profil for ${userInfo?.name ?? 'bruker'}`}
                                     >
-                                        <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200 shrink-0 ring-1 ring-slate-200 group-hover:ring-slate-300 transition hover:cursor-pointer">
+                                        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#deded0] ring-1 ring-[#d8d7cb] transition group-hover:ring-[#12340d]/30">
                                             {userInfo?.photoURL ? (
                                                 <img
                                                     src={userInfo.photoURL}
                                                     alt={userInfo.name || 'User'}
-                                                    className="w-full h-full object-cover"
+                                                    className="h-full w-full object-cover"
                                                 />
                                             ) : (
-                                                <div className="w-full h-full grid place-items-center text-slate-500">🧑‍🍳</div>
+                                                <div className="grid h-full w-full place-items-center text-[#496444]">
+                                                    🧑‍🍳
+                                                </div>
                                             )}
                                         </div>
 
                                         <div className="min-w-0">
-                                            <div className="flex items-baseline gap-2 min-w-0 group-hover:cursor-pointer">
-                                                <h3 className="text-sm font-semibold text-slate-900 truncate ">
+                                            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                                                <h3 className="truncate text-sm font-bold text-[#12340d]">
                                                     {userInfo?.name || 'Ukjent bruker'}
                                                 </h3>
-                                                <span className="text-xs text-slate-500 whitespace-nowrap">{timeText}</span>
+
+                                                <span className="whitespace-nowrap text-xs text-[#6f8068]">
+                                                    {timeText}
+                                                </span>
                                             </div>
 
-                                            {/* ✅ favorite food */}
                                             {userInfo?.favoriteFood ? (
-                                                <p className="mt-0.5 text-xs  truncate">
-                                                    <span className="font-semibold ">Favorittmat:</span>{' '}
+                                                <p className="mt-0.5 truncate text-xs text-[#496444]">
+                                                    <span className="font-bold">
+                                                        Favorittmat:
+                                                    </span>{' '}
                                                     {userInfo.favoriteFood}
                                                 </p>
                                             ) : null}
                                         </div>
                                     </button>
 
-                                    {/* right side actions */}
-                                    <div className="ml-auto">
-                                        {showDelete ? (
-                                            <button
-                                                type="button"
-                                                onClick={() => setDeleteConfirmId(comment.id)}
-                                                className="h-9 px-3 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold flex items-center gap-2"
-                                                aria-label="Slett kommentar"
-                                            >
-                                                <span className="material-symbols-outlined text-[18px]">delete</span>
-                                                Slett
-                                            </button>
-                                        ) : null}
-                                    </div>
+                                    {showDelete ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setDeleteConfirmId(comment.id)}
+                                            className="ml-auto inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-[#e5e5d7] px-3 text-sm font-medium text-[#12340d] transition hover:bg-[#d8d7cb]"
+                                            aria-label="Slett kommentar"
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">
+                                                delete
+                                            </span>
+                                            <span className="hidden sm:inline">Slett</span>
+                                        </button>
+                                    ) : null}
                                 </div>
 
-                                <p className="mt-2 text-sm  break-words">{comment.text}</p>
-
-                            </div>
+                                <p className="mt-3 break-words text-sm leading-relaxed text-[#12340d]">
+                                    {comment.text}
+                                </p>
+                            </article>
                         );
                     })
                 )}
@@ -335,26 +370,32 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
             {deleteConfirmId ? (
                 <AppModal onClose={() => setDeleteConfirmId(null)}>
                     {({ closeWithAnim, closing }) => (
-                        <div className="p-6">
-                            <h2 className="text-xl font-semibold text-slate-900">Slette kommentaren?</h2>
-                            <p className="text-slate-600 mt-2">Dette kan ikke angres.</p>
+                        <div className="p-6 text-[#12340d]">
+                            <h2 className="text-xl font-bold">
+                                Slette kommentaren?
+                            </h2>
+
+                            <p className="mt-2 text-[#496444]">
+                                Dette kan ikke angres.
+                            </p>
 
                             <div className="mt-5 flex justify-end gap-2">
                                 <button
                                     type="button"
                                     onClick={closeWithAnim}
-                                    className="px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-50"
+                                    className="rounded-full border border-[#d8d7cb] px-4 py-2 text-[#12340d] transition hover:bg-[#f2f1e8]"
                                     disabled={deletingId === deleteConfirmId || closing}
                                 >
                                     Avbryt
                                 </button>
+
                                 <button
                                     type="button"
                                     onClick={async () => {
                                         await handleDeleteComment(deleteConfirmId);
                                         closeWithAnim();
                                     }}
-                                    className="px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white disabled:opacity-60"
+                                    className="rounded-full bg-red-500 px-4 py-2 text-white transition hover:bg-red-600 disabled:opacity-60"
                                     disabled={deletingId === deleteConfirmId || closing}
                                 >
                                     {deletingId === deleteConfirmId ? 'Sletter…' : 'Slett'}
@@ -364,8 +405,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                     )}
                 </AppModal>
             ) : null}
-
-            <div className="h-20" />
         </div>
     );
 };

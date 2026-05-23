@@ -38,106 +38,47 @@ type Props = {
 
 const RecipeDetailSkeleton: React.FC = () => {
     return (
-        <div className="pb-20 animate-pulse">
-            <div className="max-w-4xl md:mx-auto m-4 rounded-2xl">
-                {/* Top bar */}
-                <div className="flex items-center justify-between gap-2">
-                    <div className="mb-4 h-10 w-28 rounded-full bg-slate-100" />
-                </div>
-
-                {/* Header */}
-                <div className="overflow-hidden">
-                    {/* Cover image skeleton */}
-                    <div className="relative w-full aspect-square md:aspect-[16/9] rounded-2xl bg-slate-100" />
-
-                    <div className="mt-6">
-                        <div className="md:flex items-center justify-between">
-                            <div className="mb-4 h-10 w-48 rounded-full bg-slate-100" />
-
-                            <div className="mb-4 flex items-center gap-2">
-                                <div className="h-10 w-28 rounded-full bg-slate-100" />
-                                <div className="h-10 w-24 rounded-full bg-slate-100" />
-                            </div>
+        <div className="min-h-screen bg-[#fbfaf4] pb-20 animate-pulse">
+            <div className="mx-auto grid max-w-[1190px] gap-5 px-4 py-4 lg:grid-cols-[438px_minmax(0,1fr)]">
+                <div className="space-y-3">
+                    <div className="rounded-xl bg-[#f2f1e8] p-8">
+                        <div className="flex gap-2">
+                            <div className="h-8 w-24 rounded-full bg-slate-200" />
+                            <div className="h-8 w-24 rounded-full bg-slate-200" />
                         </div>
 
-                        <div className="h-10 w-3/4 rounded-xl bg-slate-100" />
-                        <div className="mt-3 h-5 w-full rounded-xl bg-slate-100" />
-                        <div className="mt-2 h-5 w-5/6 rounded-xl bg-slate-100" />
-                    </div>
+                        <div className="mt-8 h-9 w-56 rounded-full bg-slate-200" />
+                        <div className="mt-8 h-14 w-72 rounded-xl bg-slate-200" />
 
-                    {/* Tags skeleton */}
-                    <div className="mt-4 flex flex-wrap gap-2">
-                        {Array.from({ length: 4 }).map((_, i) => (
-                            <div key={`tag-sk-${i}`} className="h-7 w-16 rounded-full bg-slate-100" />
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* Creator skeleton */}
-            <div className="flex space-x-2 items-center max-w-4xl mx-auto px-4 md:px-0 py-2">
-                <div className="h-16 w-16 rounded-full bg-slate-100" />
-                <div className="h-6 w-44 rounded-xl bg-slate-100" />
-            </div>
-
-            {/* Like / Rating skeleton */}
-            <div className="max-w-4xl mx-auto p-4 md:flex md:justify-between gap-8">
-                <div className="h-10 w-44 rounded-full bg-slate-100" />
-                <div className="mt-4 md:mt-0 h-10 w-40 rounded-full bg-slate-100" />
-            </div>
-
-            {/* Ingredients header */}
-            <div className="max-w-4xl mx-auto p-4 md:p-0 md:flex md:justify-between gap-8">
-                <div className="h-8 w-44 rounded-xl bg-slate-100" />
-            </div>
-
-            <div className="max-w-4xl mx-auto p-4 md:px-0 md:flex md:justify-between gap-8">
-                {/* Ingredients list */}
-                <div className="flex-1">
-                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                        {Array.from({ length: 8 }).map((_, i) => (
-                            <div
-                                key={`ing-sk-${i}`}
-                                className="flex items-start justify-between px-4 py-3 border-b border-slate-200 last:border-b-0"
-                            >
-                                <div className="h-5 w-48 rounded-xl bg-slate-100" />
-                                <div className="h-5 w-20 rounded-xl bg-slate-100" />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Side meta box */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 self-start md:mt-0 mt-6 shadow-sm w-full md:w-48">
-                    <div className="h-5 w-32 rounded-xl bg-slate-100" />
-                    <div className="mt-3 h-5 w-28 rounded-xl bg-slate-100" />
-                    <div className="mt-3 h-5 w-24 rounded-xl bg-slate-100" />
-                </div>
-            </div>
-
-            {/* Steps header */}
-            <div className="max-w-4xl mx-auto p-4 md:px-0 md:flex md:justify-between gap-8">
-                <div className="h-8 w-52 rounded-xl bg-slate-100" />
-            </div>
-
-            {/* Steps skeleton */}
-            <div className="max-w-4xl mx-auto px-4 md:px-0 pb-6">
-                <div className="space-y-4">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={`step-sk-${i}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                            <div className="h-6 w-2/3 rounded-xl bg-slate-100" />
-                            <div className="mt-3 h-4 w-full rounded-xl bg-slate-100" />
-                            <div className="mt-2 h-4 w-5/6 rounded-xl bg-slate-100" />
+                        <div className="mt-6 flex gap-3">
+                            <div className="h-8 w-24 rounded-md bg-slate-200" />
+                            <div className="h-8 w-32 rounded-md bg-slate-200" />
                         </div>
-                    ))}
-                </div>
-            </div>
 
-            {/* Comments skeleton */}
-            <div className="max-w-4xl mx-auto p-4 md:px-0">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <div className="h-5 w-2/3 rounded-xl bg-slate-100" />
-                    <div className="mt-3 h-10 w-32 rounded-full bg-slate-100" />
+                        <div className="mt-8 h-5 w-full rounded bg-slate-200" />
+                        <div className="mt-2 h-5 w-5/6 rounded bg-slate-200" />
+                        <div className="mt-2 h-5 w-4/6 rounded bg-slate-200" />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                            <div key={i} className="h-[86px] rounded-xl bg-[#f2f1e8]" />
+                        ))}
+                    </div>
+
+                    <div className="rounded-xl bg-[#f2f1e8] p-8">
+                        <div className="h-8 w-44 rounded-xl bg-slate-200" />
+                        <div className="mt-8 space-y-3">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <div key={i} className="h-5 w-52 rounded bg-slate-200" />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div className="aspect-square rounded-xl bg-slate-200 lg:aspect-[724/724]" />
+                    <div className="mt-6 h-8 w-72 rounded-xl bg-slate-200" />
                 </div>
             </div>
         </div>
@@ -171,6 +112,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                 goLogin();
                 return;
             }
+
             fn();
         },
         [isLoggedIn, goLogin],
@@ -188,9 +130,11 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                 .filter((i) => i.name.length > 0);
     }, [recipe]);
 
-    // ✅ skeleton instead of "Laster…"
     if (loading) return <RecipeDetailSkeleton />;
-    if (!recipe) return <div className="p-4">Oppskrift ikke funnet.</div>;
+
+    if (!recipe) {
+        return <div className="p-4">Oppskrift ikke funnet.</div>;
+    }
 
     const userName = creatorDoc?.name || 'Ukjent brukernavn';
     const userPhoto = creatorDoc?.photoURL || '';
@@ -210,214 +154,274 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
     };
 
     return (
-        <div className="pb-20">
-            <div className="max-w-4xl md:mx-auto m-4 rounded-2xl">
-                {/* Top bar */}
-                <div className="flex items-center justify-between gap-2">
-                    <button
-                        onClick={() => router.back()}
-                        className="mb-4 px-4 py-2 rounded-full brown-button hover:cursor-pointer flex items-center gap-2"
-                        type="button"
-                    >
-                        <span className="material-symbols-outlined">arrow_back</span>
-                        Tilbake
-                    </button>
-                </div>
+        <div className="min-h-screen bg-[#fbfaf4] pb-20 text-[#12340d]">
+            <main className="mx-auto grid max-w-[1190px] gap-5 px-4 py-4 lg:grid-cols-[438px_minmax(0,1fr)] lg:items-start">
+                {/* LEFT COLUMN */}
+                <div className="space-y-3 lg:sticky lg:top-4">
+                    {/* Intro card */}
+                    <section className="rounded-xl bg-[#f2f1e8] p-6 md:p-8">
+                        {Array.isArray(recipe.tags) && recipe.tags.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                                {recipe.tags.map((t) => (
+                                    <span
+                                        key={t}
+                                        className="rounded-full bg-[#b9e77a] px-3 py-2 text-xs font-medium uppercase tracking-wide text-[#12340d]"
+                                    >
+                                        {t}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : null}
 
-                {/* Header */}
-                <div className="overflow-hidden">
-                    {recipe.coverImage && (
-                        <div className="relative w-full aspect-square md:aspect-[16/9]">
-                            <Image
-                                src={recipe.coverImage}
-                                alt={`${recipe.title} cover`}
-                                fill
-                                className="object-cover rounded-2xl"
-                                priority
-                                sizes="(max-width: 768px) 100vw, 896px"
-                                quality={70}
-                            />
+                        {/* Cleaner rating */}
+                        <div className="mt-8">
+                            <RatingStars recipeId={recipe.id} variant="compact" />
                         </div>
-                    )}
 
-                    <div className="mt-6">
-                        <div className="md:flex items-center justify-between">
-                            {/* Add to collection -> require login */}
-                            <button
-                                onClick={() => requireAuth(() => setShowAddModal(true))}
-                                className="mb-4 px-4 py-2 rounded-full brown-button hover:cursor-pointer flex items-center gap-2"
-                                type="button"
-                            >
-                                <span className="material-symbols-outlined">bookmark_add</span>
-                                Legg til i samling
-                            </button>
+                        <h1 className="mt-7 text-5xl font-bold leading-none tracking-tight text-[#12340d] md:text-[52px]">
+                            {recipe.title}
+                        </h1>
 
-                            {isOwner && (
-                                <div className="mb-4 flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => router.push(`/recipe/edit/${recipe.id}`)}
-                                        className="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 flex items-center gap-2"
-                                    >
-                                        <span className="material-symbols-outlined text-[20px]">edit</span>
-                                        Rediger
-                                    </button>
+                        <div className="mt-6 flex flex-wrap gap-2">
+                            {recipe.temperature && (
+                                <span className="inline-flex items-center gap-1 rounded-md bg-[#e5e5d7] px-3 py-1 text-sm">
+                                    <span className="material-symbols-outlined text-[16px]">
+                                        restaurant
+                                    </span>
+                                    {recipe.temperature}
+                                </span>
+                            )}
 
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowDeleteConfirm(true)}
-                                        className="px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center gap-2"
-                                    >
-                                        <span className="material-symbols-outlined text-[20px]">delete</span>
-                                        Slett
-                                    </button>
-                                </div>
+                            {recipe.cookingTime && (
+                                <span className="inline-flex items-center gap-1 rounded-md bg-[#e5e5d7] px-3 py-1 text-sm">
+                                    <span className="material-symbols-outlined text-[16px]">
+                                        schedule
+                                    </span>
+                                    {recipe.cookingTime}
+                                </span>
                             )}
                         </div>
 
-                        <h2 className="text-3xl md:text-4xl font-semibold text-slate-900 mb-2">{recipe.title}</h2>
-                        {recipe.description && <p className="text-base md:text-lg text-neutral-600">{recipe.description}</p>}
-                    </div>
+                        {recipe.description && (
+                            <p className="mt-8 text-base leading-relaxed text-[#12340d]">
+                                {recipe.description}
+                            </p>
+                        )}
+                    </section>
 
-                    {Array.isArray(recipe.tags) && recipe.tags.length > 0 ? (
-                        <div className="mt-4 flex flex-wrap gap-2">
-                            {recipe.tags.map((t) => (
-                                <span
-                                    key={t}
-                                    className="inline-flex items-center rounded-full bg-white border border-neutral-200 px-3 py-1 text-xs"
-                                >
-                  #{t}
-                </span>
-                            ))}
-                        </div>
-                    ) : null}
-                </div>
-            </div>
-
-            {/* Creator */}
-            <div
-                className="flex space-x-2 items-center max-w-4xl mx-auto px-4 md:px-0 py-2 cursor-pointer"
-                onClick={() => router.push(`/user/${recipe.userId}`)}
-            >
-                <div className="h-16 w-16 rounded-full overflow-hidden bg-slate-100">
-                    {userPhoto ? <img src={userPhoto} alt="Creator" className="w-full h-full object-cover" /> : null}
-                </div>
-                <h1 className="text-xl font-medium text-slate-900">{userName}</h1>
-            </div>
-
-            {/* Like + Rating */}
-            <div className="max-w-4xl mx-auto p-4 md:flex md:justify-between gap-8">
-                <LikeButton
-                    recipeId={recipe.id}
-                    onRequireLogin={() => {
-                        const next = window.location.pathname + window.location.search;
-                        router.push(`/login?next=${encodeURIComponent(next)}`);
-                    }}
-                />
-
-                <div className="mt-4 md:mt-0">
-                    <RatingStars recipeId={recipe.id} />
-                </div>
-            </div>
-
-            {/* Ingredients */}
-            <div className="max-w-4xl mx-auto p-4 md:p-0 md:flex md:justify-between gap-8">
-                <h2 className="text-2xl font-semibold">Ingredienser</h2>
-            </div>
-
-            <div className="max-w-4xl mx-auto p-4 md:px-0 md:flex md:justify-between gap-8">
-                <div className="flex-1">
-                    {ingredientsToRender.length > 0 && (
-                        <ul className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                            {ingredientsToRender.map((ing, idx) => (
-                                <li
-                                    key={`ing-${idx}`}
-                                    className="flex items-start justify-between px-4 py-3 border-b border-slate-200 last:border-b-0"
-                                >
-                                    <div className="flex-1">
-                                        <span className="font-semibold">{ing.name}</span>
-                                    </div>
-                                    {ing.amount ? <span className="shrink-0 text-neutral-600">{ing.amount}</span> : null}
-                                </li>
-                            ))}
-                        </ul>
+                    {/* Mobile image */}
+                    {recipe.coverImage && (
+                        <section className="lg:hidden">
+                            <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#f2f1e8]">
+                                <Image
+                                    src={recipe.coverImage}
+                                    alt={`${recipe.title} cover`}
+                                    fill
+                                    className="object-cover"
+                                    priority
+                                    sizes="100vw"
+                                    quality={75}
+                                />
+                            </div>
+                        </section>
                     )}
-                </div>
 
-                {(recipe.portions || recipe.temperature || recipe.cookingTime) && (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 self-start md:mt-0 mt-6 shadow-sm w-full md:w-48">
-                        {recipe.portions && (
-                            <p className="text-neutral-800">
-                                <span className="font-semibold">Porsjoner:</span> {recipe.portions}
-                            </p>
-                        )}
-
-                        {recipe.temperature && (
-                            <p className={`text-neutral-800 ${recipe.portions ? 'mt-2' : ''}`}>
-                                <span className="font-semibold">Temperatur:</span> {recipe.temperature}
-                            </p>
-                        )}
-
-                        {recipe.cookingTime && (
-                            <p className={`text-neutral-800 ${recipe.portions || recipe.temperature ? 'mt-2' : ''}`}>
-                                <span className="font-semibold">Koketid:</span> {recipe.cookingTime}
-                            </p>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* Steps */}
-            <div className="max-w-4xl mx-auto p-4 md:px-0 md:flex md:justify-between gap-8">
-                <h2 className="text-2xl font-semibold">Fremgangsmåte</h2>
-            </div>
-
-            <div className="max-w-4xl mx-auto px-4 md:px-0 pb-6">
-                <div className="space-y-4">
-                    {recipe.cookingSteps.map((step, i) => (
-                        <div key={`step-${i}`} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                            <h3 className="md:text-xl text-base">
-                                {i + 1}. {step.title}
-                            </h3>
-                            <p className="text-sm mt-2">{step.description}</p>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Comments */}
-            <div className="max-w-4xl mx-auto p-4 md:px-0">
-                {isLoggedIn ? (
-                    <CommentSection recipeId={recipe.id} />
-                ) : (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <p className="text-slate-700">Logg inn for å lese og skrive kommentarer.</p>
+                    {/* Creator / Like / Save cards */}
+                    <section className="grid grid-cols-3 gap-2">
                         <button
                             type="button"
-                            onClick={goLogin}
-                            className="mt-4 inline-flex items-center gap-2 rounded-full px-5 py-2 brown-button transition"
+                            onClick={() => router.push(`/user/${recipe.userId}`)}
+                            className="flex h-[86px] flex-col items-center justify-center rounded-xl bg-[#f2f1e8] px-2 text-center text-xs transition hover:bg-[#e8e7dc]"
                         >
-                            <span className="material-symbols-outlined">login</span>
-                            Logg inn
-                        </button>
-                    </div>
-                )}
-            </div>
+                            <div className="mb-1 h-8 w-8 overflow-hidden rounded-full bg-[#deded0]">
+                                {userPhoto ? (
+                                    <img
+                                        src={userPhoto}
+                                        alt="Creator"
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    <span className="material-symbols-outlined flex h-full w-full items-center justify-center text-[20px]">
+                                        person
+                                    </span>
+                                )}
+                            </div>
 
-            {showAddModal && <AddToCollectionModal recipeId={recipe.id} onClose={() => setShowAddModal(false)} />}
+                            <span className="text-[10px] uppercase tracking-wide text-[#496444]">
+                                Laget av
+                            </span>
+
+                            <span className="max-w-full truncate font-medium">
+                                {userName}
+                            </span>
+                        </button>
+
+                        <div className="flex h-[86px] items-center justify-center rounded-xl bg-[#f2f1e8] px-2 text-xs transition hover:bg-[#e8e7dc]">
+                            <LikeButton
+                                recipeId={recipe.id}
+                                variant="compact"
+                                onRequireLogin={() => {
+                                    const next = window.location.pathname + window.location.search;
+                                    router.push(`/login?next=${encodeURIComponent(next)}`);
+                                }}
+                            />
+                        </div>
+
+
+
+                        <button
+                            type="button"
+                            onClick={() => requireAuth(() => setShowAddModal(true))}
+                            className="flex h-[86px] flex-col items-center justify-center rounded-xl bg-[#f2f1e8] text-xs transition hover:bg-[#e8e7dc]"
+                        >
+                            <span className="material-symbols-outlined mb-1 text-[28px]">
+                                bookmark_add
+                            </span>
+                            Lagre
+                        </button>
+                    </section>
+
+                    {/* Ingredients card */}
+                    <section className="rounded-xl bg-[#f2f1e8] p-6 md:p-8">
+                        <h2 className="text-3xl font-bold tracking-tight">
+                            Ingredienser
+                        </h2>
+
+                        <div className="my-7 h-px bg-[#d8d7cb]" />
+
+                        {ingredientsToRender.length > 0 ? (
+                            <ul className="space-y-3 text-base leading-relaxed">
+                                {ingredientsToRender.map((ing, idx) => (
+                                    <li key={`ing-${idx}`} className="flex gap-2">
+                                        {ing.amount ? (
+                                            <span className="shrink-0 font-medium">
+                                                {ing.amount}
+                                            </span>
+                                        ) : null}
+
+                                        <span>{ing.name}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-neutral-600">
+                                Ingen ingredienser lagt til.
+                            </p>
+                        )}
+                    </section>
+                </div>
+
+                {/* RIGHT COLUMN */}
+                <div className="space-y-5">
+                    {recipe.coverImage && (
+                        <section className="hidden lg:block">
+                            <div className="relative -z-0 aspect-square w-full overflow-hidden rounded-xl bg-[#f2f1e8]">
+                                <Image
+                                    src={recipe.coverImage}
+                                    alt={`${recipe.title} cover`}
+                                    fill
+                                    className="z-0 object-cover"
+                                    priority
+                                    sizes="724px"
+                                    quality={75}
+                                />
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Steps */}
+                    <section className="rounded-xl bg-[#f2f1e8] p-6 md:p-8">
+                        <h2 className="text-3xl font-bold tracking-tight">
+                            Fremgangsmåte
+                        </h2>
+
+                        <div className="mt-6 space-y-5">
+                            {recipe.cookingSteps.map((step, i) => (
+                                <div
+                                    key={`step-${i}`}
+                                    className="border-t border-[#d8d7cb] pt-5"
+                                >
+                                    <h3 className="text-xl font-bold">
+                                        {i + 1}. {step.title}
+                                    </h3>
+
+                                    <p className="mt-2 text-base leading-relaxed">
+                                        {step.description}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Owner controls */}
+                    {isOwner && (
+                        <section className="flex flex-wrap gap-2 rounded-xl bg-[#f2f1e8] p-5">
+                            <button
+                                type="button"
+                                onClick={() => router.push(`/recipe/edit/${recipe.id}`)}
+                                className="rounded-full border border-[#12340d] px-4 py-2 text-sm hover:bg-[#12340d] hover:text-white"
+                            >
+                                Rediger
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setShowDeleteConfirm(true)}
+                                className="rounded-full bg-red-500 px-4 py-2 text-sm text-white hover:bg-red-600"
+                            >
+                                Slett
+                            </button>
+                        </section>
+                    )}
+
+                    {/* Comments */}
+                    <section className="rounded-xl bg-[#f2f1e8] p-5">
+                        {isLoggedIn ? (
+                            <CommentSection recipeId={recipe.id} />
+                        ) : (
+                            <div>
+                                <p>Logg inn for å lese og skrive kommentarer.</p>
+
+                                <button
+                                    type="button"
+                                    onClick={goLogin}
+                                    className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#12340d] px-5 py-2 text-white transition hover:opacity-90"
+                                >
+                                    <span className="material-symbols-outlined">
+                                        login
+                                    </span>
+                                    Logg inn
+                                </button>
+                            </div>
+                        )}
+                    </section>
+                </div>
+            </main>
+
+            {showAddModal && (
+                <AddToCollectionModal
+                    recipeId={recipe.id}
+                    onClose={() => setShowAddModal(false)}
+                />
+            )}
 
             {showDeleteConfirm && (
                 <AppModal onClose={() => setShowDeleteConfirm(false)}>
                     {({ closeWithAnim, closing }) => (
                         <div className="p-6">
-                            <h2 className="text-xl font-semibold text-slate-900">Slette oppskriften?</h2>
-                            <p className="text-slate-600 mt-2">Dette kan ikke angres.</p>
+                            <h2 className="text-xl font-semibold text-slate-900">
+                                Slette oppskriften?
+                            </h2>
+
+                            <p className="mt-2 text-slate-600">
+                                Dette kan ikke angres.
+                            </p>
 
                             <div className="mt-5 flex justify-end gap-2">
                                 <button
                                     type="button"
                                     onClick={closeWithAnim}
-                                    className="px-4 py-2 rounded-full hover:bg-neutral-200 cursor-pointer"
+                                    className="cursor-pointer rounded-full px-4 py-2 hover:bg-neutral-200"
                                     disabled={deleting || closing}
                                 >
                                     Avbryt
@@ -429,7 +433,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                         await handleDelete();
                                         closeWithAnim();
                                     }}
-                                    className="px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white disabled:opacity-60 cursor-pointer"
+                                    className="cursor-pointer rounded-full bg-red-500 px-4 py-2 text-white hover:bg-red-600 disabled:opacity-60"
                                     disabled={deleting || closing}
                                 >
                                     {deleting ? 'Sletter…' : 'Slett'}

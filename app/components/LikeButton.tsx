@@ -18,11 +18,9 @@ import AppModal from '@/app/components/AppModal';
 
 interface LikeButtonProps {
     recipeId: string;
-    /**
-     * If provided: called when user presses like / "Se hvem" while not logged in.
-     * Typical: () => router.push(`/login?next=${encodeURIComponent(path)}`)
-     */
     onRequireLogin?: () => void;
+    className?: string;
+    variant?: 'default' | 'compact';
 }
 
 interface LikedUser {
@@ -43,6 +41,7 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
 
         const fetchLikedUsers = async () => {
             setLoading(true);
+
             try {
                 const likesCollectionRef = collection(firestore, 'recipes', recipeId, 'likes');
                 const snap = await getDocs(likesCollectionRef);
@@ -55,8 +54,13 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
                     const userDocSnap = await getDoc(userDocRef);
 
                     let userData: Partial<LikedUser> = {};
+
                     if (userDocSnap.exists()) {
-                        const docData = userDocSnap.data() as { name?: string; photoURL?: string };
+                        const docData = userDocSnap.data() as {
+                            name?: string;
+                            photoURL?: string;
+                        };
+
                         userData = {
                             name: docData.name,
                             photoURL: docData.photoURL,
@@ -68,7 +72,6 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
 
                 const results = await Promise.all(promises);
 
-                // Optional: sort by name, fallback to uid
                 results.sort((a, b) => {
                     const an = (a.name || a.userId).toLowerCase();
                     const bn = (b.name || b.userId).toLowerCase();
@@ -82,6 +85,7 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
         };
 
         fetchLikedUsers();
+
         return () => {
             cancelled = true;
         };
@@ -91,11 +95,13 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
         <AppModal onClose={onClose}>
             {({ closeWithAnim, closing }) => (
                 <>
-                    {/* header */}
-                    <div className="flex items-start justify-between gap-3 p-4 border-b border-slate-200">
+                    <div className="flex items-start justify-between gap-3 border-b border-[#d8d7cb] p-4">
                         <div>
-                            <h3 className="text-lg font-semibold text-slate-900">Tok av seg hatten</h3>
-                            <p className="text-sm text-slate-600 mt-0.5">
+                            <h3 className="text-lg font-bold text-[#12340d]">
+                                Tok av seg hatten
+                            </h3>
+
+                            <p className="mt-0.5 text-sm text-[#496444]">
                                 Folk som har likt denne oppskriften.
                             </p>
                         </div>
@@ -104,67 +110,72 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
                             type="button"
                             onClick={closeWithAnim}
                             disabled={closing}
-                            className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition active:scale-95"
+                            className="grid h-10 w-10 place-items-center rounded-full transition hover:bg-[#e5e5d7] active:scale-95"
                             aria-label="Lukk"
                         >
-                            <span className="material-symbols-outlined text-slate-700">close</span>
+                            <span className="material-symbols-outlined text-[#12340d]">
+                                close
+                            </span>
                         </button>
                     </div>
 
-                    {/* content */}
                     <div className="p-4">
                         {loading ? (
                             <div className="space-y-3">
                                 {Array.from({ length: 5 }).map((_, i) => (
                                     <div
                                         key={`sk-${i}`}
-                                        className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3"
+                                        className="flex items-center gap-3 rounded-xl bg-[#f2f1e8] p-3"
                                     >
-                                        <div className="h-10 w-10 rounded-full bg-slate-200 animate-pulse" />
+                                        <div className="h-10 w-10 animate-pulse rounded-full bg-[#d8d7cb]" />
+
                                         <div className="flex-1">
-                                            <div className="h-4 w-32 rounded bg-slate-200 animate-pulse" />
-                                            <div className="h-3 w-24 rounded bg-slate-100 mt-2" />
+                                            <div className="h-4 w-32 animate-pulse rounded bg-[#d8d7cb]" />
+                                            <div className="mt-2 h-3 w-24 rounded bg-[#e5e5d7]" />
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         ) : likedUsers.length === 0 ? (
-                            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                                <p className="text-slate-700 font-medium">Ingen likes enda.</p>
-                                <p className="text-sm text-slate-600 mt-1">
+                            <div className="rounded-xl bg-[#f2f1e8] p-4">
+                                <p className="font-bold text-[#12340d]">
+                                    Ingen likes enda.
+                                </p>
+
+                                <p className="mt-1 text-sm text-[#496444]">
                                     Vær den første til å ta av deg hatten 👨‍🍳
                                 </p>
                             </div>
                         ) : (
-                            <ul className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+                            <ul className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
                                 {likedUsers.map((u) => (
                                     <li key={u.userId}>
                                         <Link
-                                            href={`/user/${u.userId}`} // Change if your profile route is different (e.g. /profil/[id] or /users/[id])
+                                            href={`/user/${u.userId}`}
                                             onClick={() => closeWithAnim()}
-                                            className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 hover:bg-slate-50 transition active:scale-[0.99]"
+                                            className="flex items-center gap-3 rounded-xl bg-[#f2f1e8] p-3 transition hover:bg-[#e8e7dc] active:scale-[0.99]"
                                         >
-                                            <div className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 shrink-0">
+                                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#deded0]">
                                                 {u.photoURL ? (
                                                     <img
                                                         src={u.photoURL}
                                                         alt={u.name || 'User'}
-                                                        className="w-full h-full object-cover"
+                                                        className="h-full w-full object-cover"
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full grid place-items-center text-slate-500">
+                                                    <div className="grid h-full w-full place-items-center text-[#496444]">
                                                         🧑‍🍳
                                                     </div>
                                                 )}
                                             </div>
 
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-semibold text-slate-900 truncate">
+                                                <p className="truncate text-sm font-bold text-[#12340d]">
                                                     {u.name || 'Ukjent bruker'}
                                                 </p>
                                             </div>
 
-                                            <span className="material-symbols-outlined text-slate-400 text-[20px] shrink-0">
+                                            <span className="material-symbols-outlined shrink-0 text-[20px] text-[#496444]">
                                                 chevron_right
                                             </span>
                                         </Link>
@@ -176,8 +187,7 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
                         <button
                             type="button"
                             onClick={closeWithAnim}
-                            className="mt-4 w-full rounded-full py-2 font-semibold shadow-sm
-                       bg-slate-100 hover:bg-slate-200 transition active:scale-[0.99]"
+                            className="mt-4 w-full rounded-full bg-[#12340d] py-2 font-semibold text-white transition hover:opacity-90 active:scale-[0.99]"
                             disabled={closing}
                         >
                             Ferdig
@@ -189,7 +199,12 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
     );
 };
 
-const LikeButton: React.FC<LikeButtonProps> = ({ recipeId, onRequireLogin }) => {
+const LikeButton: React.FC<LikeButtonProps> = ({
+                                                   recipeId,
+                                                   onRequireLogin,
+                                                   className,
+                                                   variant = 'default',
+                                               }) => {
     const currentUser = useAuthUser();
 
     const [likeCount, setLikeCount] = useState(0);
@@ -202,24 +217,26 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId, onRequireLogin }) => 
         else alert('Please sign in to continue.');
     };
 
-    // Listen to likeCount on recipe doc (cheap)
     useEffect(() => {
         const recipeRef = doc(firestore, 'recipes', recipeId);
+
         const unsub = onSnapshot(recipeRef, (snap) => {
             const data = snap.data() as { likeCount?: number } | undefined;
             setLikeCount(typeof data?.likeCount === 'number' ? data.likeCount : 0);
         });
+
         return () => unsub();
     }, [recipeId]);
 
-    // Listen to current user's like doc (cheap)
     useEffect(() => {
         if (!currentUser?.uid) {
             setHasLiked(false);
             return;
         }
+
         const likeRef = doc(firestore, 'recipes', recipeId, 'likes', currentUser.uid);
         const unsub = onSnapshot(likeRef, (snap) => setHasLiked(snap.exists()));
+
         return () => unsub();
     }, [recipeId, currentUser?.uid]);
 
@@ -228,6 +245,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId, onRequireLogin }) => 
             requireLogin();
             return;
         }
+
         if (toggling) return;
 
         const recipeRef = doc(firestore, 'recipes', recipeId);
@@ -247,6 +265,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId, onRequireLogin }) => 
                         userId: currentUser.uid,
                         createdAt: serverTimestamp(),
                     });
+
                     tx.update(recipeRef, { likeCount: increment(1) });
                 }
             });
@@ -260,53 +279,142 @@ const LikeButton: React.FC<LikeButtonProps> = ({ recipeId, onRequireLogin }) => 
             requireLogin();
             return;
         }
+
         setShowModal(true);
     };
 
     const likeLabel = hasLiked ? 'Ta på hatten' : 'Ta av deg hatten';
 
-    return (
-        <div className="flex items-center gap-3">
-            {/* Like button */}
-            <button
-                type="button"
-                onClick={handleLikeToggle}
-                disabled={toggling}
-                className={[
-                    'inline-flex items-center gap-2 rounded-full px-4 py-2',
-                    'border border-slate-200 bg-white shadow-sm',
-                    'hover:bg-slate-50 transition active:scale-[0.99]',
-                    toggling ? 'opacity-70 cursor-not-allowed' : '',
-                ].join(' ')}
-                aria-label={likeLabel}
-            >
-                <span className="h-7 w-7 grid place-items-center">
-                    {hasLiked ? (
-                        <img src="/icons/chef_white.png" alt="Liked" className="invert w-6 h-6" />
-                    ) : (
-                        <img src="/icons/chef.png" alt="Not liked" className="w-6 h-6" />
+    if (variant === 'compact') {
+        return (
+            <>
+                <div
+                    className={[
+                        'flex h-full w-full flex-col items-center justify-center text-center text-xs text-[#12340d]',
+                        className ?? '',
+                    ].join(' ')}
+                >
+                    <button
+                        type="button"
+                        onClick={handleLikeToggle}
+                        disabled={toggling}
+                        className={[
+                            'group flex flex-col items-center justify-center',
+                            'transition active:scale-[0.96]',
+                            toggling ? 'cursor-not-allowed opacity-70' : '',
+                        ].join(' ')}
+                        aria-label={likeLabel}
+                    >
+                    <span
+                        className={[
+                            'relative mb-1 grid h-9 w-9 place-items-center rounded-full transition',
+                            hasLiked
+                                ? 'bg-[#12340d] text-white'
+                                : 'bg-[#e5e5d7] text-[#12340d] group-hover:bg-[#d8d7cb]',
+                        ].join(' ')}
+                    >
+                        <img
+                            src={hasLiked ? '/icons/chef_white.png' : '/icons/chef.png'}
+                            alt=""
+                            className="h-6 w-6"
+                            draggable={false}
+                        />
+
+                        {likeCount > 0 && (
+                            <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-[#b9e77a] px-1 text-[10px] font-bold leading-none text-[#12340d] ring-2 ring-[#f2f1e8]">
+                                {likeCount > 99 ? '99+' : likeCount}
+                            </span>
+                        )}
+                    </span>
+
+                        <span className="font-medium leading-tight">
+                        {hasLiked ? 'Likt' : 'Lik'}
+                    </span>
+                    </button>
+
+                    {likeCount > 0 && (
+                        <button
+                            type="button"
+                            onClick={openLikedUsers}
+                            className="mt-1 text-[10px] font-medium uppercase tracking-wide text-[#496444] underline-offset-2 hover:underline"
+                        >
+                            Se hvem
+                        </button>
                     )}
-                </span>
+                </div>
 
-                <span className="text-lg font-semibold text-slate-900 tabular-nums">{likeCount}</span>
+                {showModal && (
+                    <LikedUsersModal
+                        recipeId={recipeId}
+                        onClose={() => setShowModal(false)}
+                    />
+                )}
+            </>
+        );
+    }
 
-                <span className="text-sm font-semibold text-slate-700 hidden sm:inline">
-                    {hasLiked ? 'Likt' : 'Lik'}
-                </span>
-            </button>
 
-            {/* Open modal */}
-            <button
-                type="button"
-                onClick={openLikedUsers}
-                className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-slate-700
-                   hover:bg-slate-100 transition active:scale-[0.99]"
+    return (
+        <>
+            <div
+                className={[
+                    'flex items-center gap-3',
+                    className ?? '',
+                ].join(' ')}
             >
-                Se hvem
-            </button>
+                <button
+                    type="button"
+                    onClick={handleLikeToggle}
+                    disabled={toggling}
+                    className={[
+                        'inline-flex items-center gap-2 rounded-full px-4 py-2',
+                        'border border-[#d8d7cb] bg-[#f2f1e8]',
+                        'transition hover:bg-[#e8e7dc] active:scale-[0.99]',
+                        toggling ? 'cursor-not-allowed opacity-70' : '',
+                    ].join(' ')}
+                    aria-label={likeLabel}
+                >
+                    <span
+                        className={[
+                            'grid h-8 w-8 place-items-center rounded-full',
+                            hasLiked ? 'bg-[#12340d]' : 'bg-[#e5e5d7]',
+                        ].join(' ')}
+                    >
+                        <img
+                            src={hasLiked ? '/icons/chef_white.png' : '/icons/chef.png'}
+                            alt=""
+                            className="h-6 w-6"
+                            draggable={false}
+                        />
+                    </span>
 
-            {showModal && <LikedUsersModal recipeId={recipeId} onClose={() => setShowModal(false)} />}
-        </div>
+                    <span className="text-lg font-bold tabular-nums text-[#12340d]">
+                        {likeCount}
+                    </span>
+
+                    <span className="hidden text-sm font-bold text-[#12340d] sm:inline">
+                        {hasLiked ? 'Likt' : 'Lik'}
+                    </span>
+                </button>
+
+                {likeCount > 0 && (
+                    <button
+                        type="button"
+                        onClick={openLikedUsers}
+                        className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-[#12340d] transition hover:bg-[#e8e7dc] active:scale-[0.99]"
+                    >
+                        Se hvem
+                    </button>
+                )}
+            </div>
+
+            {showModal && (
+                <LikedUsersModal
+                    recipeId={recipeId}
+                    onClose={() => setShowModal(false)}
+                />
+            )}
+        </>
     );
 };
 

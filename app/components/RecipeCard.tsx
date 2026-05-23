@@ -17,7 +17,6 @@ import 'dayjs/locale/nb';
 dayjs.extend(relativeTime);
 dayjs.locale('nb');
 
-// CombinedRecipe may include detail fields, but we primarily use Recipe fields
 type CombinedRecipe = Recipe & Partial<RecipeDetail>;
 
 interface RecipeCardProps {
@@ -27,35 +26,29 @@ interface RecipeCardProps {
     onDelete?: (recipeId: string) => void;
 }
 
-/**
- * Use this where you want loading placeholders:
- * <RecipeCard.Skeleton />
- */
 const RecipeCardSkeleton: React.FC = () => {
     return (
-        <div className="animate-pulse">
-            <div className="rounded-2xl bg-white shadow-sm overflow-hidden">
-                <div className="h-72 bg-slate-100" />
+        <div className="animate-pulse rounded-xl bg-[#f2f1e8] p-3">
+            <div className="aspect-[4/3] rounded-xl bg-[#deded0]" />
+
+            <div className="mt-4 space-y-2 px-1">
+                <div className="h-7 w-2/3 rounded-xl bg-[#deded0]" />
+                <div className="h-4 w-full rounded-xl bg-[#deded0]" />
+                <div className="h-4 w-5/6 rounded-xl bg-[#deded0]" />
             </div>
 
-            <div className="mt-4 space-y-2">
-                <div className="h-7 w-2/3 rounded-xl bg-slate-100" />
-                <div className="h-4 w-full rounded-xl bg-slate-100" />
-                <div className="h-4 w-5/6 rounded-xl bg-slate-100" />
-            </div>
-
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-4 flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
-                    <div className="h-10 w-10 rounded-full bg-slate-100" />
+                    <div className="h-10 w-10 rounded-full bg-[#deded0]" />
                     <div className="space-y-2">
-                        <div className="h-4 w-28 rounded-xl bg-slate-100" />
-                        <div className="h-3 w-36 rounded-xl bg-slate-100" />
+                        <div className="h-4 w-28 rounded-xl bg-[#deded0]" />
+                        <div className="h-3 w-36 rounded-xl bg-[#deded0]" />
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="h-5 w-12 rounded-xl bg-slate-100" />
-                    <div className="h-5 w-12 rounded-xl bg-slate-100" />
+                <div className="flex items-center gap-2">
+                    <div className="h-7 w-12 rounded-full bg-[#deded0]" />
+                    <div className="h-7 w-12 rounded-full bg-[#deded0]" />
                 </div>
             </div>
         </div>
@@ -74,11 +67,16 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
     const userName = creator?.name || 'Ukjent brukernavn';
     const userPhoto = creator?.photoURL;
 
-    /* fade-in ------------------------------------------------- */
     const [mounted, setMounted] = useState(false);
-    useEffect(() => setMounted(true), []);
 
-    /* tooltip state ------------------------------------------ */
+    useEffect(() => {
+        const frame = requestAnimationFrame(() => {
+            setMounted(true);
+        });
+
+        return () => cancelAnimationFrame(frame);
+    }, []);
+
     const [tip, setTip] = useState<{ show: boolean; x: number; y: number }>({
         show: false,
         x: 0,
@@ -92,15 +90,11 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
         return new Date(createdAt);
     };
 
-    // ✅ Prefetch route + data when user shows intent (hover/focus/touch)
     const prefetchRecipe = () => {
-        // prefetch the route chunk
         router.prefetch(`/recipe/${recipe.id}`);
 
-        // seed cache with what we already have from the feed (instant render)
         qc.setQueryData(['recipe', recipe.id], recipe);
 
-        // fetch full recipe doc in background (removes "loading..." on page)
         qc.prefetchQuery({
             queryKey: ['recipe', recipe.id],
             queryFn: () => fetchRecipeById(recipe.id),
@@ -113,12 +107,15 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
         prefetchRecipe();
     };
 
-    const handleMove = (e: React.MouseEvent) => setTip((prev) => ({ ...prev, x: e.clientX, y: e.clientY }));
-    const handleLeave = () => setTip((prev) => ({ ...prev, show: false }));
+    const handleMove = (e: React.MouseEvent) => {
+        setTip((prev) => ({ ...prev, x: e.clientX, y: e.clientY }));
+    };
 
-    /* navigation / owner edits -------------------------------- */
+    const handleLeave = () => {
+        setTip((prev) => ({ ...prev, show: false }));
+    };
+
     const handleCardClick = () => {
-        // ensure cache is warm right before navigation too
         prefetchRecipe();
         router.push(`/recipe/${recipe.id}`);
     };
@@ -138,7 +135,6 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
         router.push(`/user/${recipe.userId}`);
     };
 
-    /* compute display counts --------------------------------- */
     const displayLikes = recipe.likeCount ?? 0;
     const displayComments = recipe.commentCount ?? 0;
 
@@ -149,10 +145,13 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
     const avg = ratingCount > 0 ? ratingSum / ratingCount : 0;
     const avgText = avg.toFixed(1).replace('.', ',');
 
-    /* render -------------------------------------------------- */
     return (
-        <div
-            className={`relative transition-opacity duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}
+        <article
+            className={[
+                'relative rounded-xl bg-[#f2f1e8] p-3 text-[#12340d]',
+                'transition-[opacity,background-color] duration-500 ease-out hover:bg-[#ecebdd]',
+                mounted ? 'opacity-100' : 'opacity-0',
+            ].join(' ')}
             onClick={handleCardClick}
             onMouseEnter={handleEnter}
             onMouseMove={handleMove}
@@ -162,99 +161,172 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
             role="button"
             tabIndex={0}
         >
-            {/* visual frame */}
-            <div
-                className="relative group w-full cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md"
-                style={{ minHeight: '18rem' }}
-            >
-                {recipe.coverImage && (
+            {/* Image */}
+            <div className="relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-xl bg-[#deded0]">
+                {recipe.coverImage ? (
                     <Image
-                        src={recipe.coverImage ?? '/images/icons/corpcore.gif'}
-                        alt="Cover"
+                        src={recipe.coverImage}
+                        alt={recipe.title || 'Cover'}
                         fill
-                        // ✅ helps Next pick correct image size (faster)
                         sizes="(max-width: 768px) 100vw, 50vw"
                         quality={70}
-                        className="object-cover w-full h-full transition-transform duration-300 ease-out group-hover:scale-105"
+                        className="object-cover transition-transform duration-300 ease-out hover:scale-105"
                     />
+                ) : (
+                    <div className="grid h-full w-full place-items-center text-[#496444]">
+                        <span className="material-symbols-outlined text-5xl">
+                            restaurant
+                        </span>
+                    </div>
                 )}
-            </div>
 
-            {/* tooltip */}
-            {tip.show && (
-                <div
-                    className="fixed z-50 pointer-events-none bg-white/95 backdrop-blur-sm rounded-lg px-3 py-1 shadow-xl text-sm font-medium text-slate-900 hidden md:block"
-                    style={{ top: tip.y + 12, left: tip.x + 12 }}
-                >
-                    <img src="/icons/clock-gif.gif" alt="Tid" className="w-4 h-4 inline-block mr-1 mb-0.5" />
-                    {recipe.cookingTime ?? '?'}
-                </div>
-            )}
-
-            {/* text content */}
-            <div className="mt-4">
-                <h1 className="text-2xl md:text-3xl font-semibold ">{recipe.title}</h1>
-                <p className="text-base mt-1 line-clamp-2">{recipe.description}</p>
-            </div>
-
-
-            <div className="flex justify-between mt-4 w-full">
-                {/* creator */}
-                <button
-                    type="button"
-                    onClick={handleCreatorClick}
-                    className="flex space-x-2 items-center text-left hover:opacity-90 transition hover:cursor-pointer"
-                    aria-label={`Gå til profilen til ${userName}`}
-                >
-                    <div className="h-10 w-10 rounded-full overflow-hidden bg-slate-100">
-                        {userPhoto && <img src={userPhoto} alt="Creator" className="w-full h-full object-cover" />}
-                    </div>
-
-                    <div>
-                        <p className="text-xl font-semibold">{userName}</p>
-                        <p className="text-xs text-slate-600">{createdAtDate ? dayjs(createdAtDate).fromNow() : 'Akkurat nå'}</p>
-                    </div>
-                </button>
-
-                {/* likes / comments with fallback */}
-                <div className="flex space-x-4 text-sm ">
-
+                {/* Top-right quick stats */}
+                <div className="absolute right-3 top-3 flex items-center gap-2">
                     {ratingCount > 0 ? (
-                        <div className="flex items-center gap-2 text-sm mt-2 mb-2">
-                            <span className="material-symbols-outlined text-[18px]">grade</span>
-                            <span className="font-semibold tabular-nums pt-1">
-            {avgText} <span className="text-slate-400 font-normal">({ratingCount})</span>
-          </span>
+                        <div className="inline-flex items-center gap-1 rounded-full bg-[#fbfaf4]/95 px-2  text-xs font-bold text-[#12340d] shadow-sm backdrop-blur">
+                            <span className="material-symbols-outlined text-[16px]">
+                                grade
+                            </span>
+                            {avgText}
                         </div>
                     ) : null}
 
-                    <div className="flex items-center space-x-1">
-                        <img src="/icons/chef_white.png" alt="Like" className="w-5 h-5 invert" />
-                        <span>{displayLikes}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                        <span className="material-symbols-outlined">comment</span>
-                        <span>{displayComments}</span>
-                    </div>
+                    {displayLikes > 0 ? (
+                        <div className="inline-flex items-center gap-1 rounded-full bg-[#fbfaf4]/95 px-2.5 py-1 text-xs font-bold text-[#12340d] shadow-sm backdrop-blur">
+                            <img
+                                src="/icons/chef.png"
+                                alt=""
+                                className="h-4 w-4"
+                                draggable={false}
+                            />
+                            {displayLikes}
+                        </div>
+                    ) : null}
                 </div>
             </div>
 
-            {/* owner controls */}
+            {/* Tooltip */}
+            {tip.show && (
+                <div
+                    className="fixed z-[9999] pointer-events-none hidden md:flex items-center gap-1.5 rounded-full bg-[#12340d] px-3 py-1.5 text-sm font-medium text-white shadow-xl"
+                    style={{
+                        top: tip.y + 12,
+                        left: tip.x + 12,
+                    }}
+                >
+                    <img
+                        src="/icons/clock-gif.gif"
+                        alt="Tid"
+                        className="h-4 w-4 shrink-0 invert"
+                        draggable={false}
+                    />
+
+                    <span>{recipe.cookingTime ?? '?'}</span>
+                </div>
+            )}
+
+            {/* Text content */}
+            <div className="px-1 pt-4">
+                <h1 className="line-clamp-2 text-2xl font-bold leading-tight tracking-tight md:text-3xl">
+                    {recipe.title}
+                </h1>
+
+                {recipe.description ? (
+                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[#496444] md:text-base">
+                        {recipe.description}
+                    </p>
+                ) : null}
+            </div>
+
+            <div className="mt-4 flex items-end justify-between gap-3 px-1">
+                {/* Creator */}
+                <button
+                    type="button"
+                    onClick={handleCreatorClick}
+                    className="flex min-w-0 items-center gap-2 text-left transition hover:opacity-80"
+                    aria-label={`Gå til profilen til ${userName}`}
+                >
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#deded0] ring-1 ring-[#d8d7cb]">
+                        {userPhoto ? (
+                            <img
+                                src={userPhoto}
+                                alt="Creator"
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <div className="grid h-full w-full place-items-center text-[#496444]">
+                                🧑‍🍳
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-[#12340d]">
+                            {userName}
+                        </p>
+
+                        <p className="truncate text-xs text-[#6f8068]">
+                            {createdAtDate
+                                ? dayjs(createdAtDate).fromNow()
+                                : 'Akkurat nå'}
+                        </p>
+                    </div>
+                </button>
+
+                {/* Bottom stats */}
+                <div className="flex shrink-0 items-center gap-2 text-sm">
+                    {displayComments > 0 ? (
+                        <div className="inline-flex items-center gap-1 rounded-full bg-[#e5e5d7] px-2.5 py-1 font-medium text-[#12340d]">
+                            <span className="material-symbols-outlined text-[17px]">
+                                comment
+                            </span>
+                            {displayComments}
+                        </div>
+                    ) : null}
+
+                    {recipe.cookingTime ? (
+                        <div className="hidden items-center gap-1 rounded-full bg-[#e5e5d7] px-2.5 py-1 font-medium text-[#12340d] sm:inline-flex">
+                            <span className="material-symbols-outlined text-[17px]">
+                                schedule
+                            </span>
+                            {recipe.cookingTime}
+                        </div>
+                    ) : null}
+                </div>
+            </div>
+
+            {/* Owner controls */}
             {isOwner && (
-                <div className="relative right-2 flex space-x-2 z-20">
-                    <button onClick={handleEdit} className="p-1 rounded h-12 cursor-pointer" title="Edit recipe">
-                        <span className="material-symbols-outlined">edit</span>
+                <div className="absolute bottom-3 right-3 z-20 flex gap-2">
+                    <button
+                        onClick={handleEdit}
+                        className="grid h-9 w-9 place-items-center rounded-full bg-[#fbfaf4]/95 text-[#12340d] shadow-sm backdrop-blur transition hover:bg-[#e5e5d7]"
+                        title="Edit recipe"
+                        aria-label="Rediger oppskrift"
+                    >
+                        <span className="material-symbols-outlined text-[20px]">
+                            edit
+                        </span>
                     </button>
-                    <button onClick={handleDelete} className="p-1 rounded cursor-pointer" title="Delete recipe">
-                        <span className="material-symbols-outlined">delete</span>
+
+                    <button
+                        onClick={handleDelete}
+                        className="grid h-9 w-9 place-items-center rounded-full bg-red-500 text-white shadow-sm transition hover:bg-red-600"
+                        title="Delete recipe"
+                        aria-label="Slett oppskrift"
+                    >
+                        <span className="material-symbols-outlined text-[20px]">
+                            delete
+                        </span>
                     </button>
                 </div>
             )}
-        </div>
+        </article>
     );
 };
 
-// attach skeleton for convenient usage: RecipeCard.Skeleton
-const RecipeCard = Object.assign(RecipeCardComponent, { Skeleton: RecipeCardSkeleton });
+const RecipeCard = Object.assign(RecipeCardComponent, {
+    Skeleton: RecipeCardSkeleton,
+});
 
 export default RecipeCard;
