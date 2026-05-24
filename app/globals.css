@@ -3,9 +3,9 @@
 :root {
     --background: #FEFEF8;
     --foreground: #0f172a;
-    --accent: #ddb892;
-    --accent-strong: #e6ccb2;
-    --accent-soft: #e7f2ff;
+    --accent: #9bd45c;
+    --accent-strong: #b9e77a;
+    --accent-soft: #edf8d9;
 }
 
 body {
@@ -22,7 +22,6 @@ body {
     background-color: var(--accent);
     cursor: pointer;
     transition: background-color 0.3s ease-in-out;
-
 }
 
 .light-purple {
@@ -42,7 +41,7 @@ body {
     background-color: var(--accent-strong);
 }
 .confirm-button:hover {
-
+    background-color: var(--accent);
 }
 
 h1 {

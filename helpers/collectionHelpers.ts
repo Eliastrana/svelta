@@ -2,33 +2,67 @@
 import {
     getFirestore,
     collection,
-    doc,
     addDoc,
-    setDoc,
-    serverTimestamp,
     deleteDoc,
-    getDocs,
-    query,
-    orderBy,
-    getDoc,
+    doc,
     DocumentReference,
+    getDoc,
+    getDocs,
+    orderBy,
+    query,
+    serverTimestamp,
+    setDoc,
+    Timestamp,
+    updateDoc,
 } from 'firebase/firestore';
 import { Recipe } from '@/app/types/Recipe';
+
+export type CollectionDoc = {
+    id: string;
+    name: string;
+    coverImage?: string;
+    description?: string;
+    isPublic?: boolean;
+    ownerId?: string;
+    createdAt?: unknown;
+};
+
+export type CollectionSummary = {
+    previewImage: string;
+    recipeCount: number;
+};
+
+const timestampToMillis = (value: Timestamp | Date | number | undefined): number => {
+    if (!value) return 0;
+    if (value instanceof Timestamp) return value.toMillis();
+    if (value instanceof Date) return value.getTime();
+    return value;
+};
 
 // ────────────────────────────────────────────────────────────────────────────────
 // Collections CRUD helpers
 // ────────────────────────────────────────────────────────────────────────────────
-export async function createCollection(uid: string, name: string) {
+export async function createCollection(
+    uid: string,
+    name: string,
+    coverImage?: string,
+    description?: string,
+    isPublic?: boolean,
+) {
     const db = getFirestore();
     return addDoc(collection(db, 'users', uid, 'collections'), {
         name,
+        coverImage: coverImage || '',
+        description: description?.trim() || '',
+        isPublic: !!isPublic,
+        ownerId: uid,
         createdAt: serverTimestamp(),
     });
 }
 
 export async function addRecipeToCollection(
     collectionId: string,
-    recipe: Recipe,
+    recipe: Pick<Recipe, 'id'>,
     ownerId: string,
 ) {
     const db = getFirestore();
@@ -53,10 +87,46 @@ export async function fetchCollections(uid: string) {
         query(collection(db, 'users', uid, 'collections'), orderBy('createdAt', 'desc')),
     );
 
-    return snap.docs.map((d) => ({
+    return snap.docs.map((d): CollectionDoc => ({
         id: d.id,
-        ...(d.data() as { name: string; createdAt?: unknown }),
+        ...(d.data() as Omit<CollectionDoc, 'id'>),
     }));
+}
+
+export async function fetchPublicCollections(uid: string) {
+    const collections = await fetchCollections(uid);
+    return collections.filter((collection) => !!collection.isPublic);
+}
+
+export async function fetchCollectionByOwner(ownerId: string, collectionId: string) {
+    const db = getFirestore();
+    const snap = await getDoc(doc(db, 'users', ownerId, 'collections', collectionId));
+
+    if (!snap.exists()) return null;
+
+    return {
+        id: snap.id,
+        ...(snap.data() as Omit<CollectionDoc, 'id'>),
+    } as CollectionDoc;
+}
+
+export async function updateCollection(
+    ownerId: string,
+    collectionId: string,
+    updates: {
+        name: string;
+        description?: string;
+        coverImage?: string;
+        isPublic?: boolean;
+    },
+) {
+    const db = getFirestore();
+    await updateDoc(doc(db, 'users', ownerId, 'collections', collectionId), {
+        name: updates.name.trim(),
+        description: updates.description?.trim() || '',
+        coverImage: updates.coverImage || '',
+        isPublic: !!updates.isPublic,
+    });
 }
 
 export async function toggleRecipeInCollection(
@@ -67,7 +137,7 @@ export async function toggleRecipeInCollection(
 ) {
     return inCollection
         ? removeRecipeFromCollection(collectionId, recipeId)
-        : addRecipeToCollection(collectionId, { id: recipeId } as any, ownerId);
+        : addRecipeToCollection(collectionId, { id: recipeId }, ownerId);
 }
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -91,4 +161,41 @@ export async function fetchCollectionRecipes(collectionId: string) {
     }
 
     return results;
+}
+
+export async function fetchCollectionSummary(collectionId: string): Promise<CollectionSummary> {
+    const db = getFirestore();
+    const refsSnap = await getDocs(collection(db, 'collectionsRecipes', collectionId, 'recipes'));
+
+    if (refsSnap.empty) {
+        return { previewImage: '', recipeCount: 0 };
+    }
+
+    let newestDoc = refsSnap.docs[0];
+    let newestAddedAt = timestampToMillis(
+        refsSnap.docs[0].data().addedAt as Timestamp | Date | number | undefined,
+    );
+
+    for (const refDoc of refsSnap.docs.slice(1)) {
+        const addedAt = timestampToMillis(
+            refDoc.data().addedAt as Timestamp | Date | number | undefined,
+        );
+        if (addedAt > newestAddedAt) {
+            newestAddedAt = addedAt;
+            newestDoc = refDoc;
+        }
+    }
+
+    const recipeRef = newestDoc.data().recipeRef as DocumentReference;
+    const recipeSnap = await getDoc(recipeRef);
+
+    if (!recipeSnap.exists()) {
+        return { previewImage: '', recipeCount: refsSnap.size };
+    }
+
+    const data = recipeSnap.data() as Partial<Recipe>;
+    return {
+        previewImage: data.coverImage?.trim() || '',
+        recipeCount: refsSnap.size,
+    };
 }

@@ -284,7 +284,7 @@ const Home: React.FC = () => {
                     </div>
                 ) : (
                     <div className="mt-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {recipes.map((recipe) => (
                                 <RecipeCard key={recipe.id} recipe={recipe} creator={usersMap[recipe.userId]} />
                             ))}
@@ -295,7 +295,7 @@ const Home: React.FC = () => {
 
                         {/* Bottom-loading skeletons (popular) */}
                         {activeFeed === 'popular' && fetchingNextPopular && (
-                            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {Array.from({ length: 2 }).map((_, i) => (
                                     <SkeletonCard key={`sk-next-${i}`} />
                                 ))}

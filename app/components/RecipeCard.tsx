@@ -278,7 +278,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                     {displayComments > 0 ? (
                         <div className="inline-flex items-center gap-1 rounded-full bg-[#e5e5d7] px-2.5 py-1 font-medium text-[#12340d]">
                             <span className="material-symbols-outlined text-[17px]">
-                                comment
+                                mode_comment
                             </span>
                             {displayComments}
                         </div>
@@ -297,7 +297,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
 
             {/* Owner controls */}
             {isOwner && (
-                <div className="absolute bottom-3 right-3 z-20 flex gap-2">
+                <div className="absolute top-5 left-5 z-20 flex gap-2">
                     <button
                         onClick={handleEdit}
                         className="grid h-9 w-9 place-items-center rounded-full bg-[#fbfaf4]/95 text-[#12340d] shadow-sm backdrop-blur transition hover:bg-[#e5e5d7]"

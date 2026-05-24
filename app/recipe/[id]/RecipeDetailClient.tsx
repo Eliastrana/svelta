@@ -165,7 +165,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                 {recipe.tags.map((t) => (
                                     <span
                                         key={t}
-                                        className="rounded-full bg-[#b9e77a] px-3 py-2 text-xs font-medium uppercase tracking-wide text-[#12340d]"
+                                        className="rounded-full bg-[#c7e9c0] px-3 py-2 text-xs font-medium uppercase tracking-wide text-[#12340d]"
                                     >
                                         {t}
                                     </span>
@@ -186,7 +186,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                             {recipe.temperature && (
                                 <span className="inline-flex items-center gap-1 rounded-md bg-[#e5e5d7] px-3 py-1 text-sm">
                                     <span className="material-symbols-outlined text-[16px]">
-                                        restaurant
+                                        device_thermostat
                                     </span>
                                     {recipe.temperature}
                                 </span>
@@ -323,7 +323,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                     className="z-0 object-cover"
                                     priority
                                     sizes="724px"
-                                    quality={75}
+                                    quality={90}
                                 />
                             </div>
                         </section>

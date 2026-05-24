@@ -590,19 +590,17 @@ const CreateRecipe = () => {
                 />
             ) : null}
 
-            {/* Top bar */}
-            <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
-                <div className="mx-auto max-w-xl px-4 py-3 flex items-center justify-between">
-                    <button
-                        onClick={() => router.back()}
-                        className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100"
-                        aria-label="Tilbake"
-                        type="button"
-                    >
-                        <span className="material-symbols-outlined">arrow_back</span>
-                    </button>
-
-                    <h1 className="text-lg font-semibold text-slate-900">Lag oppskrift</h1>
+            {/* Content */}
+            <div className="mx-auto max-w-xl px-4 py-6 pb-28">
+                <div className="mb-4 flex items-center justify-end">
+                    {/*<button*/}
+                    {/*    onClick={() => router.back()}*/}
+                    {/*    className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100"*/}
+                    {/*    aria-label="Tilbake"*/}
+                    {/*    type="button"*/}
+                    {/*>*/}
+                    {/*    <span className="material-symbols-outlined">arrow_back</span>*/}
+                    {/*</button>*/}
 
                     <button
                         type="submit"
@@ -613,21 +611,18 @@ const CreateRecipe = () => {
                             publishing ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95 active:scale-[0.99]',
                         ].join(' ')}
                     >
-    <span className="inline-flex items-center gap-2">
-        {publishing ? (
-            <span
-                className="inline-block h-4 w-4 rounded-full border-2 border-white/60 border-t-white animate-spin"
-                aria-hidden="true"
-            />
-        ) : null}
-        {publishing ? 'Publiserer…' : 'Publiser'}
-    </span>
+                        <span className="inline-flex items-center gap-2">
+                            {publishing ? (
+                                <span
+                                    className="inline-block h-4 w-4 rounded-full border-2 border-white/60 border-t-white animate-spin"
+                                    aria-hidden="true"
+                                />
+                            ) : null}
+                            {publishing ? 'Publiserer…' : 'Publiser'}
+                        </span>
                     </button>
                 </div>
-            </div>
 
-            {/* Content */}
-            <div className="mx-auto max-w-xl px-4 py-6 pb-28">
                 <form id="create-recipe-form" onSubmit={handleSubmit} className="space-y-4">
 
                     {/* Import from URL */}
@@ -919,6 +914,29 @@ const CreateRecipe = () => {
                         ) : (
                             <p className="mt-3 text-sm text-slate-600">Ingen tags ennå.</p>
                         )}
+                    </div>
+
+
+                    <div className="justify-end flex">
+                    <button
+                        type="submit"
+                        form="create-recipe-form"
+                        disabled={publishing}
+                        className={[
+                            'h-10 px-4 rounded-full brown-button text-sm font-semibold shadow-sm transition',
+                            publishing ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95 active:scale-[0.99]',
+                        ].join(' ')}
+                    >
+                        <span className="inline-flex items-center gap-2">
+                            {publishing ? (
+                                <span
+                                    className="inline-block h-4 w-4 rounded-full border-2 border-white/60 border-t-white animate-spin"
+                                    aria-hidden="true"
+                                />
+                            ) : null}
+                            {publishing ? 'Publiserer…' : 'Publiser'}
+                        </span>
+                    </button>
                     </div>
 
 

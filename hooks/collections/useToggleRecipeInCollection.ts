@@ -18,6 +18,7 @@ export function useToggleRecipeInCollection() {
             toggleRecipeInCollection(collectionId, recipeId, inCollection, ownerId),
         onSuccess: (_res, vars) => {
             qc.invalidateQueries({ queryKey: ['collectionRecipes', vars.collectionId] });
+            qc.invalidateQueries({ queryKey: ['collectionSummary', vars.collectionId] });
             qc.invalidateQueries({ queryKey: ['collections', vars.ownerId] });
         },
     });

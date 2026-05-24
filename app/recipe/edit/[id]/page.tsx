@@ -596,8 +596,8 @@ const EditRecipePage: React.FC = () => {
 
     return (
         <div className="min-h-screen">
-            <div className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
-                <div className="mx-auto max-w-xl px-4 py-3 flex items-center justify-between">
+            <div className="mx-auto max-w-xl px-4 py-6 pb-28">
+                <div className="mb-4 flex items-center justify-between">
                     <button
                         onClick={() => router.back()}
                         className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100"
@@ -617,9 +617,6 @@ const EditRecipePage: React.FC = () => {
                         Lagre
                     </button>
                 </div>
-            </div>
-
-            <div className="mx-auto max-w-xl px-4 py-6 pb-28">
                 <form id="edit-recipe-form" onSubmit={handleSubmit} className="space-y-4">
                     {/* Basic info */}
                     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
