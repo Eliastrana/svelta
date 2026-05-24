@@ -225,15 +225,15 @@ const ProfileSkeleton: React.FC = () => {
             </div>
 
             <div className="relative z-10 mx-auto -mt-16 max-w-5xl px-4 md:-mt-20 md:w-2/3">
-                <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-                    <div className="flex items-end gap-5 md:gap-8">
-                        <div className="h-28 w-28 shrink-0 rounded-[28px] bg-white p-1.5 shadow-xl ring-1 ring-slate-200/70 md:h-40 md:w-40">
-                            <div className="h-full w-full rounded-[22px] bg-slate-200/70 animate-pulse" />
+                <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:rounded-[32px] sm:p-6 md:p-8">
+                    <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-end sm:gap-6 sm:text-left md:gap-8">
+                        <div className="h-24 w-24 shrink-0 rounded-[24px] bg-white p-1.5 shadow-xl ring-1 ring-slate-200/70 sm:h-28 sm:w-28 sm:rounded-[28px] md:h-40 md:w-40">
+                            <div className="h-full w-full rounded-[20px] bg-slate-200/70 animate-pulse sm:rounded-[22px]" />
                         </div>
-                        <div className="space-y-3 pb-2">
-                            <div className="h-9 w-52 rounded-2xl bg-slate-200/70 animate-pulse" />
-                            <div className="h-7 w-32 rounded-full bg-slate-200/60 animate-pulse" />
-                            <div className="h-4 w-64 rounded-full bg-slate-200/40 animate-pulse" />
+                        <div className="w-full space-y-3 sm:pb-2">
+                            <div className="mx-auto h-9 w-52 rounded-2xl bg-slate-200/70 animate-pulse sm:mx-0" />
+                            <div className="mx-auto h-7 w-32 rounded-full bg-slate-200/60 animate-pulse sm:mx-0" />
+                            <div className="mx-auto h-4 w-64 rounded-full bg-slate-200/40 animate-pulse sm:mx-0" />
                         </div>
                     </div>
                 </div>
@@ -286,6 +286,7 @@ type EditProfileModalProps = {
     initialBackgroundPhotoURL: string;
     uid: string;
     onSaved: (next: { bio: string; favoriteFood: string; photoURL: string; backgroundPhotoURL: string }) => void;
+    onLogout: () => void;
 };
 
 const EditProfileModal: React.FC<EditProfileModalProps> = ({
@@ -298,6 +299,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                                                initialBackgroundPhotoURL,
                                                                uid,
                                                                onSaved,
+                                                               onLogout,
                                                            }) => {
     const [bio, setBio] = useState(initialBio);
     const [favoriteFood, setFavoriteFood] = useState(initialFavoriteFood);
@@ -477,23 +479,35 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                         </div>
                     ) : null}
 
-                    <div className="mt-5 flex justify-end gap-2">
+                    <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <button
                             type="button"
-                            onClick={closeWithAnim}
-                            className="px-5 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700 transition active:scale-95 cursor-pointer"
+                            onClick={onLogout}
+                            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full font-semibold text-red-600 hover:bg-red-50 transition active:scale-95 cursor-pointer"
                             disabled={busy || closing}
                         >
-                            Avbryt
+                            <span className="material-symbols-outlined text-[20px]">logout</span>
+                            Logg ut
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => void save(closeWithAnim)}
-                            className="brown-button px-5 py-2.5 rounded-full font-semibold shadow-sm transition hover:opacity-95 active:scale-95 disabled:opacity-50"
-                            disabled={busy || closing}
-                        >
-                            {busy ? 'Lagrer…' : 'Lagre'}
-                        </button>
+
+                        <div className="flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={closeWithAnim}
+                                className="px-5 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700 transition active:scale-95 cursor-pointer"
+                                disabled={busy || closing}
+                            >
+                                Avbryt
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => void save(closeWithAnim)}
+                                className="brown-button px-5 py-2.5 rounded-full font-semibold shadow-sm transition hover:opacity-95 active:scale-95 disabled:opacity-50"
+                                disabled={busy || closing}
+                            >
+                                {busy ? 'Lagrer…' : 'Lagre'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -607,12 +621,12 @@ const UserProfile: React.FC = () => {
 
             {/* Profile card — below the banner, solid background, avatar overlaps up */}
             <div className="relative z-10 mx-auto -mt-16 max-w-5xl px-4 md:-mt-20 md:w-2/3">
-                <div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+                <div className="rounded-xl  bg-[#f2f1e8] p-5 shadow-sm sm:rounded-xl sm:p-6 md:p-8">
                     <div className="md:flex md:items-end md:justify-between md:gap-10">
-                        <div className="flex items-start md:items-end gap-5 md:gap-8">
+                        <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-end sm:gap-6 sm:text-left md:gap-8">
                             <div className="relative shrink-0">
-                                <div className="h-28 w-28 rounded-[28px] bg-white p-1.5 shadow-sm ring-1 ring-slate-200/70 md:h-40 md:w-40">
-                                    <div className="h-full w-full overflow-hidden rounded-[22px] bg-[var(--accent-soft)]">
+                                <div className="h-24 w-24 rounded-xl shadow-sm sm:h-28 sm:w-28 sm:rounded-xl md:h-40 md:w-40">
+                                    <div className="h-full w-full overflow-hidden rounded-lg bg-[var(--accent-soft)] sm:rounded-lg">
                                         {photoURL ? (
                                             <img src={photoURL} alt="User Avatar" className="h-full w-full object-cover" />
                                         ) : (
@@ -624,9 +638,9 @@ const UserProfile: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="min-w-0 pt-2 md:pb-2">
-                                <div className="flex items-center gap-3">
-                                    <h1 className="truncate text-3xl font-semibold tracking-tight text-slate-900 md:text-5xl">
+                            <div className="min-w-0 w-full sm:pt-2 md:pb-2">
+                                <div className="flex items-center justify-center gap-3 sm:justify-start">
+                                    <h1 className="truncate text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl md:text-5xl">
                                         {name}
                                     </h1>
 
@@ -634,7 +648,7 @@ const UserProfile: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={() => setShowEditProfile(true)}
-                                            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 hover:rotate-12 active:scale-90"
+                                            className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-slate-200   transition hover:bg-slate-100 hover:text-slate-900  active:scale-90 sm:h-11 sm:w-11"
                                             aria-label="Rediger profil"
                                             title="Rediger profil"
                                         >
@@ -643,24 +657,24 @@ const UserProfile: React.FC = () => {
                                     ) : null}
                                 </div>
 
-                                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-600 md:text-base">
+                                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm  sm:justify-start md:text-base">
                                     <button
                                         type="button"
                                         onClick={() => setShowFollowersModal(true)}
-                                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 transition hover:border-slate-300 hover:bg-slate-100 active:scale-95"
+                                        className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200  px-3 py-1.5 transition hover:border-slate-300 hover:bg-slate-100 active:scale-95"
                                         aria-label="Se følgere"
                                     >
                                         <span className="material-symbols-outlined text-[20px]">group</span>
                                         <span>
-                                            <span className="font-semibold text-slate-900">{followerCount}</span> følgere
+                                            <span className="font-semibold text-neutral-900">{followerCount}</span> følgere
                                         </span>
                                     </button>
 
                                     {favoriteFood ? (
-                                        <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5">
+                                        <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full   px-3 py-1.5">
                                             <span className="material-symbols-outlined text-[20px]">restaurant</span>
                                             <span className="truncate">
-                                                <span className="font-semibold text-slate-900">Favorittmat:</span> {favoriteFood}
+                                                <span className="font-semibold ">Favorittmat:</span> {favoriteFood}
                                             </span>
                                         </span>
                                     ) : null}
@@ -674,15 +688,8 @@ const UserProfile: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="mt-6 flex items-center gap-3 md:mt-0 md:justify-end md:pb-2 shrink-0">
-                            {isOwner ? (
-                                <button
-                                    onClick={logout}
-                                    className="rounded-full px-6 py-3 text-base font-semibold brown-button shadow-md hover:opacity-95 active:scale-95 transition"
-                                >
-                                    Logg ut
-                                </button>
-                            ) : auth.currentUser ? (
+                        {!isOwner && auth.currentUser ? (
+                            <div className="mt-5 flex items-center justify-center md:mt-0 md:justify-end md:pb-2 shrink-0">
                                 <button
                                     onClick={async () => {
                                         const meRef = doc(firestore, 'users', auth.currentUser!.uid);
@@ -694,10 +701,10 @@ const UserProfile: React.FC = () => {
                                         setFollowerCount((prev) => prev + (isFollowing ? -1 : 1));
                                     }}
                                     className={[
-                                        'inline-flex items-center gap-2 rounded-full px-6 py-3 text-base font-semibold shadow-md transition active:scale-95',
+                                        'inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition active:scale-95 sm:text-base',
                                         isFollowing
-                                            ? 'border border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100'
-                                            : 'brown-button hover:opacity-95',
+                                            ? 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                                            : 'border border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100',
                                     ].join(' ')}
                                 >
                                     <span className="material-symbols-outlined text-[20px]">
@@ -705,8 +712,8 @@ const UserProfile: React.FC = () => {
                                     </span>
                                     {isFollowing ? 'Følger' : 'Følg'}
                                 </button>
-                            ) : null}
-                        </div>
+                            </div>
+                        ) : null}
                     </div>
                 </div>
             </div>
@@ -864,6 +871,7 @@ const UserProfile: React.FC = () => {
                     initialPhotoURL={photoURL}
                     initialBackgroundPhotoURL={backgroundPhotoURL}
                     uid={id}
+                    onLogout={logout}
                     onSaved={(next) => {
                         setUserData((prev) =>
                             prev
