@@ -159,13 +159,13 @@ export default function AddToCollectionModal({
     };
 
     return (
-        <AppModal onClose={onClose}>
+        <AppModal onClose={onClose} panelClassName="max-h-[85vh] overflow-hidden">
             {({ closeWithAnim }) => (
-                <div className="p-6">
-                    <h3 className="mb-4 text-lg font-semibold text-slate-900">Legg til i liste</h3>
+                <div className="flex max-h-[85vh] flex-col p-4 sm:p-6">
+                    <h3 className="mb-4 pr-10 text-lg font-semibold text-slate-900">Legg til i liste</h3>
 
-                    <div className="mb-4 flex items-start gap-3">
-                        <label className="flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-[var(--accent-soft)] text-slate-700">
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start">
+                        <label className="flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center self-start overflow-hidden rounded-2xl border border-slate-200 bg-[var(--accent-soft)] text-slate-700">
                             {coverPreview ? (
                                 <img src={coverPreview} alt="Omslag" className="h-full w-full object-cover" />
                             ) : (
@@ -174,14 +174,14 @@ export default function AddToCollectionModal({
                             <input type="file" accept="image/*" className="hidden" onChange={onPickCover} />
                         </label>
 
-                        <div className="flex-1">
-                            <div className="flex gap-2">
+                        <div className="min-w-0 flex-1">
+                            <div className="flex flex-col gap-2 sm:flex-row">
                                 <input
                                     type="text"
                                     value={newListName}
                                     onChange={(e) => setNewListName(e.target.value)}
                                     placeholder="Ny liste…"
-                                    className="flex-1 rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                    className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-200"
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
                                             e.preventDefault();
@@ -194,7 +194,7 @@ export default function AddToCollectionModal({
                                     type="button"
                                     onClick={() => void handleCreateList()}
                                     disabled={!uid || creating || !newListName.trim()}
-                                    className="rounded-full bg-slate-100 px-4 py-2 font-semibold text-slate-800 hover:bg-slate-200 disabled:opacity-50"
+                                    className="rounded-full bg-slate-100 px-4 py-2 font-semibold text-slate-800 hover:bg-slate-200 disabled:opacity-50 sm:self-start"
                                 >
                                     {creating ? 'Lager…' : 'Lag'}
                                 </button>
@@ -241,7 +241,7 @@ export default function AddToCollectionModal({
                     {collections.length === 0 ? (
                         <p className="text-sm text-slate-600">Du har ingen lister ennå.</p>
                     ) : (
-                        <ul className="max-h-60 space-y-3 overflow-y-auto pr-2">
+                        <ul className="max-h-[min(42vh,320px)] space-y-3 overflow-y-auto pr-1 sm:pr-2">
                             {collections.map((c) => {
                                 const inputId = `collection-${c.id}`;
 
@@ -290,8 +290,8 @@ export default function AddToCollectionModal({
                                             </span>
                                         </label>
 
-                                        <div className="min-w-0">
-                                            <span className="block text-slate-700">{c.name}</span>
+                                        <div className="min-w-0 flex-1">
+                                            <span className="block truncate text-slate-700">{c.name}</span>
                                             <span className="block text-xs text-slate-500">
                                                 {collectionSummaries[c.id]?.recipeCount ?? 0}{' '}
                                                 {(collectionSummaries[c.id]?.recipeCount ?? 0) === 1 ? 'oppskrift' : 'oppskrifter'}
@@ -303,7 +303,7 @@ export default function AddToCollectionModal({
                         </ul>
                     )}
 
-                    <button className="mt-6 w-full rounded-full confirm-button py-2" onClick={closeWithAnim}>
+                    <button className="mt-5 w-full rounded-full confirm-button py-2.5" onClick={closeWithAnim}>
                         Ferdig
                     </button>
                 </div>

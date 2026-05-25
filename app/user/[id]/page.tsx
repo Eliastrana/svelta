@@ -315,6 +315,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deletingAccount, setDeletingAccount] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
     // sync when modal opens with new initial values
     useEffect(() => {
@@ -327,6 +328,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         setBackgroundPhotoPreview(initialBackgroundPhotoURL);
         setError(null);
         setDeleteError(null);
+        setDeleteConfirmText('');
         setShowDeleteConfirm(false);
         setDeletingAccount(false);
     }, [open, initialBio, initialFavoriteFood, initialPhotoURL, initialBackgroundPhotoURL]);
@@ -409,6 +411,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             return;
         }
 
+        if (deleteConfirmText.trim().toLowerCase() !== 'slett') {
+            setDeleteError('Skriv "slett" for å bekrefte.');
+            return;
+        }
+
         try {
             setDeletingAccount(true);
             setDeleteError(null);
@@ -428,7 +435,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         <>
             <AppModal onClose={onClose}>
                 {({ closeWithAnim, closing }) => (
-                    <div className="w-full p-5 relative">
+                    <div className="relative max-h-[85vh] w-full overflow-y-auto p-5">
                         <button
                             type="button"
                             onClick={closeWithAnim}
@@ -504,11 +511,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                         </div>
 
                         <div className="mt-6 rounded-2xl border border-red-200 bg-red-50/70 p-4">
-                            <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-center justify-between gap-4">
                                 <div>
                                     <h3 className="text-sm font-semibold text-red-700">Slett bruker</h3>
                                     <p className="mt-1 text-sm text-red-600">
-                                        Dette sletter profilen din, kokebøkene dine, oppskriftene dine og aktiviteten din som likes, kommentarer og vurderinger.
+                                        Åpner en egen bekreftelse for permanent sletting av konto.
                                     </p>
                                 </div>
 
@@ -516,6 +523,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                     type="button"
                                     onClick={() => {
                                         setDeleteError(null);
+                                        setDeleteConfirmText('');
                                         setShowDeleteConfirm(true);
                                     }}
                                     className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 active:scale-95"
@@ -584,6 +592,26 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                 Dette kan ikke angres. Vi sletter profilen din og fjerner aktiviteten din fra appen.
                             </p>
 
+                            <div className="mt-4">
+                                <label className="mb-2 block text-sm font-semibold text-slate-900">
+                                    Skriv <span className="rounded bg-slate-100 px-1.5 py-0.5 font-bold">slett</span> for å bekrefte
+                                </label>
+                                <input
+                                    type="text"
+                                    value={deleteConfirmText}
+                                    onChange={(e) => {
+                                        setDeleteConfirmText(e.target.value);
+                                        if (deleteError) setDeleteError(null);
+                                    }}
+                                    placeholder="slett"
+                                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 p-3 transition focus:bg-white focus:outline-none focus:border-red-300 focus:ring-4 focus:ring-red-100"
+                                    autoComplete="off"
+                                    autoCapitalize="none"
+                                    spellCheck={false}
+                                    disabled={deletingAccount}
+                                />
+                            </div>
+
                             {deleteError ? (
                                 <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-100 bg-red-50 p-3">
                                     <span className="material-symbols-outlined text-red-500 text-[20px]">error</span>
@@ -604,7 +632,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                     type="button"
                                     onClick={() => void handleDeleteAccount()}
                                     className="inline-flex items-center gap-2 rounded-full bg-red-500 px-5 py-2.5 font-semibold text-white shadow-sm transition hover:bg-red-600 active:scale-95 disabled:opacity-60"
-                                    disabled={closing || deletingAccount}
+                                    disabled={closing || deletingAccount || deleteConfirmText.trim().toLowerCase() !== 'slett'}
                                 >
                                     <span className="material-symbols-outlined text-[18px]">delete_forever</span>
                                     {deletingAccount ? 'Sletter konto…' : 'Slett konto'}

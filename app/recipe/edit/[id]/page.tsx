@@ -26,7 +26,11 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-type StepWithId = CookingStep & { id: string };
+type StepWithId = CookingStep & {
+    id: string;
+    imageFile?: File | null;
+    imagePreview?: string | null;
+};
 
 type IngredientItem = {
     id: string;
@@ -63,6 +67,15 @@ const makeId = (): string =>
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+const getStoredStepImage = (step: Partial<StepWithId>): string => {
+    if (step.imagePreview && !step.imagePreview.startsWith('blob:')) return step.imagePreview;
+    return step.imageUrl?.trim() || '';
+};
+
+const revokeBlobUrl = (url?: string | null) => {
+    if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
+};
 
 function normalizeIngredientName(s: string): string {
     return s.trim();
@@ -116,9 +129,11 @@ function SortableStepCard(props: {
     step: StepWithId;
     index: number;
     onChange: (stepId: string, field: 'title' | 'description', value: string) => void;
+    onImageChange: (stepId: string, event: React.ChangeEvent<HTMLInputElement>) => void;
+    onRemoveImage: (stepId: string) => void;
     onRemove: (stepId: string) => void;
 }) {
-    const { step, index, onChange, onRemove } = props;
+    const { step, index, onChange, onImageChange, onRemoveImage, onRemove } = props;
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: step.id,
@@ -172,6 +187,42 @@ function SortableStepCard(props: {
                         className="w-full min-h-[90px] p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                         required
                     />
+
+                    <div className="mt-3">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                            <label className="block text-sm font-semibold text-slate-900">Stegbilde</label>
+                            {step.imagePreview || step.imageUrl ? (
+                                <button
+                                    type="button"
+                                    onClick={() => onRemoveImage(step.id)}
+                                    className="text-sm text-slate-600 hover:underline"
+                                >
+                                    Fjern
+                                </button>
+                            ) : null}
+                        </div>
+
+                        <label className="flex h-28 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 transition hover:bg-slate-50">
+                            <span className="material-symbols-outlined text-slate-700">photo_camera</span>
+                            <p className="mt-2 text-sm text-slate-600">Legg til bilde for dette steget</p>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(event) => onImageChange(step.id, event)}
+                            />
+                        </label>
+
+                        {step.imagePreview || step.imageUrl ? (
+                            <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200">
+                                <img
+                                    src={step.imagePreview || step.imageUrl}
+                                    alt={`Stegbilde ${index + 1}`}
+                                    className="h-44 w-full object-cover"
+                                />
+                            </div>
+                        ) : null}
+                    </div>
                 </div>
 
                 <button
@@ -286,6 +337,8 @@ const EditRecipePage: React.FC = () => {
 
     const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
     const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+    const coverImagePreviewRef = useRef<string | null>(null);
+    const cookingStepsRef = useRef<StepWithId[]>([]);
 
     // NY: detailed ingredients
     const [ingredientsDetailed, setIngredientsDetailed] = useState<IngredientItem[]>([]);
@@ -375,7 +428,18 @@ const EditRecipePage: React.FC = () => {
             setPortions(draft.portions ?? draft.recipeData?.portions ?? '');
 
             const loadedSteps = draft.cookingSteps ?? [];
-            setCookingSteps(loadedSteps.map((s) => ({ ...s, id: s.id || makeId() })));
+            setCookingSteps(
+                loadedSteps.map((s) => {
+                    const storedImage = getStoredStepImage(s);
+                    return {
+                        ...s,
+                        id: s.id || makeId(),
+                        imageUrl: s.imageUrl?.trim() || storedImage,
+                        imagePreview: storedImage || null,
+                        imageFile: null,
+                    };
+                }),
+            );
 
             setNewIngredientName(draft.newIngredientName ?? '');
             setNewIngredientAmount(draft.newIngredientAmount ?? '');
@@ -426,7 +490,13 @@ const EditRecipePage: React.FC = () => {
                     setCookingTime(data.cookingTime ?? '');
                     setPortions(data.portions ?? '');
 
-                    const steps = (data.cookingSteps ?? []).map((s) => ({ ...s, id: makeId() }));
+                    const steps = (data.cookingSteps ?? []).map((s) => ({
+                        ...s,
+                        id: makeId(),
+                        imageUrl: s.imageUrl?.trim() || '',
+                        imagePreview: s.imageUrl?.trim() || null,
+                        imageFile: null,
+                    }));
                     setCookingSteps(steps);
 
                     setCoverImagePreview(null);
@@ -443,12 +513,19 @@ const EditRecipePage: React.FC = () => {
 
     // cleanup blob preview
     useEffect(() => {
-        return () => {
-            if (coverImagePreview && coverImagePreview.startsWith('blob:')) {
-                URL.revokeObjectURL(coverImagePreview);
-            }
-        };
+        coverImagePreviewRef.current = coverImagePreview;
     }, [coverImagePreview]);
+
+    useEffect(() => {
+        cookingStepsRef.current = cookingSteps;
+    }, [cookingSteps]);
+
+    useEffect(() => {
+        return () => {
+            revokeBlobUrl(coverImagePreviewRef.current);
+            cookingStepsRef.current.forEach((step) => revokeBlobUrl(step.imagePreview));
+        };
+    }, []);
 
     // Persist draft (ikke lagre blob preview)
     useEffect(() => {
@@ -464,6 +541,7 @@ const EditRecipePage: React.FC = () => {
                 cookingSteps: cookingSteps.map((s) => ({
                     title: s.title,
                     description: s.description,
+                    imageUrl: getStoredStepImage(s),
                 })),
             },
             ingredientsDetailed,
@@ -473,7 +551,13 @@ const EditRecipePage: React.FC = () => {
             temperature,
             cookingTime,
 
-            cookingSteps,
+            cookingSteps: cookingSteps.map((s) => ({
+                id: s.id,
+                title: s.title,
+                description: s.description,
+                imageUrl: getStoredStepImage(s),
+                imagePreview: getStoredStepImage(s) || null,
+            })),
             newIngredientName,
             newIngredientAmount,
             coverImagePreview: null,
@@ -518,7 +602,10 @@ const EditRecipePage: React.FC = () => {
     };
 
     const handleAddStep = () => {
-        setCookingSteps((prev) => [...prev, { id: makeId(), title: '', description: '' }]);
+        setCookingSteps((prev) => [
+            ...prev,
+            { id: makeId(), title: '', description: '', imageUrl: '', imagePreview: null, imageFile: null },
+        ]);
     };
 
     const handleStepChange = (stepId: string, field: 'title' | 'description', value: string) => {
@@ -526,13 +613,51 @@ const EditRecipePage: React.FC = () => {
     };
 
     const handleRemoveStep = (stepId: string) => {
-        setCookingSteps((prev) => prev.filter((s) => s.id !== stepId));
+        setCookingSteps((prev) => {
+            const step = prev.find((s) => s.id === stepId);
+            revokeBlobUrl(step?.imagePreview);
+            return prev.filter((s) => s.id !== stepId);
+        });
+    };
+
+    const handleStepImageChange = (stepId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+
+        setCookingSteps((prev) =>
+            prev.map((step) => {
+                if (step.id !== stepId) return step;
+                revokeBlobUrl(step.imagePreview);
+                return {
+                    ...step,
+                    imageFile: file,
+                    imagePreview: URL.createObjectURL(file),
+                };
+            }),
+        );
+    };
+
+    const handleRemoveStepImage = (stepId: string) => {
+        setCookingSteps((prev) =>
+            prev.map((step) => {
+                if (step.id !== stepId) return step;
+                revokeBlobUrl(step.imagePreview);
+                return {
+                    ...step,
+                    imageFile: null,
+                    imagePreview: null,
+                    imageUrl: '',
+                };
+            }),
+        );
     };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
+        revokeBlobUrl(coverImagePreviewRef.current);
         setCoverImageFile(file);
         const previewUrl = URL.createObjectURL(file);
         setCoverImagePreview(previewUrl);
@@ -556,10 +681,26 @@ const EditRecipePage: React.FC = () => {
             coverImageUrl = await getDownloadURL(snapshot.ref);
         }
 
-        const stepsForDb: CookingStep[] = cookingSteps.map((s) => ({
-            title: s.title,
-            description: s.description,
-        }));
+        const stepsForDb: CookingStep[] = await Promise.all(
+            cookingSteps.map(async (s, index) => {
+                let imageUrl = s.imageUrl?.trim() || getStoredStepImage(s);
+
+                if (s.imageFile) {
+                    const imageRef = ref(
+                        storage,
+                        `recipe-steps/${user.uid}/${recipeId}/${Date.now()}-${index}-${s.imageFile.name}`,
+                    );
+                    const snapshot = await uploadBytes(imageRef, s.imageFile);
+                    imageUrl = await getDownloadURL(snapshot.ref);
+                }
+
+                return {
+                    title: s.title,
+                    description: s.description,
+                    imageUrl: imageUrl || '',
+                };
+            }),
+        );
 
         const ingredientsForDb = ingredientsDetailed
             .map((x) => ({
@@ -648,6 +789,7 @@ const EditRecipePage: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => {
+                                        revokeBlobUrl(coverImagePreviewRef.current);
                                         setCoverImageFile(null);
                                         setCoverImagePreview(null);
                                         setRecipeData((p) => ({ ...p, coverImage: '' }));
@@ -799,6 +941,8 @@ const EditRecipePage: React.FC = () => {
                                             step={step}
                                             index={index}
                                             onChange={handleStepChange}
+                                            onImageChange={handleStepImageChange}
+                                            onRemoveImage={handleRemoveStepImage}
                                             onRemove={handleRemoveStep}
                                         />
                                     ))}

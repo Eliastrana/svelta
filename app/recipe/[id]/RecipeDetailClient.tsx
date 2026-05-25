@@ -23,7 +23,7 @@ type RecipeForDetail = {
     title: string;
     description?: string;
     coverImage?: string;
-    cookingSteps: Array<{ title: string; description: string }>;
+    cookingSteps: Array<{ title: string; description: string; imageUrl?: string }>;
     temperature?: string;
     cookingTime?: string;
     portions?: string;
@@ -154,10 +154,10 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
     };
 
     return (
-        <div className="min-h-screen overflow-x-hidden bg-[#fbfaf4] pb-20 text-[#12340d]">
+        <div className="min-h-screen overflow-x-clip bg-[#fbfaf4] pb-20 text-[#12340d]">
             <main className="mx-auto grid max-w-[1190px] min-w-0 gap-5 px-4 py-4 lg:grid-cols-[438px_minmax(0,1fr)] lg:items-start">
                 {/* LEFT COLUMN */}
-                <div className="min-w-0 space-y-3 lg:sticky lg:top-4">
+                <div className="min-w-0 space-y-3 lg:sticky lg:top-4 lg:self-start lg:h-fit">
                     {/* Intro card */}
                     <section className="min-w-0 overflow-hidden rounded-xl bg-[#f2f1e8] p-6 md:p-8">
                         {Array.isArray(recipe.tags) && recipe.tags.length > 0 ? (
@@ -209,25 +209,25 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                         )}
                     </section>
 
-                    {/* Mobile image */}
-                    {recipe.coverImage && (
-                        <section className="lg:hidden">
-                            <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#f2f1e8]">
-                                <Image
-                                    src={recipe.coverImage}
-                                    alt={`${recipe.title} cover`}
-                                    fill
-                                    className="object-cover"
-                                    priority
-                                    sizes="100vw"
-                                    quality={75}
-                                />
-                            </div>
-                        </section>
-                    )}
+                        {/* Mobile image */}
+                        {recipe.coverImage && (
+                            <section className="lg:hidden">
+                                <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#f2f1e8]">
+                                    <Image
+                                        src={recipe.coverImage}
+                                        alt={`${recipe.title} cover`}
+                                        fill
+                                        className="object-cover"
+                                        priority
+                                        sizes="100vw"
+                                        quality={75}
+                                    />
+                                </div>
+                            </section>
+                        )}
 
-                    {/* Creator / Like / Save cards */}
-                    <section className="grid grid-cols-3 gap-2">
+                        {/* Creator / Like / Save cards */}
+                        <section className="grid grid-cols-3 gap-2">
                         <button
                             type="button"
                             onClick={() => router.push(`/user/${recipe.userId}`)}
@@ -279,10 +279,10 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                             </span>
                             Lagre
                         </button>
-                    </section>
+                        </section>
 
-                    {/* Ingredients card */}
-                    <section className="min-w-0 overflow-hidden rounded-xl bg-[#f2f1e8] p-6 md:p-8">
+                        {/* Ingredients card */}
+                        <section className="min-w-0 overflow-hidden rounded-xl bg-[#f2f1e8] p-6 md:p-8">
                         <h2 className="text-3xl font-bold tracking-tight">
                             Ingredienser
                         </h2>
@@ -308,7 +308,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                 Ingen ingredienser lagt til.
                             </p>
                         )}
-                    </section>
+                        </section>
                 </div>
 
                 {/* RIGHT COLUMN */}
@@ -348,6 +348,19 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                     <p className="mt-2 text-base leading-relaxed [overflow-wrap:anywhere]">
                                         {step.description}
                                     </p>
+
+                                    {step.imageUrl ? (
+                                        <div className="relative mt-4 aspect-[4/3] w-full overflow-hidden rounded-xl bg-[#e5e5d7]">
+                                            <Image
+                                                src={step.imageUrl}
+                                                alt={`Stegbilde ${i + 1}`}
+                                                fill
+                                                className="object-cover"
+                                                sizes="(max-width: 1024px) 100vw, 724px"
+                                                quality={80}
+                                            />
+                                        </div>
+                                    ) : null}
                                 </div>
                             ))}
                         </div>

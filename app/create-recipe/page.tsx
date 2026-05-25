@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, firestore, storage } from '@/firebase';
@@ -29,7 +29,11 @@ import { CSS } from '@dnd-kit/utilities';
 
 const LOCAL_STORAGE_KEY = 'createRecipeForm';
 
-type StepWithId = CookingStep & { id: string };
+type StepWithId = CookingStep & {
+    id: string;
+    imageFile?: File | null;
+    imagePreview?: string | null;
+};
 
 type Ingredient = { name: string; amount: string };
 type IngredientWithId = Ingredient & { id: string };
@@ -43,13 +47,24 @@ const makeId = (prefix: 'step' | 'ing'): string => {
     return `${prefix}_${base}`;
 };
 
+const getStoredStepImage = (step: Partial<StepWithId>): string => {
+    if (step.imagePreview && !step.imagePreview.startsWith('blob:')) return step.imagePreview;
+    return step.imageUrl?.trim() || '';
+};
+
+const revokeBlobUrl = (url?: string | null) => {
+    if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
+};
+
 function SortableStepCard(props: {
     step: StepWithId;
     index: number;
     onChange: (id: string, field: 'title' | 'description', value: string) => void;
+    onImageChange: (id: string, event: React.ChangeEvent<HTMLInputElement>) => void;
+    onRemoveImage: (id: string) => void;
     onRemove: (id: string) => void;
 }) {
-    const { step, index, onChange, onRemove } = props;
+    const { step, index, onChange, onImageChange, onRemoveImage, onRemove } = props;
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: step.id,
@@ -100,6 +115,42 @@ function SortableStepCard(props: {
                         className="w-full min-h-[90px] p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                         required
                     />
+
+                    <div className="mt-3">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                            <label className="block text-sm font-semibold text-slate-900">Stegbilde</label>
+                            {step.imagePreview || step.imageUrl ? (
+                                <button
+                                    type="button"
+                                    onClick={() => onRemoveImage(step.id)}
+                                    className="text-sm text-slate-600 hover:underline"
+                                >
+                                    Fjern
+                                </button>
+                            ) : null}
+                        </div>
+
+                        <label className="flex h-28 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 transition hover:bg-slate-50">
+                            <span className="material-symbols-outlined text-slate-700">photo_camera</span>
+                            <p className="mt-2 text-sm text-slate-600">Legg til bilde for dette steget</p>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(event) => onImageChange(step.id, event)}
+                            />
+                        </label>
+
+                        {step.imagePreview || step.imageUrl ? (
+                            <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200">
+                                <img
+                                    src={step.imagePreview || step.imageUrl}
+                                    alt={`Stegbilde ${index + 1}`}
+                                    className="h-44 w-full object-cover"
+                                />
+                            </div>
+                        ) : null}
+                    </div>
                 </div>
 
                 <button
@@ -201,6 +252,8 @@ const CreateRecipe = () => {
     const [portions, setPortions] = useState('');
 
     const [publishing, setPublishing] = useState(false);
+    const coverImagePreviewRef = useRef<string | null>(null);
+    const cookingStepsRef = useRef<StepWithId[]>([]);
 
     const router = useRouter();
 
@@ -208,7 +261,7 @@ const CreateRecipe = () => {
         title?: string;
         description?: string;
         ingredientsDetailed?: Array<{ name: string; amount?: string }>;
-        cookingSteps?: Array<{ title: string; description: string }>;
+        cookingSteps?: CookingStep[];
         temperature?: string;
         cookingTime?: string;
         portions?: string;
@@ -264,6 +317,9 @@ const CreateRecipe = () => {
                             id: makeId('step'),
                             title: (s.title ?? '').trim() || 'Steg',
                             description: (s.description ?? '').trim(),
+                            imageUrl: s.imageUrl?.trim() || '',
+                            imagePreview: s.imageUrl?.trim() || '',
+                            imageFile: null,
                         }))
                         .filter((s) => s.description.length > 0),
                 );
@@ -321,7 +377,16 @@ const CreateRecipe = () => {
 
         const loadedSteps = formData.cookingSteps || [];
         setCookingSteps(
-            loadedSteps.map((s) => ('id' in s ? (s as StepWithId) : { ...(s as CookingStep), id: makeId('step') })),
+            loadedSteps.map((s) => {
+                const step = 'id' in s ? (s as StepWithId) : { ...(s as CookingStep), id: makeId('step') };
+                const storedImage = getStoredStepImage(step);
+                return {
+                    ...step,
+                    imageUrl: step.imageUrl?.trim() || storedImage,
+                    imagePreview: storedImage || null,
+                    imageFile: null,
+                };
+            }),
         );
 
         const detailed = formData.ingredientsDetailed || [];
@@ -345,7 +410,13 @@ const CreateRecipe = () => {
             svgData,
             bgColor,
             fontStyle,
-            cookingSteps,
+            cookingSteps: cookingSteps.map((step) => ({
+                id: step.id,
+                title: step.title,
+                description: step.description,
+                imageUrl: getStoredStepImage(step),
+                imagePreview: getStoredStepImage(step) || null,
+            })),
             ingredients: ingredients
                 .map((i) => `${(i.amount || '').trim()} ${(i.name || '').trim()}`.trim())
                 .filter(Boolean),
@@ -376,7 +447,10 @@ const CreateRecipe = () => {
     ]);
 
     const handleAddStep = () => {
-        setCookingSteps((prev) => [...prev, { id: makeId('step'), title: '', description: '' }]);
+        setCookingSteps((prev) => [
+            ...prev,
+            { id: makeId('step'), title: '', description: '', imageUrl: '', imagePreview: null, imageFile: null },
+        ]);
     };
 
     const handleStepChange = (id: string, field: 'title' | 'description', value: string) => {
@@ -384,7 +458,44 @@ const CreateRecipe = () => {
     };
 
     const handleRemoveStep = (id: string) => {
-        setCookingSteps((prev) => prev.filter((s) => s.id !== id));
+        setCookingSteps((prev) => {
+            const step = prev.find((s) => s.id === id);
+            revokeBlobUrl(step?.imagePreview);
+            return prev.filter((s) => s.id !== id);
+        });
+    };
+
+    const handleStepImageChange = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+
+        setCookingSteps((prev) =>
+            prev.map((step) => {
+                if (step.id !== id) return step;
+                revokeBlobUrl(step.imagePreview);
+                return {
+                    ...step,
+                    imageFile: file,
+                    imagePreview: URL.createObjectURL(file),
+                };
+            }),
+        );
+    };
+
+    const handleRemoveStepImage = (id: string) => {
+        setCookingSteps((prev) =>
+            prev.map((step) => {
+                if (step.id !== id) return step;
+                revokeBlobUrl(step.imagePreview);
+                return {
+                    ...step,
+                    imageFile: null,
+                    imagePreview: null,
+                    imageUrl: '',
+                };
+            }),
+        );
     };
 
     const handleAddIngredient = () => {
@@ -409,16 +520,26 @@ const CreateRecipe = () => {
         const file = e.target.files?.[0];
         if (!file) return;
 
+        revokeBlobUrl(coverImagePreviewRef.current);
         setCoverImageFile(file);
         const previewUrl = URL.createObjectURL(file);
         setCoverImagePreview(previewUrl);
     };
 
     useEffect(() => {
-        return () => {
-            if (coverImagePreview) URL.revokeObjectURL(coverImagePreview);
-        };
+        coverImagePreviewRef.current = coverImagePreview;
     }, [coverImagePreview]);
+
+    useEffect(() => {
+        cookingStepsRef.current = cookingSteps;
+    }, [cookingSteps]);
+
+    useEffect(() => {
+        return () => {
+            revokeBlobUrl(coverImagePreviewRef.current);
+            cookingStepsRef.current.forEach((step) => revokeBlobUrl(step.imagePreview));
+        };
+    }, []);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -536,10 +657,26 @@ const CreateRecipe = () => {
                 coverImageUrl = await getDownloadURL(snapshot.ref);
             }
 
-            const stepsForDb: CookingStep[] = cookingSteps.map((s) => ({
-                title: s.title,
-                description: s.description,
-            }));
+            const stepsForDb: CookingStep[] = await Promise.all(
+                cookingSteps.map(async (s, index) => {
+                    let imageUrl = s.imageUrl?.trim() || getStoredStepImage(s);
+
+                    if (s.imageFile) {
+                        const imageRef = ref(
+                            storage,
+                            `recipe-steps/${user.uid}/${Date.now()}-${index}-${s.imageFile.name}`,
+                        );
+                        const snapshot = await uploadBytes(imageRef, s.imageFile);
+                        imageUrl = await getDownloadURL(snapshot.ref);
+                    }
+
+                    return {
+                        title: s.title,
+                        description: s.description,
+                        imageUrl: imageUrl || '',
+                    };
+                }),
+            );
 
             const ingredientsDetailedForDb: Ingredient[] = ingredients
                 .map((i) => ({ name: i.name.trim(), amount: i.amount.trim() }))
@@ -690,6 +827,7 @@ const CreateRecipe = () => {
                                 <button
                                     type="button"
                                     onClick={() => {
+                                        revokeBlobUrl(coverImagePreviewRef.current);
                                         setCoverImageFile(null);
                                         setCoverImagePreview(null);
                                     }}
@@ -824,6 +962,8 @@ const CreateRecipe = () => {
                                             step={step}
                                             index={index}
                                             onChange={handleStepChange}
+                                            onImageChange={handleStepImageChange}
+                                            onRemoveImage={handleRemoveStepImage}
                                             onRemove={handleRemoveStep}
                                         />
                                     ))}
