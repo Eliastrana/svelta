@@ -26,6 +26,7 @@ import AppModal from '@/app/components/AppModal';
 import CollectionCard from '@/app/components/CollectionCard';
 import { CollectionDoc, fetchPublicCollections } from '@/helpers/collectionHelpers';
 import { useCollectionSummaries } from '@/hooks/collections/useCollectionSummaries';
+import { deleteUserAccountAndActivity } from '@/helpers/deleteUserAccount';
 
 interface UserData {
     name?: string;
@@ -298,9 +299,10 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                                                initialPhotoURL,
                                                                initialBackgroundPhotoURL,
                                                                uid,
-                                                               onSaved,
-                                                               onLogout,
+                                                           onSaved,
+                                                           onLogout,
                                                            }) => {
+    const router = useRouter();
     const [bio, setBio] = useState(initialBio);
     const [favoriteFood, setFavoriteFood] = useState(initialFavoriteFood);
 
@@ -310,6 +312,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     const [backgroundPhotoPreview, setBackgroundPhotoPreview] = useState<string>(initialBackgroundPhotoURL);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deletingAccount, setDeletingAccount] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     // sync when modal opens with new initial values
     useEffect(() => {
@@ -321,6 +326,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         setBackgroundPhotoFile(null);
         setBackgroundPhotoPreview(initialBackgroundPhotoURL);
         setError(null);
+        setDeleteError(null);
+        setShowDeleteConfirm(false);
+        setDeletingAccount(false);
     }, [open, initialBio, initialFavoriteFood, initialPhotoURL, initialBackgroundPhotoURL]);
 
     useEffect(() => {
@@ -394,124 +402,219 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         }
     };
 
+    const handleDeleteAccount = async () => {
+        const currentUser = auth.currentUser;
+        if (!currentUser || currentUser.uid !== uid) {
+            setDeleteError('Du må være logget inn på kontoen du prøver å slette.');
+            return;
+        }
+
+        try {
+            setDeletingAccount(true);
+            setDeleteError(null);
+            await deleteUserAccountAndActivity(currentUser);
+            setShowDeleteConfirm(false);
+            onClose();
+            router.replace('/');
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : 'Kunne ikke slette kontoen.';
+            setDeleteError(msg);
+        } finally {
+            setDeletingAccount(false);
+        }
+    };
+
     return (
-        <AppModal onClose={onClose}>
-            {({ closeWithAnim, closing }) => (
-                <div className="w-full p-5 relative">
-                    <button
-                        type="button"
-                        onClick={closeWithAnim}
-                        className="absolute top-4 right-4 h-9 w-9 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700 grid place-items-center transition active:scale-90"
-                        aria-label="Lukk"
-                        disabled={closing}
-                    >
-                        <span className="material-symbols-outlined">close</span>
-                    </button>
-
-                    <h2 className="text-xl font-semibold tracking-tight text-slate-900">Rediger profil</h2>
-                    <p className="text-sm text-slate-500 mt-1">Oppdater bio, favorittmat, profilbilde og bakgrunnsbilde.</p>
-
-
-                    <div className="mt-5">
-                        <label className="block text-sm font-semibold text-slate-900 mb-2">Bakgrunnsbilde</label>
-                        <label className="group block cursor-pointer overflow-hidden rounded-[28px] border border-slate-200 bg-slate-50 transition hover:border-slate-300">
-                            <div className="relative h-40 w-full overflow-hidden bg-[var(--accent-soft)]">
-                                {backgroundPhotoPreview ? (
-                                    <img src={backgroundPhotoPreview} alt="Bakgrunnsbilde" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
-                                ) : (
-                                    <div className="grid h-full w-full place-items-center text-slate-400">
-                                        <span className="material-symbols-outlined text-4xl">photo_camera</span>
-                                    </div>
-                                )}
-                                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 transition group-hover:opacity-100" />
-                            </div>
-                            <div className="flex items-center justify-between px-4 py-3">
-                                <span className="text-sm font-semibold text-slate-900">Bytt bakgrunnsbilde</span>
-                                <span className="material-symbols-outlined text-slate-400 transition group-hover:text-slate-600">image</span>
-                            </div>
-                            <input type="file" accept="image/*" className="hidden" onChange={onPickBackgroundPhoto} />
-                        </label>
-                    </div>
-
-                    <div className="mt-5 flex items-center gap-4">
-                        <div className="h-16 w-16 shrink-0 rounded-2xl overflow-hidden border border-slate-200 bg-[var(--accent-soft)] shadow-sm">
-                            {photoPreview ? (
-                                <img src={photoPreview} alt="Profilbilde" className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="grid h-full w-full place-items-center text-2xl text-slate-400">🧑‍🍳</div>
-                            )}
-                        </div>
-
-                        <div className="flex-1">
-                            <p className="text-sm font-semibold text-slate-900">{initialName}</p>
-                            <label className="mt-2 inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition active:scale-95 cursor-pointer w-fit">
-                                <span className="material-symbols-outlined text-base">photo_camera</span>
-                                <span className="text-sm font-semibold">Bytt bilde</span>
-                                <input type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
-                            </label>
-                        </div>
-                    </div>
-
-                    <div className="mt-5">
-                        <label className="block text-sm font-semibold text-slate-900 mb-2">Favorittmat</label>
-                        <input
-                            value={favoriteFood}
-                            onChange={(e) => setFavoriteFood(e.target.value)}
-                            placeholder="f.eks. carbonara"
-                            className="w-full p-3 rounded-2xl border border-slate-200 bg-slate-50/50 transition focus:bg-white focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
-                        />
-                    </div>
-
-                    <div className="mt-4">
-                        <label className="block text-sm font-semibold text-slate-900 mb-2">Bio</label>
-                        <textarea
-                            value={bio}
-                            onChange={(e) => setBio(e.target.value)}
-                            placeholder="Skriv litt om deg selv..."
-                            className="w-full min-h-[120px] p-3 rounded-2xl border border-slate-200 bg-slate-50/50 transition focus:bg-white focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
-                        />
-                    </div>
-
-                    {error ? (
-                        <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-100 bg-red-50 p-3">
-                            <span className="material-symbols-outlined text-red-500 text-[20px]">error</span>
-                            <p className="text-red-600 text-sm">{error}</p>
-                        </div>
-                    ) : null}
-
-                    <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <>
+            <AppModal onClose={onClose}>
+                {({ closeWithAnim, closing }) => (
+                    <div className="w-full p-5 relative">
                         <button
                             type="button"
-                            onClick={onLogout}
-                            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full font-semibold text-red-600 hover:bg-red-50 transition active:scale-95 cursor-pointer"
-                            disabled={busy || closing}
+                            onClick={closeWithAnim}
+                            className="absolute top-4 right-4 h-9 w-9 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700 grid place-items-center transition active:scale-90"
+                            aria-label="Lukk"
+                            disabled={closing || deletingAccount}
                         >
-                            <span className="material-symbols-outlined text-[20px]">logout</span>
-                            Logg ut
+                            <span className="material-symbols-outlined">close</span>
                         </button>
 
-                        <div className="flex justify-end gap-2">
+                        <h2 className="text-xl font-semibold tracking-tight text-slate-900">Rediger profil</h2>
+                        <p className="text-sm text-slate-500 mt-1">Oppdater bio, favorittmat, profilbilde og bakgrunnsbilde.</p>
+
+
+                        <div className="mt-5">
+                            <label className="block text-sm font-semibold text-slate-900 mb-2">Bakgrunnsbilde</label>
+                            <label className="group block cursor-pointer overflow-hidden rounded-[28px] border border-slate-200 bg-slate-50 transition hover:border-slate-300">
+                                <div className="relative h-40 w-full overflow-hidden bg-[var(--accent-soft)]">
+                                    {backgroundPhotoPreview ? (
+                                        <img src={backgroundPhotoPreview} alt="Bakgrunnsbilde" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+                                    ) : (
+                                        <div className="grid h-full w-full place-items-center text-slate-400">
+                                            <span className="material-symbols-outlined text-4xl">photo_camera</span>
+                                        </div>
+                                    )}
+                                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 transition group-hover:opacity-100" />
+                                </div>
+                                <div className="flex items-center justify-between px-4 py-3">
+                                    <span className="text-sm font-semibold text-slate-900">Bytt bakgrunnsbilde</span>
+                                    <span className="material-symbols-outlined text-slate-400 transition group-hover:text-slate-600">image</span>
+                                </div>
+                                <input type="file" accept="image/*" className="hidden" onChange={onPickBackgroundPhoto} />
+                            </label>
+                        </div>
+
+                        <div className="mt-5 flex items-center gap-4">
+                            <div className="h-16 w-16 shrink-0 rounded-2xl overflow-hidden border border-slate-200 bg-[var(--accent-soft)] shadow-sm">
+                                {photoPreview ? (
+                                    <img src={photoPreview} alt="Profilbilde" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="grid h-full w-full place-items-center text-2xl text-slate-400">🧑‍🍳</div>
+                                )}
+                            </div>
+
+                            <div className="flex-1">
+                                <p className="text-sm font-semibold text-slate-900">{initialName}</p>
+                                <label className="mt-2 inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition active:scale-95 cursor-pointer w-fit">
+                                    <span className="material-symbols-outlined text-base">photo_camera</span>
+                                    <span className="text-sm font-semibold">Bytt bilde</span>
+                                    <input type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="mt-5">
+                            <label className="block text-sm font-semibold text-slate-900 mb-2">Favorittmat</label>
+                            <input
+                                value={favoriteFood}
+                                onChange={(e) => setFavoriteFood(e.target.value)}
+                                placeholder="f.eks. carbonara"
+                                className="w-full p-3 rounded-2xl border border-slate-200 bg-slate-50/50 transition focus:bg-white focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+                            />
+                        </div>
+
+                        <div className="mt-4">
+                            <label className="block text-sm font-semibold text-slate-900 mb-2">Bio</label>
+                            <textarea
+                                value={bio}
+                                onChange={(e) => setBio(e.target.value)}
+                                placeholder="Skriv litt om deg selv..."
+                                className="w-full min-h-[120px] p-3 rounded-2xl border border-slate-200 bg-slate-50/50 transition focus:bg-white focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+                            />
+                        </div>
+
+                        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50/70 p-4">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <h3 className="text-sm font-semibold text-red-700">Slett bruker</h3>
+                                    <p className="mt-1 text-sm text-red-600">
+                                        Dette sletter profilen din, kokebøkene dine, oppskriftene dine og aktiviteten din som likes, kommentarer og vurderinger.
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setDeleteError(null);
+                                        setShowDeleteConfirm(true);
+                                    }}
+                                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 active:scale-95"
+                                    disabled={busy || closing || deletingAccount}
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                                    Slett konto
+                                </button>
+                            </div>
+                        </div>
+
+                        {error ? (
+                            <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-100 bg-red-50 p-3">
+                                <span className="material-symbols-outlined text-red-500 text-[20px]">error</span>
+                                <p className="text-red-600 text-sm">{error}</p>
+                            </div>
+                        ) : null}
+
+                        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <button
                                 type="button"
-                                onClick={closeWithAnim}
-                                className="px-5 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700 transition active:scale-95 cursor-pointer"
-                                disabled={busy || closing}
+                                onClick={onLogout}
+                                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full font-semibold text-red-600 hover:bg-red-50 transition active:scale-95 cursor-pointer"
+                                disabled={busy || closing || deletingAccount}
                             >
-                                Avbryt
+                                <span className="material-symbols-outlined text-[20px]">logout</span>
+                                Logg ut
                             </button>
-                            <button
-                                type="button"
-                                onClick={() => void save(closeWithAnim)}
-                                className="brown-button px-5 py-2.5 rounded-full font-semibold shadow-sm transition hover:opacity-95 active:scale-95 disabled:opacity-50"
-                                disabled={busy || closing}
-                            >
-                                {busy ? 'Lagrer…' : 'Lagre'}
-                            </button>
+
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={closeWithAnim}
+                                    className="px-5 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700 transition active:scale-95 cursor-pointer"
+                                    disabled={busy || closing || deletingAccount}
+                                >
+                                    Avbryt
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => void save(closeWithAnim)}
+                                    className="brown-button px-5 py-2.5 rounded-full font-semibold shadow-sm transition hover:opacity-95 active:scale-95 disabled:opacity-50"
+                                    disabled={busy || closing || deletingAccount}
+                                >
+                                    {busy ? 'Lagrer…' : 'Lagre'}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </AppModal>
+                )}
+            </AppModal>
+
+            {showDeleteConfirm ? (
+                <AppModal onClose={() => setShowDeleteConfirm(false)}>
+                    {({ closeWithAnim, closing }) => (
+                        <div className="p-6">
+                            <div className="mb-4 grid h-12 w-12 place-items-center rounded-full bg-red-50 text-red-500">
+                                <span className="material-symbols-outlined">warning</span>
+                            </div>
+
+                            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+                                Slette kontoen permanent?
+                            </h2>
+
+                            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                                Dette kan ikke angres. Vi sletter profilen din og fjerner aktiviteten din fra appen.
+                            </p>
+
+                            {deleteError ? (
+                                <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-100 bg-red-50 p-3">
+                                    <span className="material-symbols-outlined text-red-500 text-[20px]">error</span>
+                                    <p className="text-sm text-red-600">{deleteError}</p>
+                                </div>
+                            ) : null}
+
+                            <div className="mt-6 flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={closeWithAnim}
+                                    className="px-5 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700 transition active:scale-95"
+                                    disabled={closing || deletingAccount}
+                                >
+                                    Avbryt
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => void handleDeleteAccount()}
+                                    className="inline-flex items-center gap-2 rounded-full bg-red-500 px-5 py-2.5 font-semibold text-white shadow-sm transition hover:bg-red-600 active:scale-95 disabled:opacity-60"
+                                    disabled={closing || deletingAccount}
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">delete_forever</span>
+                                    {deletingAccount ? 'Sletter konto…' : 'Slett konto'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </AppModal>
+            ) : null}
+        </>
     );
 };
 

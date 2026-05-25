@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 const Footer = () => {
     return (
         <footer className="py-4 min-h-96  ">
@@ -10,15 +12,22 @@ const Footer = () => {
                 </div>
 
 
-                <div className="mt-10">
-                <a
-                    href="https://eliastrana.no"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:text-gray-400 transition duration-300"
-                >
-                    Elias Trana
-                </a>
+                <div className="mt-10 flex flex-col items-center gap-3 text-sm">
+                    <Link
+                        href="/vilkar"
+                        className="underline underline-offset-4 hover:text-gray-400 transition duration-300"
+                    >
+                        Vilkår og betingelser
+                    </Link>
+
+                    <a
+                        href="https://eliastrana.no"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline underline-offset-4 hover:text-gray-400 transition duration-300"
+                    >
+                        Elias Trana
+                    </a>
                 </div>
             </div>
         </footer>
