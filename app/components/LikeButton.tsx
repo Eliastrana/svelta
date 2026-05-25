@@ -8,9 +8,9 @@ import {
     onSnapshot,
     collection,
     serverTimestamp,
-    runTransaction,
     increment,
     getDocs,
+    writeBatch,
 } from 'firebase/firestore';
 import { firestore } from '@/firebase';
 import { useAuthUser } from '@/hooks/useAuthUser';
@@ -250,25 +250,31 @@ const LikeButton: React.FC<LikeButtonProps> = ({
 
         const recipeRef = doc(firestore, 'recipes', recipeId);
         const likeRef = doc(firestore, 'recipes', recipeId, 'likes', currentUser.uid);
+        const nextHasLiked = !hasLiked;
+        const delta = nextHasLiked ? 1 : -1;
 
         try {
             setToggling(true);
+            setHasLiked(nextHasLiked);
+            setLikeCount((prev) => Math.max(0, prev + delta));
 
-            await runTransaction(firestore, async (tx) => {
-                const likeSnap = await tx.get(likeRef);
+            const batch = writeBatch(firestore);
 
-                if (likeSnap.exists()) {
-                    tx.delete(likeRef);
-                    tx.update(recipeRef, { likeCount: increment(-1) });
-                } else {
-                    tx.set(likeRef, {
-                        userId: currentUser.uid,
-                        createdAt: serverTimestamp(),
-                    });
+            if (nextHasLiked) {
+                batch.set(likeRef, {
+                    userId: currentUser.uid,
+                    createdAt: serverTimestamp(),
+                });
+            } else {
+                batch.delete(likeRef);
+            }
 
-                    tx.update(recipeRef, { likeCount: increment(1) });
-                }
-            });
+            batch.update(recipeRef, { likeCount: increment(delta) });
+            await batch.commit();
+        } catch (error) {
+            setHasLiked(!nextHasLiked);
+            setLikeCount((prev) => Math.max(0, prev - delta));
+            console.error('Error toggling like:', error);
         } finally {
             setToggling(false);
         }

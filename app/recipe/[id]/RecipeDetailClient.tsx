@@ -154,18 +154,18 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
     };
 
     return (
-        <div className="min-h-screen bg-[#fbfaf4] pb-20 text-[#12340d]">
-            <main className="mx-auto grid max-w-[1190px] gap-5 px-4 py-4 lg:grid-cols-[438px_minmax(0,1fr)] lg:items-start">
+        <div className="min-h-screen overflow-x-hidden bg-[#fbfaf4] pb-20 text-[#12340d]">
+            <main className="mx-auto grid max-w-[1190px] min-w-0 gap-5 px-4 py-4 lg:grid-cols-[438px_minmax(0,1fr)] lg:items-start">
                 {/* LEFT COLUMN */}
-                <div className="space-y-3 lg:sticky lg:top-4">
+                <div className="min-w-0 space-y-3 lg:sticky lg:top-4">
                     {/* Intro card */}
-                    <section className="rounded-xl bg-[#f2f1e8] p-6 md:p-8">
+                    <section className="min-w-0 overflow-hidden rounded-xl bg-[#f2f1e8] p-6 md:p-8">
                         {Array.isArray(recipe.tags) && recipe.tags.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                                 {recipe.tags.map((t) => (
                                     <span
                                         key={t}
-                                        className="rounded-full bg-[#c7e9c0] px-3 py-2 text-xs font-medium uppercase tracking-wide text-[#12340d]"
+                                        className="max-w-full rounded-full bg-[#c7e9c0] px-3 py-2 text-xs font-medium uppercase tracking-wide text-[#12340d] [overflow-wrap:anywhere]"
                                     >
                                         {t}
                                     </span>
@@ -178,13 +178,13 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                             <RatingStars recipeId={recipe.id} variant="compact" />
                         </div>
 
-                        <h1 className="mt-7 text-5xl font-bold leading-none tracking-tight text-[#12340d] md:text-[52px]">
+                        <h1 className="mt-7 text-5xl font-bold leading-none tracking-tight text-[#12340d] [overflow-wrap:anywhere] md:text-[52px]">
                             {recipe.title}
                         </h1>
 
                         <div className="mt-6 flex flex-wrap gap-2">
                             {recipe.temperature && (
-                                <span className="inline-flex items-center gap-1 rounded-md bg-[#e5e5d7] px-3 py-1 text-sm">
+                                <span className="inline-flex max-w-full items-center gap-1 rounded-md bg-[#e5e5d7] px-3 py-1 text-sm [overflow-wrap:anywhere]">
                                     <span className="material-symbols-outlined text-[16px]">
                                         device_thermostat
                                     </span>
@@ -193,7 +193,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                             )}
 
                             {recipe.cookingTime && (
-                                <span className="inline-flex items-center gap-1 rounded-md bg-[#e5e5d7] px-3 py-1 text-sm">
+                                <span className="inline-flex max-w-full items-center gap-1 rounded-md bg-[#e5e5d7] px-3 py-1 text-sm [overflow-wrap:anywhere]">
                                     <span className="material-symbols-outlined text-[16px]">
                                         schedule
                                     </span>
@@ -203,7 +203,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                         </div>
 
                         {recipe.description && (
-                            <p className="mt-8 text-base leading-relaxed text-[#12340d]">
+                            <p className="mt-8 text-base leading-relaxed text-[#12340d] [overflow-wrap:anywhere]">
                                 {recipe.description}
                             </p>
                         )}
@@ -282,7 +282,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                     </section>
 
                     {/* Ingredients card */}
-                    <section className="rounded-xl bg-[#f2f1e8] p-6 md:p-8">
+                    <section className="min-w-0 overflow-hidden rounded-xl bg-[#f2f1e8] p-6 md:p-8">
                         <h2 className="text-3xl font-bold tracking-tight">
                             Ingredienser
                         </h2>
@@ -292,14 +292,14 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                         {ingredientsToRender.length > 0 ? (
                             <ul className="space-y-3 text-base leading-relaxed">
                                 {ingredientsToRender.map((ing, idx) => (
-                                    <li key={`ing-${idx}`} className="flex gap-2">
+                                    <li key={`ing-${idx}`} className="flex min-w-0 gap-2">
                                         {ing.amount ? (
                                             <span className="shrink-0 font-medium">
                                                 {ing.amount}
                                             </span>
                                         ) : null}
 
-                                        <span>{ing.name}</span>
+                                        <span className="min-w-0 [overflow-wrap:anywhere]">{ing.name}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -312,15 +312,15 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                 </div>
 
                 {/* RIGHT COLUMN */}
-                <div className="space-y-5">
+                <div className="min-w-0 space-y-5">
                     {recipe.coverImage && (
                         <section className="hidden lg:block">
-                            <div className="relative -z-0 aspect-square w-full overflow-hidden rounded-xl bg-[#f2f1e8]">
+                            <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#f2f1e8]">
                                 <Image
                                     src={recipe.coverImage}
                                     alt={`${recipe.title} cover`}
                                     fill
-                                    className="z-0 object-cover"
+                                    className="object-cover"
                                     priority
                                     sizes="724px"
                                     quality={90}
@@ -330,7 +330,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                     )}
 
                     {/* Steps */}
-                    <section className="rounded-xl bg-[#f2f1e8] p-6 md:p-8">
+                    <section className="min-w-0 overflow-hidden rounded-xl bg-[#f2f1e8] p-6 md:p-8">
                         <h2 className="text-3xl font-bold tracking-tight">
                             Fremgangsmåte
                         </h2>
@@ -341,11 +341,11 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                     key={`step-${i}`}
                                     className="border-t border-[#d8d7cb] pt-5"
                                 >
-                                    <h3 className="text-xl font-bold">
+                                    <h3 className="text-xl font-bold [overflow-wrap:anywhere]">
                                         {i + 1}. {step.title}
                                     </h3>
 
-                                    <p className="mt-2 text-base leading-relaxed">
+                                    <p className="mt-2 text-base leading-relaxed [overflow-wrap:anywhere]">
                                         {step.description}
                                     </p>
                                 </div>

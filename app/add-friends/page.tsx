@@ -135,13 +135,14 @@ const AddFriendsPage: React.FC = () => {
     const [loadingSearch, setLoadingSearch] = useState(false);
 
     const [currentFollowing, setCurrentFollowing] = useState<string[]>([]);
+    const [followingReady, setFollowingReady] = useState(false);
 
     const [activeTab, setActiveTab] = useState<FriendsTab>('friends');
 
     const [friendsList, setFriendsList] = useState<UserSearchResult[]>([]);
     const [followingList, setFollowingList] = useState<UserSearchResult[]>([]);
     const [followersList, setFollowersList] = useState<UserSearchResult[]>([]);
-    const [loadingTopList, setLoadingTopList] = useState(false);
+    const [loadingTopList, setLoadingTopList] = useState(true);
 
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, (u) => {
@@ -157,27 +158,37 @@ const AddFriendsPage: React.FC = () => {
     // hent following for current user
     useEffect(() => {
         const fetchMyFollowing = async () => {
-            if (!uid) return;
-
-            const meRef = doc(firestore, 'users', uid);
-            const snap = await getDoc(meRef);
-
-            if (!snap.exists()) {
+            if (!uid) {
                 setCurrentFollowing([]);
+                setFollowingReady(false);
                 return;
             }
 
-            const data = snap.data() as UserData;
-            setCurrentFollowing(data.following ?? []);
+            setFollowingReady(false);
+
+            try {
+                const meRef = doc(firestore, 'users', uid);
+                const snap = await getDoc(meRef);
+
+                if (!snap.exists()) {
+                    setCurrentFollowing([]);
+                    return;
+                }
+
+                const data = snap.data() as UserData;
+                setCurrentFollowing(data.following ?? []);
+            } finally {
+                setFollowingReady(true);
+            }
         };
 
-        fetchMyFollowing();
+        void fetchMyFollowing();
     }, [uid]);
 
     // Bygg topp-lister (friends/following/followers)
     useEffect(() => {
         const buildLists = async () => {
-            if (!uid) return;
+            if (!uid || !followingReady) return;
 
             setLoadingTopList(true);
             try {
@@ -201,8 +212,8 @@ const AddFriendsPage: React.FC = () => {
             }
         };
 
-        buildLists();
-    }, [uid, currentFollowing]);
+        void buildLists();
+    }, [uid, currentFollowing, followingReady]);
 
     const trimmed = useMemo(() => searchTerm.trim(), [searchTerm]);
 
@@ -237,7 +248,7 @@ const AddFriendsPage: React.FC = () => {
             setLoadingSearch(false);
         };
 
-        fetchUsers();
+        void fetchUsers();
     }, [trimmed]);
 
     // ✅ follow/unfollow oppdaterer KUN currentUser.following
@@ -264,7 +275,16 @@ const AddFriendsPage: React.FC = () => {
         }
     };
 
-    if (!authReady) return <div className="p-4 text-slate-600">Laster…</div>;
+    if (!authReady) {
+        return (
+            <div className="flex min-h-screen items-center justify-center px-4">
+                <div className="flex flex-col items-center gap-4 text-slate-600">
+                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--accent-soft)] border-t-[var(--accent)]" />
+                    <p className="text-sm font-medium">Laster venner…</p>
+                </div>
+            </div>
+        );
+    }
     if (!currentUser) return null;
 
     const FollowButton = ({ targetUid }: { targetUid: string }) => {
@@ -275,10 +295,10 @@ const AddFriendsPage: React.FC = () => {
                 type="button"
                 onClick={() => handleFollow(targetUid)}
                 className={[
-                    'px-4 py-2 rounded-full text-sm font-semibold transition',
+                    'rounded-full px-4 py-2 text-sm font-semibold transition',
                     isFollowing
-                        ? 'bg-slate-100 text-slate-800 hover:bg-slate-200'
-                        : 'bg-cyan-100 text-slate-900 hover:bg-cyan-200',
+                        ? 'border border-[#d9dfcf] bg-[#f5f3e8] text-[#496444] hover:bg-[#eeebdc]'
+                        : 'bg-[var(--accent-strong)] text-[#12340d] hover:bg-[var(--accent)]',
                 ].join(' ')}
                 aria-label={isFollowing ? 'Slutt å følge' : 'Følg'}
             >
@@ -288,23 +308,23 @@ const AddFriendsPage: React.FC = () => {
     };
 
     const TopRow = ({ u }: { u: UserSearchResult }) => (
-        <div className="flex items-center justify-between py-3 border-b border-slate-100 last:border-b-0">
+        <div className="flex items-center justify-between border-b border-[#ece8da] py-3 last:border-b-0">
             <button
                 type="button"
                 onClick={() => router.push(`/user/${u.uid}`)}
                 className="flex items-center gap-3 text-left"
             >
-                <div className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 shrink-0">
+                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#eef3e4]">
                     {u.photoURL ? (
                         <img src={u.photoURL} alt={u.name} className="w-full h-full object-cover" />
                     ) : (
-                        <div className="w-full h-full grid place-items-center text-slate-500">🧑‍🍳</div>
+                        <div className="grid h-full w-full place-items-center text-[#6c8765]">🧑‍🍳</div>
                     )}
                 </div>
-                <span className="text-slate-900 font-medium">{u.name}</span>
+                <span className="font-medium text-[#12340d]">{u.name}</span>
             </button>
 
-            {uid === u.uid ? <span className="text-sm text-slate-500">Deg</span> : <FollowButton targetUid={u.uid} />}
+            {uid === u.uid ? <span className="text-sm text-[#6c8765]">Deg</span> : <FollowButton targetUid={u.uid} />}
         </div>
     );
 
@@ -317,31 +337,21 @@ const AddFriendsPage: React.FC = () => {
             : activeTab === 'following'
                 ? followingList.length
                 : followersList.length;
+    const topListPending = !followingReady || loadingTopList;
 
     return (
-        <div className="min-h-screen">
-            {/* Content */}
-            <div className="mx-auto max-w-xl px-4 py-6 space-y-4">
-                {/*<div className="flex items-center">*/}
-                {/*    <button*/}
-                {/*        onClick={() => router.back()}*/}
-                {/*        className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100"*/}
-                {/*        aria-label="Tilbake"*/}
-                {/*        type="button"*/}
-                {/*    >*/}
-                {/*        <span className="material-symbols-outlined">arrow_back</span>*/}
-                {/*    </button>*/}
-                {/*</div>*/}
+        <div className="min-h-screen pb-24">
+            <div className="mx-auto max-w-4xl px-4 py-6 space-y-5">
+               
 
-                {/* Toggle list */}
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="rounded-xl border border-[#e4e1d3] bg-white/95 shadow-sm">
                     <div className="p-4">
-                        {/* Tabs */}
-                        <div className="flex items-center justify-between gap-2 mb-4">
-                            <div className="relative inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                            <div className="relative inline-flex w-full max-w-md rounded-full border border-slate-200 bg-slate-100/70 p-1 shadow-inner">
                                 <div
-                                    className="absolute top-0 left-0 h-full w-1/3 rounded-full bg-white shadow-sm transition-transform duration-300"
+                                    className="absolute top-1 left-1 h-[calc(100%-0.5rem)] rounded-full bg-white shadow-sm ring-1 ring-slate-100 transition-transform duration-300 ease-out"
                                     style={{
+                                        width: 'calc((100% - 0.5rem) / 3)',
                                         transform:
                                             activeTab === 'friends'
                                                 ? 'translateX(0%)'
@@ -354,8 +364,8 @@ const AddFriendsPage: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab('friends')}
-                                    className={`relative px-4 py-1 text-sm font-medium focus:outline-none ${
-                                        activeTab === 'friends' ? 'text-slate-900' : 'text-slate-500'
+                                    className={`relative z-10 flex-1 py-2 text-sm font-semibold transition-colors focus:outline-none ${
+                                        activeTab === 'friends' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700'
                                     }`}
                                 >
                                     Venner
@@ -364,8 +374,8 @@ const AddFriendsPage: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab('following')}
-                                    className={`relative px-4 py-1 text-sm font-medium focus:outline-none ${
-                                        activeTab === 'following' ? 'text-slate-900' : 'text-slate-500'
+                                    className={`relative z-10 flex-1 py-2 text-sm font-semibold transition-colors focus:outline-none ${
+                                        activeTab === 'following' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700'
                                     }`}
                                 >
                                     Følger
@@ -374,29 +384,43 @@ const AddFriendsPage: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab('followers')}
-                                    className={`relative px-4 py-1 text-sm font-medium focus:outline-none ${
-                                        activeTab === 'followers' ? 'text-slate-900' : 'text-slate-500'
+                                    className={`relative z-10 flex-1 py-2 text-sm font-semibold transition-colors focus:outline-none ${
+                                        activeTab === 'followers' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700'
                                     }`}
                                 >
                                     Følgere
                                 </button>
                             </div>
 
-                            {/* Counts */}
-                            <div className="text-sm text-slate-500">{activeCount}</div>
+                            <div className="rounded-full bg-[#f5f3e8] px-3 py-1 text-sm font-semibold text-[#496444]">
+                                {activeCount}
+                            </div>
                         </div>
 
-                        {/* List */}
-                        {loadingTopList ? (
-                            <p className="text-slate-600">Laster…</p>
+                        {topListPending ? (
+                            <div className="flex min-h-[220px] items-center justify-center">
+                                <div className="flex flex-col items-center gap-4 text-slate-600">
+                                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--accent-soft)] border-t-[var(--accent)]" />
+                                    <p className="text-sm font-medium">Laster venner…</p>
+                                </div>
+                            </div>
                         ) : topList.length === 0 ? (
-                            <p className="text-slate-600">
-                                {activeTab === 'friends'
-                                    ? 'Ingen venner enda (må følge hverandre).'
-                                    : activeTab === 'following'
-                                        ? 'Du følger ingen enda.'
-                                        : 'Ingen følger deg enda.'}
-                            </p>
+                            <div className="rounded-xl bg-[#f8f6ed] p-5 text-center text-[#496444]">
+                                <p className="font-medium">
+                                    {activeTab === 'friends'
+                                        ? 'Ingen venner enda.'
+                                        : activeTab === 'following'
+                                            ? 'Du følger ingen enda.'
+                                            : 'Ingen følger deg enda.'}
+                                </p>
+                                <p className="mt-2 text-sm text-[#6c8765]">
+                                    {activeTab === 'friends'
+                                        ? 'Når dere følger hverandre, dukker de opp her.'
+                                        : activeTab === 'following'
+                                            ? 'Søk etter noen under for å komme i gang.'
+                                            : 'Del profilen din for å få flere følgere.'}
+                                </p>
+                            </div>
                         ) : (
                             <div className="max-h-[40vh] overflow-y-auto">
                                 {topList.map((u) => (
@@ -407,48 +431,58 @@ const AddFriendsPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Search input */}
-                <input
-                    type="text"
-                    placeholder="Søk etter navn..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full p-3 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-
-                {/* Search results */}
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="rounded-xl border border-[#e4e1d3] bg-white/95 shadow-sm">
                     <div className="p-4">
+                        <label className="mb-4 block">
+                            <span className="mb-2 block text-sm font-semibold text-[#12340d]">Søk etter kokker</span>
+                            <input
+                                type="text"
+                                placeholder="Søk etter navn..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full rounded-xl border border-[#d9dfcf] bg-[#fbfaf4] px-4 py-3 text-[#12340d] placeholder:text-[#6c8765] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
+                            />
+                        </label>
+
                         {loadingSearch ? (
-                            <p className="text-slate-600">Laster…</p>
+                            <div className="flex min-h-[220px] items-center justify-center">
+                                <div className="flex flex-col items-center gap-4 text-slate-600">
+                                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--accent-soft)] border-t-[var(--accent)]" />
+                                    <p className="text-sm font-medium">Leter etter kokker…</p>
+                                </div>
+                            </div>
                         ) : trimmed.length < 3 ? (
-                            <p className="text-slate-600">Søk etter vennene dine, hvis du har noen 🙄</p>
+                            <div className="rounded-xl bg-[#f8f6ed] p-5 text-center text-sm text-[#496444]">
+                                Skriv minst tre bokstaver for å søke etter venner.
+                            </div>
                         ) : results.length === 0 ? (
-                            <p className="text-slate-600">Ingen kokker funnet.</p>
+                            <div className="rounded-xl bg-[#f8f6ed] p-5 text-center text-sm text-[#496444]">
+                                Ingen kokker funnet.
+                            </div>
                         ) : (
                             <div className="max-h-[60vh] overflow-y-auto">
                                 {results.map((u) => (
                                     <div
                                         key={u.uid}
-                                        className="flex items-center justify-between py-3 border-b border-slate-100 last:border-b-0"
+                                        className="flex items-center justify-between border-b border-[#ece8da] py-3 last:border-b-0"
                                     >
                                         <button
                                             type="button"
                                             onClick={() => router.push(`/user/${u.uid}`)}
                                             className="flex items-center gap-3 text-left"
                                         >
-                                            <div className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 shrink-0">
+                                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#eef3e4]">
                                                 {u.photoURL ? (
                                                     <img src={u.photoURL} alt={u.name} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <div className="w-full h-full grid place-items-center text-slate-500">🧑‍🍳</div>
+                                                    <div className="grid h-full w-full place-items-center text-[#6c8765]">🧑‍🍳</div>
                                                 )}
                                             </div>
-                                            <span className="text-slate-900 font-medium">{u.name}</span>
+                                            <span className="font-medium text-[#12340d]">{u.name}</span>
                                         </button>
 
                                         {uid === u.uid ? (
-                                            <span className="text-sm text-slate-500">Deg</span>
+                                            <span className="text-sm text-[#6c8765]">Deg</span>
                                         ) : (
                                             <FollowButton targetUid={u.uid} />
                                         )}

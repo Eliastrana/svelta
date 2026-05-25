@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Timestamp } from 'firebase/firestore';
 import Image from 'next/image';
@@ -82,6 +82,21 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
         x: 0,
         y: 0,
     });
+    const [ownerMenuOpen, setOwnerMenuOpen] = useState(false);
+    const ownerMenuRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (!ownerMenuOpen) return;
+
+        const handlePointerDown = (event: PointerEvent) => {
+            if (!ownerMenuRef.current?.contains(event.target as Node)) {
+                setOwnerMenuOpen(false);
+            }
+        };
+
+        window.addEventListener('pointerdown', handlePointerDown);
+        return () => window.removeEventListener('pointerdown', handlePointerDown);
+    }, [ownerMenuOpen]);
 
     const createdAtToDate = (createdAt?: Timestamp | Date | number): Date | null => {
         if (!createdAt) return null;
@@ -122,11 +137,13 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
 
     const handleEdit = (e: React.MouseEvent) => {
         e.stopPropagation();
+        setOwnerMenuOpen(false);
         router.push(`/recipe/edit/${recipe.id}`);
     };
 
     const handleDelete = (e: React.MouseEvent) => {
         e.stopPropagation();
+        setOwnerMenuOpen(false);
         onDelete?.(recipe.id);
     };
 
@@ -297,28 +314,57 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
 
             {/* Owner controls */}
             {isOwner && (
-                <div className="absolute top-5 left-5 z-20 flex gap-2">
+                <div ref={ownerMenuRef} className="absolute top-5 left-5 z-20 flex items-start gap-2">
                     <button
-                        onClick={handleEdit}
-                        className="grid h-9 w-9 place-items-center rounded-full bg-[#fbfaf4]/95 text-[#12340d] shadow-sm backdrop-blur transition hover:bg-[#e5e5d7]"
-                        title="Edit recipe"
-                        aria-label="Rediger oppskrift"
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setOwnerMenuOpen((prev) => !prev);
+                        }}
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#fbfaf4]/95 text-[#12340d] shadow-sm backdrop-blur transition hover:bg-[#e5e5d7]"
+                        title="Flere valg"
+                        aria-label="Flere valg"
+                        aria-expanded={ownerMenuOpen}
                     >
                         <span className="material-symbols-outlined text-[20px]">
-                            edit
+                            more_horiz
                         </span>
                     </button>
 
-                    <button
-                        onClick={handleDelete}
-                        className="grid h-9 w-9 place-items-center rounded-full bg-red-500 text-white shadow-sm transition hover:bg-red-600"
-                        title="Delete recipe"
-                        aria-label="Slett oppskrift"
+                    <div
+                        className={[
+                            'flex origin-left items-center gap-2 overflow-hidden rounded-full bg-[#fbfaf4]/95 shadow-sm backdrop-blur transition-all duration-200 ease-out',
+                            ownerMenuOpen
+                                ? 'max-w-[220px] scale-100 px-2 py-2 opacity-100'
+                                : 'max-w-0 scale-95 px-0 py-2 opacity-0 pointer-events-none',
+                        ].join(' ')}
                     >
-                        <span className="material-symbols-outlined text-[20px]">
-                            delete
-                        </span>
-                    </button>
+                        <button
+                            type="button"
+                            onClick={handleEdit}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-[#eef3e4] px-3 py-1.5 text-sm font-semibold text-[#12340d] transition hover:bg-[#dfead0]"
+                            title="Rediger oppskrift"
+                            aria-label="Rediger oppskrift"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">
+                                edit
+                            </span>
+                            Rediger
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={handleDelete}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-red-500 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-red-600"
+                            title="Slett oppskrift"
+                            aria-label="Slett oppskrift"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">
+                                delete
+                            </span>
+                            Slett
+                        </button>
+                    </div>
                 </div>
             )}
         </article>

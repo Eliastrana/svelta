@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 type RenderArgs = {
     closeWithAnim: () => void;
@@ -22,10 +23,10 @@ type AppModalProps = {
 };
 
 const DEFAULT_OVERLAY =
-    'fixed inset-0 z-[9999] bg-black/30 backdrop-blur-sm transition-opacity duration-200';
+    'fixed inset-0 z-[100000] bg-black/30 backdrop-blur-sm transition-opacity duration-200';
 
 const DEFAULT_PANEL =
-    'fixed z-[10000] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-md rounded-2xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur transition-all duration-200 ease-out';
+    'fixed z-[100001] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-md rounded-2xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur transition-all duration-200 ease-out';
 
 export default function AppModal({
     onClose,
@@ -41,9 +42,11 @@ export default function AppModal({
 }: AppModalProps) {
     const [open, setOpen] = useState(false);
     const [closing, setClosing] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const closeTimerRef = useRef<number | null>(null);
 
     useEffect(() => {
+        setMounted(true);
         const t = window.setTimeout(() => setOpen(true), 10);
         return () => {
             window.clearTimeout(t);
@@ -74,7 +77,9 @@ export default function AppModal({
     const panelBase = useDefaultPanelStyle ? DEFAULT_PANEL : 'transition-all duration-200 ease-out';
     const panelState = open ? panelOpenClassName : panelClosedClassName;
 
-    return (
+    if (!mounted) return null;
+
+    return createPortal(
         <div
             className={[DEFAULT_OVERLAY, open ? 'opacity-100' : 'opacity-0', overlayClassName].join(' ')}
             onClick={closeOnOverlayClick ? closeWithAnim : undefined}
@@ -90,6 +95,7 @@ export default function AppModal({
                     ? children({ closeWithAnim, closing, open })
                     : children}
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }
