@@ -105,10 +105,8 @@ export default function TermsPage() {
     return (
         <main className="min-h-screen pb-24">
             <div className="mx-auto max-w-4xl px-4 py-8">
-                <div className="rounded-xl bg-[#f2f1e8] p-6 text-[#12340d] shadow-sm md:p-8">
-                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#6c8765]">
-                        Svelta
-                    </p>
+                <div className="">
+
                     <h1 className="mt-3 text-3xl font-bold tracking-tight md:text-5xl">
                         Vilkår og betingelser
                     </h1>
@@ -125,7 +123,7 @@ export default function TermsPage() {
                     {sections.map((section) => (
                         <section
                             key={section.title}
-                            className="rounded-xl border border-[#e4e1d3] bg-white/95 p-5 shadow-sm md:p-6"
+                            className=" py-5  md:py-6"
                         >
                             <h2 className="text-xl font-semibold text-slate-900">{section.title}</h2>
                             <div className="mt-3 space-y-3 text-sm leading-relaxed text-slate-600 md:text-base">
