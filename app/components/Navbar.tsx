@@ -13,6 +13,7 @@ import UserSearchModal from '@/app/components/UserSearchModal';
 import RecommendModal from '@/app/components/RecommendModal';
 
 import { fetchCollections, createCollection } from '@/helpers/collectionHelpers';
+import { useUserData } from '@/hooks/useUserData';
 
 interface CollectionDoc {
     id: string;
@@ -32,7 +33,9 @@ const Navbar: React.FC = () => {
     const [isMobileCollapsed, setIsMobileCollapsed] = useState(false);
 
     const uid = user?.uid ?? '';
+    const userData = useUserData(uid);
     const queryClient = useQueryClient();
+    const incomingFollowRequestCount = userData?.incomingFollowRequests?.length ?? 0;
 
     // ─────────────────────────────────────────────────────────────
     // Auth
@@ -150,6 +153,25 @@ const Navbar: React.FC = () => {
             active ? 'brown-button' : 'hover:bg-slate-100',
         ].join(' ');
 
+    const requestBadge = incomingFollowRequestCount > 99 ? '99+' : incomingFollowRequestCount;
+
+    const renderNavIcon = (item: { key: string; active: boolean; icon: React.ReactNode }) => {
+        if (item.key === 'profile') return item.icon;
+
+        const showRequestBadge = item.key === 'friends' && incomingFollowRequestCount > 0;
+
+        return (
+            <span className="relative inline-grid place-items-center">
+                <span className={iconWrapBg(item.active)}>{item.icon}</span>
+                {showRequestBadge ? (
+                    <span className="absolute -right-1 -top-1 min-w-[1.15rem] rounded-full bg-[#365d2c] px-1.5 py-0.5 text-center text-[10px] font-semibold leading-none text-white shadow-sm">
+                        {requestBadge}
+                    </span>
+                ) : null}
+            </span>
+        );
+    };
+
     const navItems = [
         {
             key: 'home',
@@ -212,7 +234,7 @@ const Navbar: React.FC = () => {
                             className={item.key === 'profile' ? 'flex-shrink-0' : iconBase}
                             aria-label={item.label}
                         >
-                            {item.key === 'profile' ? item.icon : <span className={iconWrapBg(item.active)}>{item.icon}</span>}
+                            {renderNavIcon(item)}
                         </button>
                     ))}
                 </div>
@@ -233,11 +255,10 @@ const Navbar: React.FC = () => {
                             className="flex-shrink-0"
                             aria-label="Utvid navigasjon"
                         >
-                            {activeNavItem.key === 'profile' ? (
-                                activeNavItem.icon
-                            ) : (
-                                <span className={iconWrapBg(true)}>{activeNavItem.icon}</span>
-                            )}
+                            {renderNavIcon({
+                                ...activeNavItem,
+                                active: true,
+                            })}
                         </button>
                     ) : (
                         navItems.map((item) => (
@@ -251,7 +272,7 @@ const Navbar: React.FC = () => {
                                 ].join(' ')}
                                 aria-label={item.label}
                             >
-                                {item.key === 'profile' ? item.icon : <span className={iconWrapBg(item.active)}>{item.icon}</span>}
+                                {renderNavIcon(item)}
                             </button>
                         ))
                     )}

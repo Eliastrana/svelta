@@ -5,15 +5,43 @@ import AuthSync from '@/app/components/AuthSync';
 import Footer from '@/app/components/footer';
 import ReactQueryProvider from '@/app/components/ReactQueryProvider';
 import { Suspense } from 'react';
+import { Fraunces, Newsreader, Sora, Space_Grotesk, Syne, Urbanist } from 'next/font/google';
+
+const urbanist = Urbanist({
+    subsets: ['latin'],
+    variable: '--font-urbanist',
+});
+
+const sora = Sora({
+    subsets: ['latin'],
+    variable: '--font-sora',
+});
+
+const spaceGrotesk = Space_Grotesk({
+    subsets: ['latin'],
+    variable: '--font-space-grotesk',
+});
+
+const fraunces = Fraunces({
+    subsets: ['latin'],
+    variable: '--font-fraunces',
+});
+
+const newsreader = Newsreader({
+    subsets: ['latin'],
+    variable: '--font-newsreader',
+});
+
+const syne = Syne({
+    subsets: ['latin'],
+    variable: '--font-syne',
+});
 
 
 export const metadata: Metadata = {
     title: 'Svelta',
     description: 'Del dine beste oppskrifter',
 };
-
-
-
 
 export default function RootLayout({
     children,
@@ -54,22 +82,22 @@ export default function RootLayout({
                 href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=search"
             />
 
-            <link rel="preconnect" href="https://fonts.googleapis.com" />
-            <link
-                rel="preconnect"
-                href="https://fonts.gstatic.com"
-                crossOrigin="anonymous"
-            />
-
-            <link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap"
-                  rel="stylesheet" />
-
             <link
                 href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
                 rel="stylesheet"
             />
         </head>
-        <body className="flex flex-col min-h-screen">
+        <body
+            className={[
+                urbanist.variable,
+                sora.variable,
+                spaceGrotesk.variable,
+                fraunces.variable,
+                newsreader.variable,
+                syne.variable,
+                'flex min-h-screen flex-col',
+            ].join(' ')}
+        >
         <AuthSync />
 
         <ReactQueryProvider>

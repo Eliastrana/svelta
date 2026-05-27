@@ -198,12 +198,30 @@ export async function deleteUserAccountAndActivity(currentUser: User) {
     const followerDocsSnap = await getDocs(
         query(collection(firestore, 'users'), where('following', 'array-contains', uid)),
     );
+    const outgoingRequestDocsSnap = await getDocs(
+        query(collection(firestore, 'users'), where('incomingFollowRequests', 'array-contains', uid)),
+    );
+    const incomingRequestDocsSnap = await getDocs(
+        query(collection(firestore, 'users'), where('outgoingFollowRequests', 'array-contains', uid)),
+    );
 
     await batcher.flush();
 
     for (const followerDoc of followerDocsSnap.docs) {
         await updateDoc(followerDoc.ref, {
             following: arrayRemove(uid),
+        });
+    }
+
+    for (const targetDoc of outgoingRequestDocsSnap.docs) {
+        await updateDoc(targetDoc.ref, {
+            incomingFollowRequests: arrayRemove(uid),
+        });
+    }
+
+    for (const requesterDoc of incomingRequestDocsSnap.docs) {
+        await updateDoc(requesterDoc.ref, {
+            outgoingFollowRequests: arrayRemove(uid),
         });
     }
 

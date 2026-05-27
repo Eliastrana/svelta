@@ -164,7 +164,7 @@ const CollectionsPage: React.FC = () => {
                         <p className="text-slate-600">Laster…</p>
                     ) : collections.length === 0 ? (
                         <div className="rounded-[28px] border border-slate-200 bg-white/95 p-6 text-sm text-slate-600 shadow-sm">
-                            Ingen samlinger ennå. Trykk på <span className="font-semibold text-slate-900">Ny samling</span> for å lage den første.
+                            Ingen kokebøker ennå. Trykk på <span className="font-semibold text-slate-900">Ny kokebok</span> for å lage den første.
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -223,7 +223,7 @@ const CollectionsPage: React.FC = () => {
                                 <div className="flex-1">
                                     <input
                                         type="text"
-                                        placeholder="Navn på samling…"
+                                        placeholder="Navn på kokebok…"
                                         className="w-full rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-300"
                                         value={newListName}
                                         onChange={(e) => setNewListName(e.target.value)}
@@ -246,7 +246,7 @@ const CollectionsPage: React.FC = () => {
 
                                     <label className="mt-3 flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700">
                                         <div>
-                                            <p className="font-semibold text-slate-900">Offentlig samling</p>
+                                            <p className="font-semibold text-slate-900">Offentlig kokebok</p>
                                             <p className="mt-1 text-xs text-slate-600">
                                                 Vises under Samlinger på profilsiden din.
                                             </p>
@@ -285,7 +285,7 @@ const CollectionsPage: React.FC = () => {
                                             onClick={() => void handleSubmit(closeWithAnim)}
                                             disabled={!canCreate || closing}
                                         >
-                                            {createMutation.isPending ? 'Lager…' : 'Lag samling'}
+                                            {createMutation.isPending ? 'Lager…' : 'Lag kokebok'}
                                         </button>
                                     </div>
 

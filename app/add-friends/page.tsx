@@ -5,9 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
     doc,
     getDoc,
-    updateDoc,
-    arrayUnion,
-    arrayRemove,
     collection,
     startAt,
     endAt,
@@ -19,17 +16,20 @@ import {
 } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, firestore } from '@/firebase';
+import {
+    FollowableUserDoc,
+    getFollowState,
+    respondToFollowRequest,
+    toggleFollowAction,
+} from '@/helpers/followRequests';
 
-interface UserData {
-    name?: string;
-    following?: string[];
-    photoURL?: string;
-}
+type UserData = FollowableUserDoc;
 
 interface UserSearchResult {
     uid: string;
     name: string;
     photoURL?: string;
+    isProfilePrivate?: boolean;
 }
 
 type FriendsTab = 'friends' | 'following' | 'followers';
@@ -56,6 +56,7 @@ const fetchUsersByIds = async (uids: string[]): Promise<UserSearchResult[]> => {
                 uid: d.id,
                 name: data.name || 'Unnamed User',
                 photoURL: data.photoURL,
+                isProfilePrivate: data.isProfilePrivate,
             });
         });
     }
@@ -86,6 +87,7 @@ const fetchFollowersForUid = async (uid: string): Promise<UserSearchResult[]> =>
             uid: d.id,
             name: data.name || 'Unnamed User',
             photoURL: data.photoURL,
+            isProfilePrivate: data.isProfilePrivate,
         });
     });
 
@@ -134,7 +136,9 @@ const AddFriendsPage: React.FC = () => {
     const [results, setResults] = useState<UserSearchResult[]>([]);
     const [loadingSearch, setLoadingSearch] = useState(false);
 
+    const [currentUserDoc, setCurrentUserDoc] = useState<UserData | null>(null);
     const [currentFollowing, setCurrentFollowing] = useState<string[]>([]);
+    const [incomingRequests, setIncomingRequests] = useState<string[]>([]);
     const [followingReady, setFollowingReady] = useState(false);
 
     const [activeTab, setActiveTab] = useState<FriendsTab>('friends');
@@ -142,6 +146,7 @@ const AddFriendsPage: React.FC = () => {
     const [friendsList, setFriendsList] = useState<UserSearchResult[]>([]);
     const [followingList, setFollowingList] = useState<UserSearchResult[]>([]);
     const [followersList, setFollowersList] = useState<UserSearchResult[]>([]);
+    const [requestList, setRequestList] = useState<UserSearchResult[]>([]);
     const [loadingTopList, setLoadingTopList] = useState(true);
 
     useEffect(() => {
@@ -159,7 +164,9 @@ const AddFriendsPage: React.FC = () => {
     useEffect(() => {
         const fetchMyFollowing = async () => {
             if (!uid) {
+                setCurrentUserDoc(null);
                 setCurrentFollowing([]);
+                setIncomingRequests([]);
                 setFollowingReady(false);
                 return;
             }
@@ -171,12 +178,16 @@ const AddFriendsPage: React.FC = () => {
                 const snap = await getDoc(meRef);
 
                 if (!snap.exists()) {
+                    setCurrentUserDoc(null);
                     setCurrentFollowing([]);
+                    setIncomingRequests([]);
                     return;
                 }
 
                 const data = snap.data() as UserData;
+                setCurrentUserDoc(data);
                 setCurrentFollowing(data.following ?? []);
+                setIncomingRequests(data.incomingFollowRequests ?? []);
             } finally {
                 setFollowingReady(true);
             }
@@ -205,6 +216,9 @@ const AddFriendsPage: React.FC = () => {
                 const friendsIds = currentFollowing.filter((id) => followersIds.has(id));
                 const friendsUsers = await fetchUsersByIds(friendsIds);
                 setFriendsList(friendsUsers);
+
+                const requestUsers = await fetchUsersByIds(incomingRequests);
+                setRequestList(requestUsers);
             } catch (err) {
                 console.error('Error building top lists:', err);
             } finally {
@@ -213,7 +227,7 @@ const AddFriendsPage: React.FC = () => {
         };
 
         void buildLists();
-    }, [uid, currentFollowing, followingReady]);
+    }, [uid, currentFollowing, incomingRequests, followingReady]);
 
     const trimmed = useMemo(() => searchTerm.trim(), [searchTerm]);
 
@@ -239,6 +253,7 @@ const AddFriendsPage: React.FC = () => {
                         uid: d.id,
                         name: data.name || 'Unnamed User',
                         photoURL: data.photoURL,
+                        isProfilePrivate: data.isProfilePrivate,
                     });
                 });
                 setResults(users);
@@ -251,27 +266,60 @@ const AddFriendsPage: React.FC = () => {
         void fetchUsers();
     }, [trimmed]);
 
-    // ✅ follow/unfollow oppdaterer KUN currentUser.following
     const handleFollow = async (targetUid: string) => {
         if (!uid) {
             alert('Please log in to follow users.');
             return;
         }
 
-        const meRef = doc(firestore, 'users', uid);
-
         try {
-            const isFollowing = currentFollowing.includes(targetUid);
+            const result = await toggleFollowAction(uid, targetUid);
 
-            if (isFollowing) {
-                await updateDoc(meRef, { following: arrayRemove(targetUid) });
+            if (result === 'followed') {
+                setCurrentFollowing((prev) => (prev.includes(targetUid) ? prev : [...prev, targetUid]));
+            } else if (result === 'unfollowed') {
                 setCurrentFollowing((prev) => prev.filter((x) => x !== targetUid));
-            } else {
-                await updateDoc(meRef, { following: arrayUnion(targetUid) });
-                setCurrentFollowing((prev) => [...prev, targetUid]);
             }
+
+            setCurrentUserDoc((prev) => {
+                const next = { ...(prev ?? {}) };
+                next.following =
+                    result === 'followed'
+                        ? Array.from(new Set([...(prev?.following ?? []), targetUid]))
+                        : (prev?.following ?? []).filter((x) => x !== targetUid);
+                next.outgoingFollowRequests =
+                    result === 'requested'
+                        ? Array.from(new Set([...(prev?.outgoingFollowRequests ?? []), targetUid]))
+                        : (prev?.outgoingFollowRequests ?? []).filter((x) => x !== targetUid);
+                return next;
+            });
         } catch (err) {
             console.error('Error updating following:', err);
+        }
+    };
+
+    const handleRequestResponse = async (requesterUid: string, accept: boolean) => {
+        if (!uid) return;
+
+        try {
+            await respondToFollowRequest(uid, requesterUid, accept);
+            setIncomingRequests((prev) => prev.filter((x) => x !== requesterUid));
+            setRequestList((prev) => prev.filter((x) => x.uid !== requesterUid));
+            setCurrentUserDoc((prev) => ({
+                ...(prev ?? {}),
+                incomingFollowRequests: (prev?.incomingFollowRequests ?? []).filter((x) => x !== requesterUid),
+            }));
+
+            if (accept) {
+                setFollowersList((prev) => {
+                    const existing = prev.find((x) => x.uid === requesterUid);
+                    if (existing) return prev;
+                    const requested = requestList.find((x) => x.uid === requesterUid);
+                    return requested ? [...prev, requested] : prev;
+                });
+            }
+        } catch (err) {
+            console.error('Error responding to follow request:', err);
         }
     };
 
@@ -287,22 +335,27 @@ const AddFriendsPage: React.FC = () => {
     }
     if (!currentUser) return null;
 
-    const FollowButton = ({ targetUid }: { targetUid: string }) => {
-        const isFollowing = currentFollowing.includes(targetUid);
+    const FollowButton = ({ targetUser }: { targetUser: UserSearchResult }) => {
+        const state = getFollowState(uid, targetUser.uid, currentUserDoc, targetUser);
+        const isFollowing = state === 'following';
+        const isRequested = state === 'requested';
+        const isPrivateTarget = Boolean(targetUser.isProfilePrivate);
 
         return (
             <button
                 type="button"
-                onClick={() => handleFollow(targetUid)}
+                onClick={() => handleFollow(targetUser.uid)}
                 className={[
                     'rounded-full px-4 py-2 text-sm font-semibold transition',
                     isFollowing
                         ? 'border border-[#d9dfcf] bg-[#f5f3e8] text-[#496444] hover:bg-[#eeebdc]'
+                        : isRequested
+                            ? 'border border-[#d9dfcf] bg-white text-[#496444] hover:bg-[#f8f6ed]'
                         : 'bg-[var(--accent-strong)] text-[#12340d] hover:bg-[var(--accent)]',
                 ].join(' ')}
-                aria-label={isFollowing ? 'Slutt å følge' : 'Følg'}
+                aria-label={isFollowing ? 'Slutt å følge' : isRequested ? 'Avbryt forespørsel' : isPrivateTarget ? 'Be om å følge' : 'Følg'}
             >
-                {isFollowing ? 'Slutt å følge' : 'Følg'}
+                {isFollowing ? 'Slutt å følge' : isRequested ? 'Forespurt' : isPrivateTarget ? 'Be om å følge' : 'Følg'}
             </button>
         );
     };
@@ -324,7 +377,7 @@ const AddFriendsPage: React.FC = () => {
                 <span className="font-medium text-[#12340d]">{u.name}</span>
             </button>
 
-            {uid === u.uid ? <span className="text-sm text-[#6c8765]">Deg</span> : <FollowButton targetUid={u.uid} />}
+            {uid === u.uid ? <span className="text-sm text-[#6c8765]">Deg</span> : <FollowButton targetUser={u} />}
         </div>
     );
 
@@ -338,11 +391,81 @@ const AddFriendsPage: React.FC = () => {
                 ? followingList.length
                 : followersList.length;
     const topListPending = !followingReady || loadingTopList;
+    const showRequestsCard = Boolean(currentUserDoc?.isProfilePrivate || requestList.length > 0);
 
     return (
         <div className="min-h-screen pb-24">
             <div className="mx-auto max-w-4xl px-4 py-6 space-y-5">
-               
+                {showRequestsCard ? (
+                    <div className="rounded-xl border border-[#e4e1d3] bg-white/95 shadow-sm">
+                        <div className="p-4">
+                            <div className="mb-4 flex items-center justify-between gap-3">
+                                <div>
+                                    <h2 className="text-base font-semibold text-[#12340d]">Følgeforespørsler</h2>
+                                    <p className="mt-1 text-sm text-[#6c8765]">
+                                        {currentUserDoc?.isProfilePrivate
+                                            ? 'Private profiler må godkjenne nye følgere.'
+                                            : 'Ventende forespørsler til profilen din.'}
+                                    </p>
+                                </div>
+                                <div className="rounded-full bg-[#f5f3e8] px-3 py-1 text-sm font-semibold text-[#496444]">
+                                    {requestList.length}
+                                </div>
+                            </div>
+
+                            {topListPending ? (
+                                <div className="flex min-h-[120px] items-center justify-center">
+                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--accent-soft)] border-t-[var(--accent)]" />
+                                </div>
+                            ) : requestList.length === 0 ? (
+                                <div className="rounded-xl bg-[#f8f6ed] p-5 text-center text-[#496444]">
+                                    Ingen ventende forespørsler akkurat nå.
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {requestList.map((u) => (
+                                        <div key={`request-${u.uid}`} className="flex items-center justify-between gap-3 rounded-xl border border-[#ece8da] px-3 py-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => router.push(`/user/${u.uid}`)}
+                                                className="flex min-w-0 items-center gap-3 text-left"
+                                            >
+                                                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#eef3e4]">
+                                                    {u.photoURL ? (
+                                                        <img src={u.photoURL} alt={u.name} className="h-full w-full object-cover" />
+                                                    ) : (
+                                                        <div className="grid h-full w-full place-items-center text-[#6c8765]">🧑‍🍳</div>
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="truncate font-medium text-[#12340d]">{u.name}</p>
+                                                    <p className="text-sm text-[#6c8765]">Vil følge deg</p>
+                                                </div>
+                                            </button>
+
+                                            <div className="flex shrink-0 items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRequestResponse(u.uid, false)}
+                                                    className="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+                                                >
+                                                    Avslå
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRequestResponse(u.uid, true)}
+                                                    className="rounded-full bg-[var(--accent-strong)] px-3 py-2 text-sm font-semibold text-[#12340d] transition hover:bg-[var(--accent)]"
+                                                >
+                                                    Godkjenn
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ) : null}
 
                 <div className="rounded-xl border border-[#e4e1d3] bg-white/95 shadow-sm">
                     <div className="p-4">
@@ -484,7 +607,7 @@ const AddFriendsPage: React.FC = () => {
                                         {uid === u.uid ? (
                                             <span className="text-sm text-[#6c8765]">Deg</span>
                                         ) : (
-                                            <FollowButton targetUid={u.uid} />
+                                            <FollowButton targetUser={u} />
                                         )}
                                     </div>
                                 ))}

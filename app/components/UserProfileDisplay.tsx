@@ -1,13 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { auth, firestore } from '@/firebase';
+import { auth } from '@/firebase';
+import { useUserData } from '@/hooks/useUserData';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-
-type UserDoc = {
-    photoURL?: string;
-};
 
 type Props = {
     sizeClassName?: string; // default navbar size
@@ -21,36 +17,19 @@ const UserProfileDisplay = ({
                                 active = false,
                             }: Props) => {
     const [user, setUser] = useState<User | null>(null);
-    const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
-    const [loadingPhoto, setLoadingPhoto] = useState(false);
+    const userData = useUserData(user?.uid ?? '');
 
     const ringClass = active ? 'ring-2 brown-button ring-offset-2 ring-offset-white' : '';
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
-
-            if (!currentUser) {
-                setProfilePhoto(null);
-                setLoadingPhoto(false);
-                return;
-            }
-
-            setLoadingPhoto(true);
-            try {
-                const snap = await getDoc(doc(firestore, 'users', currentUser.uid));
-                const data = snap.exists() ? (snap.data() as UserDoc) : null;
-                const url = (data?.photoURL?.trim() || currentUser.photoURL || null) as string | null;
-                setProfilePhoto(url);
-            } catch {
-                setProfilePhoto(currentUser.photoURL || null);
-            } finally {
-                setLoadingPhoto(false);
-            }
         });
 
         return () => unsubscribe();
     }, []);
+
+    const profilePhoto = userData?.photoURL?.trim() || user?.photoURL || null;
 
     // Not logged in
     if (!user) {
@@ -59,11 +38,6 @@ const UserProfileDisplay = ({
                 🧑‍🍳
             </div>
         );
-    }
-
-    // Loading state
-    if (loadingPhoto) {
-        return <div className={`${sizeClassName} ${className} ${ringClass} rounded-full bg-slate-200 animate-pulse`} />;
     }
 
     // Logged in

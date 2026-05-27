@@ -1,11 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { firestore } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 export interface UserDoc {
     name?: string;
     following?: string[];
+    incomingFollowRequests?: string[];
+    outgoingFollowRequests?: string[];
+    isProfilePrivate?: boolean;
+    hasCompletedOnboarding?: boolean;
     photoURL?: string;
     backgroundPhotoURL?: string;
     bio?: string;
@@ -22,16 +26,17 @@ export function useUserData(uid: string): UserDoc | null {
             setUserData(null);
             return;
         }
-        const fetchUserData = async () => {
-            const userDocRef = doc(firestore, 'users', uid);
-            const docSnap = await getDoc(userDocRef);
+
+        const userDocRef = doc(firestore, 'users', uid);
+        const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists()) {
                 setUserData(docSnap.data() as UserDoc);
             } else {
                 setUserData(null);
             }
-        };
-        fetchUserData();
+        });
+
+        return () => unsubscribe();
     }, [uid]);
 
     return userData;

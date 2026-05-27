@@ -4,6 +4,7 @@
 import { useEffect } from 'react';
 import { onAuthStateChanged, signInWithPopup } from 'firebase/auth';
 import { auth, provider } from '@/firebase';
+import { ensureUserDocument } from '@/helpers/ensureUserDocument';
 
 function getSafeNextPath(): string {
     if (typeof window === 'undefined') return '/';
@@ -35,6 +36,7 @@ export default function LoginPage() {
     const signIn = async () => {
         try {
             const result = await signInWithPopup(auth, provider);
+            await ensureUserDocument(result.user);
             const token = await result.user.getIdToken(true);
 
             const isLocalhost =

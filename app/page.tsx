@@ -6,12 +6,15 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 import RecipeCard from '@/app/components/RecipeCard';
 import MostActiveCreators from '@/app/components/MostActiveCreators';
+import OnboardingIntro from '@/app/components/OnboardingIntro';
 
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useUserFollowing } from '@/hooks/useUserFollowing';
 import { fetchManyUsers } from '@/helpers/fetchManyUsers';
+import { ensureUserDocument } from '@/helpers/ensureUserDocument';
 import { fetchFollowedRecipes } from '@/helpers/fetchFollowedRecipies';
 import { fetchPopularRecipesPage } from '@/helpers/fetchPopularRecipesPage';
+import { DEFAULT_PROFILE_THEME_ID } from '@/helpers/profileAppearance';
 
 import { Recipe } from '@/app/types/Recipe';
 import { UserDoc } from '@/hooks/useUserData';
@@ -73,9 +76,40 @@ const Home: React.FC = () => {
 
     const [activeFeed, setActiveFeed] = React.useState<Feed>('popular');
     const [search, setSearch] = React.useState('');
+    const [viewerProfile, setViewerProfile] = React.useState<UserDoc | null>(null);
+    const [showOnboarding, setShowOnboarding] = React.useState(false);
+    const [onboardingResolved, setOnboardingResolved] = React.useState(false);
 
     const following = useUserFollowing(user?.uid ?? '');
     const isLoggedIn = !!user?.uid;
+
+    React.useEffect(() => {
+        let cancelled = false;
+
+        const loadViewerProfile = async () => {
+            if (!user) {
+                setViewerProfile(null);
+                setShowOnboarding(false);
+                setOnboardingResolved(true);
+                return;
+            }
+
+            setOnboardingResolved(false);
+            const result = await ensureUserDocument(user);
+            if (cancelled) return;
+
+            const nextProfile = result.data as UserDoc;
+            setViewerProfile(nextProfile);
+            setShowOnboarding(nextProfile.hasCompletedOnboarding === false);
+            setOnboardingResolved(true);
+        };
+
+        void loadViewerProfile();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [user]);
 
     const followsNobody = isLoggedIn && following.length === 0;
     const followsSomebody = isLoggedIn && following.length > 0;
@@ -180,6 +214,45 @@ const Home: React.FC = () => {
         enabled: uniqueUserIds.length > 0,
         placeholderData: (prev) => prev ?? {},
     });
+
+    const shouldBlockHome = Boolean(user && !onboardingResolved);
+    const shouldShowOnboarding = Boolean(user && showOnboarding && viewerProfile);
+
+    if (shouldBlockHome) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-[#fbfaf4] px-4">
+                <div className="flex flex-col items-center gap-4 text-slate-600">
+                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--accent-soft)] border-t-[var(--accent)]" />
+                    <p className="text-sm font-medium">Gjør klart…</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (shouldShowOnboarding && user && viewerProfile) {
+        return (
+            <OnboardingIntro
+                open
+                uid={user.uid}
+                initialName={viewerProfile.name || user.displayName || 'Kokken'}
+                initialBio={viewerProfile.bio || ''}
+                initialFavoriteFood={viewerProfile.favoriteFood || ''}
+                initialPhotoURL={viewerProfile.photoURL || user.photoURL || ''}
+                initialBackgroundPhotoURL={viewerProfile.backgroundPhotoURL || ''}
+                initialProfileThemeId={viewerProfile.profileThemeId || DEFAULT_PROFILE_THEME_ID}
+                initialProfileFontId={viewerProfile.profileFontId || 'urbanist'}
+                initialIsProfilePrivate={Boolean(viewerProfile.isProfilePrivate)}
+                onComplete={(next) => {
+                    setViewerProfile((prev) => ({
+                        ...(prev ?? {}),
+                        ...next,
+                    }));
+                    setShowOnboarding(false);
+                    setOnboardingResolved(true);
+                }}
+            />
+        );
+    }
 
     return (
         <div className="p-4 md:max-w-5xl lg:w-2/3 md:mx-auto md:mb-24">

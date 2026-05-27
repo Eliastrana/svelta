@@ -6,16 +6,13 @@ import { useParams, useRouter } from 'next/navigation';
 import {
     doc,
     getDoc,
-    setDoc,
     updateDoc,
-    arrayUnion,
-    arrayRemove,
     collection,
     deleteDoc,
     getDocs,
 } from 'firebase/firestore';
 import { auth, firestore, storage } from '@/firebase';
-import { signOut, User } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useQuery } from '@tanstack/react-query';
 
@@ -27,13 +24,18 @@ import CollectionCard from '@/app/components/CollectionCard';
 import { CollectionDoc, fetchPublicCollections } from '@/helpers/collectionHelpers';
 import { useCollectionSummaries } from '@/hooks/collections/useCollectionSummaries';
 import { deleteUserAccountAndActivity } from '@/helpers/deleteUserAccount';
-import { PROFILE_FONTS, PROFILE_THEMES, getProfileFont, getProfileTheme } from '@/helpers/profileAppearance';
+import { ensureUserDocument } from '@/helpers/ensureUserDocument';
+import { FollowState, getFollowState, toggleFollowAction } from '@/helpers/followRequests';
+import { DEFAULT_PROFILE_THEME_ID, PROFILE_FONTS, PROFILE_THEMES, getProfileFont, getProfileTheme } from '@/helpers/profileAppearance';
 import { filterVisibleRecipes } from '@/helpers/recipeVisibility';
 import { useUserFollowing } from '@/hooks/useUserFollowing';
 
 interface UserData {
     name?: string;
     following?: string[];
+    incomingFollowRequests?: string[];
+    outgoingFollowRequests?: string[];
+    isProfilePrivate?: boolean;
     photoURL?: string;
     backgroundPhotoURL?: string;
     bio?: string;
@@ -199,29 +201,10 @@ const FollowersModal: React.FC<{
     );
 };
 
-// Ensure a Firestore doc exists for every signed-in user
-const createUserDocumentIfNotExists = async (user: User) => {
-    const userDocRef = doc(firestore, 'users', user.uid);
-    const docSnap = await getDoc(userDocRef);
-
-    if (!docSnap.exists()) {
-        await setDoc(userDocRef, {
-            name: user.displayName || 'Unnamed User',
-            following: [],
-            photoURL: user.photoURL || '',
-            backgroundPhotoURL: '',
-            bio: '',
-            favoriteFood: '',
-            profileThemeId: 'moss',
-            profileFontId: 'urbanist',
-        });
-    }
-};
-
 // Run on every auth-state change to bootstrap user data
 auth.onAuthStateChanged(async (user) => {
     if (user) {
-        await createUserDocumentIfNotExists(user);
+        await ensureUserDocument(user);
     }
 });
 
@@ -377,8 +360,9 @@ type EditProfileModalProps = {
     initialBackgroundPhotoURL: string;
     initialProfileThemeId: string;
     initialProfileFontId: string;
+    initialIsProfilePrivate: boolean;
     uid: string;
-    onSaved: (next: { bio: string; favoriteFood: string; photoURL: string; backgroundPhotoURL: string; profileThemeId: string; profileFontId: string }) => void;
+    onSaved: (next: { bio: string; favoriteFood: string; photoURL: string; backgroundPhotoURL: string; profileThemeId: string; profileFontId: string; isProfilePrivate: boolean }) => void;
     onLogout: () => void;
 };
 
@@ -392,6 +376,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                                                initialBackgroundPhotoURL,
                                                                initialProfileThemeId,
                                                                initialProfileFontId,
+                                                               initialIsProfilePrivate,
                                                                uid,
                                                            onSaved,
                                                            onLogout,
@@ -406,6 +391,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     const [backgroundPhotoPreview, setBackgroundPhotoPreview] = useState<string>(initialBackgroundPhotoURL);
     const [profileThemeId, setProfileThemeId] = useState(initialProfileThemeId);
     const [profileFontId, setProfileFontId] = useState(initialProfileFontId);
+    const [isProfilePrivate, setIsProfilePrivate] = useState(initialIsProfilePrivate);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -425,13 +411,14 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         setBackgroundPhotoPreview(initialBackgroundPhotoURL);
         setProfileThemeId(initialProfileThemeId);
         setProfileFontId(initialProfileFontId);
+        setIsProfilePrivate(initialIsProfilePrivate);
         setError(null);
         setDeleteError(null);
         setDeleteConfirmText('');
         setShowDeleteConfirm(false);
         setShowAppearanceModal(false);
         setDeletingAccount(false);
-    }, [open, initialBio, initialFavoriteFood, initialPhotoURL, initialBackgroundPhotoURL, initialProfileThemeId, initialProfileFontId]);
+    }, [open, initialBio, initialFavoriteFood, initialPhotoURL, initialBackgroundPhotoURL, initialProfileThemeId, initialProfileFontId, initialIsProfilePrivate]);
 
     useEffect(() => {
         return () => {
@@ -488,6 +475,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 backgroundPhotoURL: nextBackgroundPhotoURL,
                 profileThemeId,
                 profileFontId,
+                isProfilePrivate,
             });
 
             onSaved({
@@ -497,6 +485,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 backgroundPhotoURL: nextBackgroundPhotoURL,
                 profileThemeId,
                 profileFontId,
+                isProfilePrivate,
             });
 
             closeWithAnim();
@@ -623,6 +612,27 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                             <span className="material-symbols-outlined text-[18px]">palette</span>
                             Rediger utseende
                         </button>
+
+                        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                            <label className="flex items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-sm font-semibold text-slate-900">Privat profil</p>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        Nye følgere må godkjennes før de kan følge deg.
+                                    </p>
+                                </div>
+                                <span className="relative inline-flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={isProfilePrivate}
+                                        onChange={(e) => setIsProfilePrivate(e.target.checked)}
+                                        className="peer sr-only"
+                                    />
+                                    <span className="h-7 w-12 rounded-full bg-slate-300 transition-colors duration-200 peer-checked:bg-[var(--accent)]" />
+                                    <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 peer-checked:translate-x-5" />
+                                </span>
+                            </label>
+                        </div>
 
                         <div className="mt-6 rounded-2xl border border-red-200 bg-red-50/70 p-4">
                             <div className="flex items-center justify-between gap-4">
@@ -781,7 +791,7 @@ const UserProfile: React.FC = () => {
 
     const [activeTab, setActiveTab] = useState<'myRecipes' | 'likedRecipes' | 'publicCollections'>('myRecipes');
     const [userData, setUserData] = useState<UserData | null>(null);
-    const [isFollowing, setIsFollowing] = useState(false);
+    const [followState, setFollowState] = useState<FollowState>('not_following');
     const [followerCount, setFollowerCount] = useState(0);
     const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
     const [showConfirm, setShowConfirm] = useState(false);
@@ -828,10 +838,10 @@ const UserProfile: React.FC = () => {
 
                 if (auth.currentUser) {
                     const meSnap = await getDoc(doc(firestore, 'users', auth.currentUser.uid));
-                    const following: string[] = meSnap.exists()
-                        ? ((meSnap.data() as UserData).following || [])
-                        : [];
-                    setIsFollowing(following.includes(id));
+                    const meData = meSnap.exists() ? (meSnap.data() as UserData) : null;
+                    setFollowState(getFollowState(auth.currentUser.uid, id, meData, snap.exists() ? (snap.data() as UserData) : null));
+                } else {
+                    setFollowState('not_following');
                 }
             } finally {
                 setProfileLoading(false);
@@ -866,6 +876,7 @@ const UserProfile: React.FC = () => {
         { key: 'publicCollections', label: 'Kokebøker' },
     ];
     const activeTabIndex = tabs.findIndex((tab) => tab.key === activeTab);
+    const isPrivateProfile = Boolean(userData.isProfilePrivate);
 
     return (
         <div className="pb-24" style={{ backgroundColor: profileTheme.soft, fontFamily: profileFont.family }}>
@@ -885,7 +896,7 @@ const UserProfile: React.FC = () => {
             <div className="relative z-10 mx-auto -mt-16 max-w-5xl px-4 md:-mt-20 md:w-2/3">
                 <div
                     className="rounded-xl p-5 shadow-sm sm:rounded-xl sm:p-6 md:p-8"
-                    style={{ backgroundColor: profileTheme.main, color: '#fff' }}
+                    style={{ backgroundColor: profileTheme.main, color: profileTheme.text }}
                 >
                     <div className="md:flex md:items-end md:justify-between md:gap-10">
                         <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-end sm:gap-6 sm:text-left md:gap-8">
@@ -905,7 +916,7 @@ const UserProfile: React.FC = () => {
 
                             <div className="min-w-0 w-full sm:pt-2 md:pb-2">
                                 <div className="flex items-center justify-center gap-3 sm:justify-start">
-                                    <h1 className="truncate text-2xl font-semibold tracking-tight text-white sm:text-3xl md:text-5xl">
+                                    <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl md:text-5xl">
                                         {name}
                                     </h1>
 
@@ -914,7 +925,11 @@ const UserProfile: React.FC = () => {
                                             type="button"
                                             onClick={() => setShowEditProfile(true)}
                                             className="grid h-10 w-10 shrink-0 place-items-center rounded-full border transition active:scale-90 sm:h-11 sm:w-11"
-                                            style={{ borderColor: 'rgba(255,255,255,0.25)', backgroundColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
+                                            style={{
+                                                borderColor: `${profileTheme.text}40`,
+                                                backgroundColor: `${profileTheme.text}14`,
+                                                color: profileTheme.text,
+                                            }}
                                             aria-label="Rediger profil"
                                             title="Rediger profil"
                                         >
@@ -928,12 +943,16 @@ const UserProfile: React.FC = () => {
                                         type="button"
                                         onClick={() => setShowFollowersModal(true)}
                                         className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition active:scale-95"
-                                        style={{ border: '1px solid rgba(255,255,255,0.22)', backgroundColor: 'rgba(255,255,255,0.12)', color: '#fff' }}
+                                        style={{
+                                            border: `1px solid ${profileTheme.text}38`,
+                                            backgroundColor: `${profileTheme.text}14`,
+                                            color: profileTheme.text,
+                                        }}
                                         aria-label="Se følgere"
                                     >
                                         <span className="material-symbols-outlined text-[20px]">group</span>
                                         <span>
-                                            <span className="font-semibold text-white">{followerCount}</span> følgere
+                                            <span className="font-semibold">{followerCount}</span> følgere
                                         </span>
                                     </button>
 
@@ -948,7 +967,7 @@ const UserProfile: React.FC = () => {
                                 </div>
 
                                 {bio ? (
-                                    <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/85 md:text-lg">
+                                    <p className="mt-4 max-w-2xl text-base leading-relaxed md:text-lg" style={{ color: `${profileTheme.text}d9` }}>
                                         {bio}
                                     </p>
                                 ) : null}
@@ -959,26 +978,56 @@ const UserProfile: React.FC = () => {
                             <div className="mt-5 flex items-center justify-center md:mt-0 md:justify-end md:pb-2 shrink-0">
                                 <button
                                     onClick={async () => {
-                                        const meRef = doc(firestore, 'users', auth.currentUser!.uid);
-                                        await updateDoc(meRef, {
-                                            following: isFollowing ? arrayRemove(id) : arrayUnion(id),
+                                        const result = await toggleFollowAction(auth.currentUser!.uid, id);
+                                        if (result === 'followed') {
+                                            setFollowerCount((prevCount) => prevCount + 1);
+                                        } else if (result === 'unfollowed') {
+                                            setFollowerCount((prevCount) => Math.max(0, prevCount - 1));
+                                        }
+
+                                        setUserData((prev) => {
+                                            if (!prev) return prev;
+                                            const incoming = new Set(prev.incomingFollowRequests ?? []);
+                                            if (result === 'requested') incoming.add(auth.currentUser!.uid);
+                                            if (result === 'request_cancelled' || result === 'unfollowed' || result === 'followed') {
+                                                incoming.delete(auth.currentUser!.uid);
+                                            }
+                                            return { ...prev, incomingFollowRequests: Array.from(incoming) };
                                         });
 
-                                        setIsFollowing((prev) => !prev);
-                                        setFollowerCount((prev) => prev + (isFollowing ? -1 : 1));
+                                        setFollowState((prev) => {
+                                            if (result === 'followed') return 'following';
+                                            if (result === 'unfollowed' || result === 'request_cancelled') return 'not_following';
+                                            if (result === 'requested') return 'requested';
+                                            return prev;
+                                        });
                                     }}
                                     className={[
                                         'inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition active:scale-95 sm:text-base',
-                                        isFollowing
+                                        followState === 'following'
                                             ? 'border bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
-                                            : 'border text-white',
+                                            : 'border',
                                     ].join(' ')}
-                                    style={isFollowing ? undefined : { borderColor: 'rgba(255,255,255,0.25)', backgroundColor: 'rgba(255,255,255,0.14)' }}
+                                    style={
+                                        followState === 'following'
+                                            ? undefined
+                                            : {
+                                                borderColor: `${profileTheme.text}40`,
+                                                backgroundColor: `${profileTheme.text}14`,
+                                                color: profileTheme.text,
+                                            }
+                                    }
                                 >
                                     <span className="material-symbols-outlined text-[20px]">
-                                        {isFollowing ? 'check' : 'add'}
+                                        {followState === 'following' ? 'check' : followState === 'requested' ? 'schedule' : isPrivateProfile ? 'person_add' : 'add'}
                                     </span>
-                                    {isFollowing ? 'Følger' : 'Følg'}
+                                    {followState === 'following'
+                                        ? 'Følger'
+                                        : followState === 'requested'
+                                            ? 'Forespurt'
+                                            : isPrivateProfile
+                                                ? 'Be om å følge'
+                                                : 'Følg'}
                                 </button>
                             </div>
                         ) : null}
@@ -1066,6 +1115,7 @@ const UserProfile: React.FC = () => {
                                 recipe={recipe}
                                 isOwner={isOwner && activeTab === 'myRecipes'}
                                 creator={activeTab === 'myRecipes' ? userData : recipe.creator}
+                                theme={profileTheme}
                                 onDelete={(rid) => {
                                     setPendingDeleteId(rid);
                                     setShowConfirm(true);
@@ -1138,8 +1188,9 @@ const UserProfile: React.FC = () => {
                     initialFavoriteFood={favoriteFood}
                     initialPhotoURL={photoURL}
                     initialBackgroundPhotoURL={backgroundPhotoURL}
-                    initialProfileThemeId={userData.profileThemeId || 'moss'}
+                    initialProfileThemeId={userData.profileThemeId || DEFAULT_PROFILE_THEME_ID}
                     initialProfileFontId={userData.profileFontId || 'urbanist'}
+                    initialIsProfilePrivate={Boolean(userData.isProfilePrivate)}
                     uid={id}
                     onLogout={logout}
                     onSaved={(next) => {
@@ -1153,6 +1204,7 @@ const UserProfile: React.FC = () => {
                                     backgroundPhotoURL: next.backgroundPhotoURL,
                                     profileThemeId: next.profileThemeId,
                                     profileFontId: next.profileFontId,
+                                    isProfilePrivate: next.isProfilePrivate,
                                 }
                                 : prev,
                         );

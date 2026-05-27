@@ -9,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Recipe } from '@/app/types/Recipe';
 import { RecipeDetail } from '@/app/types/RecipeDetail';
 import { fetchRecipeById } from '@/helpers/fetchRecipeById';
+import { DEFAULT_PROFILE_THEME_ID, ProfileTheme } from '@/helpers/profileAppearance';
 
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -24,6 +25,7 @@ interface RecipeCardProps {
     creator?: { name?: string; photoURL?: string };
     isOwner?: boolean;
     onDelete?: (recipeId: string) => void;
+    theme?: ProfileTheme;
 }
 
 const RecipeCardSkeleton: React.FC = () => {
@@ -60,6 +62,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                                                             creator,
                                                             isOwner = false,
                                                             onDelete,
+                                                            theme,
                                                         }) => {
     const router = useRouter();
     const qc = useQueryClient();
@@ -161,14 +164,34 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
     const ratingCount = typeof recipe.ratingCount === 'number' ? recipe.ratingCount : 0;
     const avg = ratingCount > 0 ? ratingSum / ratingCount : 0;
     const avgText = avg.toFixed(1).replace('.', ',');
+    const isBaseSveltaTheme = theme?.id === DEFAULT_PROFILE_THEME_ID;
+    const cardBackground = theme
+        ? isBaseSveltaTheme
+            ? '#f2f1e8'
+            : theme.soft
+        : '#f2f1e8';
+    const cardText = theme?.text ?? '#12340d';
+    const cardMutedText = theme?.accent ?? '#496444';
+    const cardSubtleText = theme ? `${theme.text}aa` : '#6f8068';
+    const imageFallbackBackground = theme ? `${theme.main}22` : '#deded0';
+    const chipBackground = theme ? `${theme.main}14` : '#e5e5d7';
+    const chipText = theme?.text ?? '#12340d';
+    const overlayChipBackground = theme ? `${theme.soft}f2` : '#fbfaf4f2';
+    const ownerButtonBackground = theme ? `${theme.soft}f2` : '#fbfaf4f2';
+    const ownerMenuEditBackground = theme ? `${theme.main}14` : '#eef3e4';
+    const tooltipBackground = theme
+        ? isBaseSveltaTheme
+            ? '#12340d'
+            : theme.main
+        : '#12340d';
 
     return (
         <article
             className={[
-                'relative rounded-xl bg-[#f2f1e8] p-3 text-[#12340d]',
-                'transition-[opacity,background-color] duration-500 ease-out hover:bg-[#ecebdd]',
+                'relative rounded-xl p-3 transition-opacity duration-500 ease-out',
                 mounted ? 'opacity-100' : 'opacity-0',
             ].join(' ')}
+            style={{ backgroundColor: cardBackground, color: cardText }}
             onClick={handleCardClick}
             onMouseEnter={handleEnter}
             onMouseMove={handleMove}
@@ -179,7 +202,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
             tabIndex={0}
         >
             {/* Image */}
-            <div className="relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-xl bg-[#deded0]">
+            <div className="relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-xl" style={{ backgroundColor: imageFallbackBackground }}>
                 {recipe.coverImage ? (
                     <Image
                         src={recipe.coverImage}
@@ -190,7 +213,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                         className="object-cover transition-transform duration-300 ease-out hover:scale-105"
                     />
                 ) : (
-                    <div className="grid h-full w-full place-items-center text-[#496444]">
+                    <div className="grid h-full w-full place-items-center" style={{ color: cardMutedText }}>
                         <span className="material-symbols-outlined text-5xl">
                             restaurant
                         </span>
@@ -200,7 +223,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                 {/* Top-right quick stats */}
                 <div className="absolute right-3 top-3 flex items-center gap-2">
                     {ratingCount > 0 ? (
-                        <div className="inline-flex items-center gap-1 rounded-full bg-[#fbfaf4]/95 px-2  text-xs font-bold text-[#12340d] shadow-sm backdrop-blur">
+                        <div className="inline-flex items-center gap-1 rounded-full px-2 text-xs font-bold shadow-sm backdrop-blur" style={{ backgroundColor: overlayChipBackground, color: chipText }}>
                             <span className="material-symbols-outlined text-[16px]">
                                 grade
                             </span>
@@ -209,7 +232,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                     ) : null}
 
                     {displayLikes > 0 ? (
-                        <div className="inline-flex items-center gap-1 rounded-full bg-[#fbfaf4]/95 px-2.5 py-1 text-xs font-bold text-[#12340d] shadow-sm backdrop-blur">
+                        <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm backdrop-blur" style={{ backgroundColor: overlayChipBackground, color: chipText }}>
                             <img
                                 src="/icons/chef.png"
                                 alt=""
@@ -225,10 +248,11 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
             {/* Tooltip */}
             {tip.show && (
                 <div
-                    className="fixed z-[9999] pointer-events-none hidden md:flex items-center gap-1.5 rounded-full bg-[#12340d] px-3 py-1.5 text-sm font-medium text-white shadow-xl"
+                    className="fixed z-[9999] pointer-events-none hidden md:flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-white shadow-xl"
                     style={{
                         top: tip.y + 12,
                         left: tip.x + 12,
+                        backgroundColor: tooltipBackground,
                     }}
                 >
                     <img
@@ -249,7 +273,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                 </h1>
 
                 {recipe.description ? (
-                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[#496444] md:text-base">
+                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed md:text-base" style={{ color: cardMutedText }}>
                         {recipe.description}
                     </p>
                 ) : null}
@@ -263,7 +287,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                     className="flex min-w-0 items-center gap-2 text-left transition hover:opacity-80"
                     aria-label={`Gå til profilen til ${userName}`}
                 >
-                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#deded0] ring-1 ring-[#d8d7cb]">
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1" style={{ backgroundColor: imageFallbackBackground, borderColor: `${theme?.main ?? '#d8d7cb'}33` }}>
                         {userPhoto ? (
                             <img
                                 src={userPhoto}
@@ -271,18 +295,18 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                                 className="h-full w-full object-cover"
                             />
                         ) : (
-                            <div className="grid h-full w-full place-items-center text-[#496444]">
+                            <div className="grid h-full w-full place-items-center" style={{ color: cardMutedText }}>
                                 🧑‍🍳
                             </div>
                         )}
                     </div>
 
                     <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-[#12340d]">
+                        <p className="truncate text-sm font-bold" style={{ color: cardText }}>
                             {userName}
                         </p>
 
-                        <p className="truncate text-xs text-[#6f8068]">
+                        <p className="truncate text-xs" style={{ color: cardSubtleText }}>
                             {createdAtDate
                                 ? dayjs(createdAtDate).fromNow()
                                 : 'Akkurat nå'}
@@ -293,7 +317,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                 {/* Bottom stats */}
                 <div className="flex shrink-0 items-center gap-2 text-sm">
                     {displayComments > 0 ? (
-                        <div className="inline-flex items-center gap-1 rounded-full bg-[#e5e5d7] px-2.5 py-1 font-medium text-[#12340d]">
+                        <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-medium" style={{ backgroundColor: chipBackground, color: chipText }}>
                             <span className="material-symbols-outlined text-[17px]">
                                 mode_comment
                             </span>
@@ -302,7 +326,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                     ) : null}
 
                     {recipe.cookingTime ? (
-                        <div className="hidden items-center gap-1 rounded-full bg-[#e5e5d7] px-2.5 py-1 font-medium text-[#12340d] sm:inline-flex">
+                        <div className="hidden items-center gap-1 rounded-full px-2.5 py-1 font-medium sm:inline-flex" style={{ backgroundColor: chipBackground, color: chipText }}>
                             <span className="material-symbols-outlined text-[17px]">
                                 schedule
                             </span>
@@ -321,7 +345,8 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                             e.stopPropagation();
                             setOwnerMenuOpen((prev) => !prev);
                         }}
-                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#fbfaf4]/95 text-[#12340d] shadow-sm backdrop-blur transition hover:bg-[#e5e5d7]"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full shadow-sm backdrop-blur transition"
+                        style={{ backgroundColor: ownerButtonBackground, color: chipText }}
                         title="Flere valg"
                         aria-label="Flere valg"
                         aria-expanded={ownerMenuOpen}
@@ -342,7 +367,8 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                         <button
                             type="button"
                             onClick={handleEdit}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-[#eef3e4] px-3 py-1.5 text-sm font-semibold text-[#12340d] transition hover:bg-[#dfead0]"
+                            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition"
+                            style={{ backgroundColor: ownerMenuEditBackground, color: chipText }}
                             title="Rediger oppskrift"
                             aria-label="Rediger oppskrift"
                         >

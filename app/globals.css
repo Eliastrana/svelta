@@ -9,7 +9,7 @@
 }
 
 body {
-    font-family: Urbanist, sans-serif;
+    font-family: var(--font-urbanist), sans-serif;
 }
 
 
@@ -45,15 +45,15 @@ body {
 }
 
 h1 {
-    font-family: Urbanist, sans-serif;
+    font-family: var(--font-urbanist), sans-serif;
 }
 
 h2 {
-    font-family: Urbanist, sans-serif;
+    font-family: var(--font-urbanist), sans-serif;
 }
 
 body {
     background: var(--background);
     color: var(--foreground);
-    font-family: Urbanist, sans-serif;
+    font-family: var(--font-urbanist), sans-serif;
 }
