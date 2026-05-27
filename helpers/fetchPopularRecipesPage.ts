@@ -11,6 +11,7 @@ import {
     DocumentData,
 } from "firebase/firestore";
 import { Recipe } from "@/app/types/Recipe";
+import { normalizeRecipeVisibility } from '@/helpers/recipeVisibility';
 
 export type PopularRecipesPage = {
     items: Recipe[];
@@ -36,10 +37,12 @@ export async function fetchPopularRecipesPage(params: {
     const q = params.cursor ? query(baseQuery, startAfter(params.cursor)) : baseQuery;
     const snap = await getDocs(q);
 
-    const items: Recipe[] = snap.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<Recipe, "id">),
-    }));
+    const items: Recipe[] = snap.docs
+        .map((d) => ({
+            id: d.id,
+            ...(d.data() as Omit<Recipe, "id">),
+        }))
+        .filter((recipe) => normalizeRecipeVisibility(recipe.visibility) === 'public');
 
     const nextCursor = snap.docs.length ? snap.docs[snap.docs.length - 1] : null;
     return { items, nextCursor };

@@ -12,8 +12,10 @@ import AppModal from '@/app/components/AppModal';
 
 import { useRecipe } from '@/hooks/useRecipe';
 import { useUserData } from '@/hooks/useUserData';
+import { useUserFollowing } from '@/hooks/useUserFollowing';
 import { auth, firestore } from '@/firebase';
 import RatingStars from '@/app/components/RatingStars';
+import { canViewRecipe } from '@/helpers/recipeVisibility';
 
 type IngredientDetailed = { name: string; amount: string };
 
@@ -98,6 +100,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
     const creatorDoc = useUserData(recipe?.userId || '');
 
     const currentUid = auth.currentUser?.uid ?? '';
+    const viewerFollowing = useUserFollowing(currentUid);
     const isLoggedIn = Boolean(currentUid);
     const isOwner = Boolean(recipe && currentUid && recipe.userId === currentUid);
 
@@ -134,6 +137,42 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
 
     if (!recipe) {
         return <div className="p-4">Oppskrift ikke funnet.</div>;
+    }
+
+    const allowedToView = canViewRecipe(recipe, currentUid, viewerFollowing);
+
+    if (!allowedToView) {
+        return (
+            <div className="min-h-screen bg-[#fbfaf4] px-4 py-10 text-[#12340d]">
+                <div className="mx-auto max-w-xl rounded-2xl bg-[#f2f1e8] p-6 text-center shadow-sm">
+                    <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-[#e5e5d7]">
+                        <span className="material-symbols-outlined text-[28px]">lock</span>
+                    </div>
+                    <h1 className="text-2xl font-bold">Denne oppskriften er privat</h1>
+                    <p className="mt-3 text-sm leading-relaxed text-[#496444]">
+                        Bare folk som følger kokken kan se denne oppskriften.
+                    </p>
+                    <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
+                        {!isLoggedIn ? (
+                            <button
+                                type="button"
+                                onClick={goLogin}
+                                className="rounded-full bg-[#12340d] px-5 py-2.5 font-semibold text-white transition hover:opacity-90"
+                            >
+                                Logg inn
+                            </button>
+                        ) : null}
+                        <button
+                            type="button"
+                            onClick={() => router.push(`/user/${recipe.userId}`)}
+                            className="rounded-full bg-[#e5e5d7] px-5 py-2.5 font-semibold text-[#12340d] transition hover:bg-[#d8d7cb]"
+                        >
+                            Gå til profil
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     const userName = creatorDoc?.name || 'Ukjent brukernavn';

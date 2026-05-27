@@ -27,6 +27,9 @@ import CollectionCard from '@/app/components/CollectionCard';
 import { CollectionDoc, fetchPublicCollections } from '@/helpers/collectionHelpers';
 import { useCollectionSummaries } from '@/hooks/collections/useCollectionSummaries';
 import { deleteUserAccountAndActivity } from '@/helpers/deleteUserAccount';
+import { PROFILE_FONTS, PROFILE_THEMES, getProfileFont, getProfileTheme } from '@/helpers/profileAppearance';
+import { filterVisibleRecipes } from '@/helpers/recipeVisibility';
+import { useUserFollowing } from '@/hooks/useUserFollowing';
 
 interface UserData {
     name?: string;
@@ -35,6 +38,8 @@ interface UserData {
     backgroundPhotoURL?: string;
     bio?: string;
     favoriteFood?: string;
+    profileThemeId?: string;
+    profileFontId?: string;
 }
 
 interface ProfileListUser {
@@ -207,6 +212,8 @@ const createUserDocumentIfNotExists = async (user: User) => {
             backgroundPhotoURL: '',
             bio: '',
             favoriteFood: '',
+            profileThemeId: 'moss',
+            profileFontId: 'urbanist',
         });
     }
 };
@@ -277,6 +284,89 @@ const ProfileSkeleton: React.FC = () => {
     );
 };
 
+type AppearanceModalProps = {
+    open: boolean;
+    onClose: () => void;
+    themeId: string;
+    fontId: string;
+    onThemeChange: (themeId: string) => void;
+    onFontChange: (fontId: string) => void;
+};
+
+const AppearanceModal: React.FC<AppearanceModalProps> = ({
+    open,
+    onClose,
+    themeId,
+    fontId,
+    onThemeChange,
+    onFontChange,
+}) => {
+    if (!open) return null;
+
+    return (
+        <AppModal onClose={onClose} panelClassName="max-h-[85vh] overflow-hidden">
+            {({ closeWithAnim }) => (
+                <div className="max-h-[85vh] overflow-y-auto p-5">
+                    <h2 className="text-xl font-semibold tracking-tight text-slate-900">Rediger utseende</h2>
+                    <p className="mt-1 text-sm text-slate-500">Velg et tema og en font for profilsiden din.</p>
+
+                    <div className="mt-5">
+                        <h3 className="text-sm font-semibold text-slate-900">Tema</h3>
+                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            {PROFILE_THEMES.map((theme) => (
+                                <button
+                                    key={theme.id}
+                                    type="button"
+                                    onClick={() => onThemeChange(theme.id)}
+                                    className={[
+                                        'overflow-hidden rounded-2xl border text-left transition',
+                                        themeId === theme.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-slate-200 hover:border-slate-300',
+                                    ].join(' ')}
+                                >
+                                    <div className="h-20 w-full" style={{ backgroundColor: theme.main }} />
+                                    <div className="p-3" style={{ backgroundColor: theme.soft, color: theme.text }}>
+                                        <p className="font-semibold">{theme.label}</p>
+                                        <p className="mt-1 text-xs">Mørkt kort, lys bakgrunn</p>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="mt-6">
+                        <h3 className="text-sm font-semibold text-slate-900">Font</h3>
+                        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            {PROFILE_FONTS.map((font) => (
+                                <button
+                                    key={font.id}
+                                    type="button"
+                                    onClick={() => onFontChange(font.id)}
+                                    className={[
+                                        'rounded-2xl border px-4 py-3 text-left transition',
+                                        fontId === font.id ? 'border-slate-900 bg-slate-50 ring-2 ring-slate-900/10' : 'border-slate-200 hover:border-slate-300',
+                                    ].join(' ')}
+                                    style={{ fontFamily: font.family }}
+                                >
+                                    <p className="font-semibold">{font.label}</p>
+                                    <p className="mt-1 text-sm text-slate-500">Svelta profilside</p>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={closeWithAnim}
+                        className="mt-6 w-full rounded-full confirm-button py-2.5 font-semibold"
+                    >
+                        Ferdig
+                    </button>
+                </div>
+            )}
+        </AppModal>
+    );
+};
+
 type EditProfileModalProps = {
     open: boolean;
     onClose: () => void;
@@ -285,8 +375,10 @@ type EditProfileModalProps = {
     initialFavoriteFood: string;
     initialPhotoURL: string;
     initialBackgroundPhotoURL: string;
+    initialProfileThemeId: string;
+    initialProfileFontId: string;
     uid: string;
-    onSaved: (next: { bio: string; favoriteFood: string; photoURL: string; backgroundPhotoURL: string }) => void;
+    onSaved: (next: { bio: string; favoriteFood: string; photoURL: string; backgroundPhotoURL: string; profileThemeId: string; profileFontId: string }) => void;
     onLogout: () => void;
 };
 
@@ -298,6 +390,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                                                initialFavoriteFood,
                                                                initialPhotoURL,
                                                                initialBackgroundPhotoURL,
+                                                               initialProfileThemeId,
+                                                               initialProfileFontId,
                                                                uid,
                                                            onSaved,
                                                            onLogout,
@@ -310,12 +404,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     const [photoPreview, setPhotoPreview] = useState<string>(initialPhotoURL);
     const [backgroundPhotoFile, setBackgroundPhotoFile] = useState<File | null>(null);
     const [backgroundPhotoPreview, setBackgroundPhotoPreview] = useState<string>(initialBackgroundPhotoURL);
+    const [profileThemeId, setProfileThemeId] = useState(initialProfileThemeId);
+    const [profileFontId, setProfileFontId] = useState(initialProfileFontId);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deletingAccount, setDeletingAccount] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    const [showAppearanceModal, setShowAppearanceModal] = useState(false);
 
     // sync when modal opens with new initial values
     useEffect(() => {
@@ -326,12 +423,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         setPhotoPreview(initialPhotoURL);
         setBackgroundPhotoFile(null);
         setBackgroundPhotoPreview(initialBackgroundPhotoURL);
+        setProfileThemeId(initialProfileThemeId);
+        setProfileFontId(initialProfileFontId);
         setError(null);
         setDeleteError(null);
         setDeleteConfirmText('');
         setShowDeleteConfirm(false);
+        setShowAppearanceModal(false);
         setDeletingAccount(false);
-    }, [open, initialBio, initialFavoriteFood, initialPhotoURL, initialBackgroundPhotoURL]);
+    }, [open, initialBio, initialFavoriteFood, initialPhotoURL, initialBackgroundPhotoURL, initialProfileThemeId, initialProfileFontId]);
 
     useEffect(() => {
         return () => {
@@ -386,6 +486,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 favoriteFood: favoriteFood.trim(),
                 photoURL: nextPhotoURL,
                 backgroundPhotoURL: nextBackgroundPhotoURL,
+                profileThemeId,
+                profileFontId,
             });
 
             onSaved({
@@ -393,6 +495,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 favoriteFood: favoriteFood.trim(),
                 photoURL: nextPhotoURL,
                 backgroundPhotoURL: nextBackgroundPhotoURL,
+                profileThemeId,
+                profileFontId,
             });
 
             closeWithAnim();
@@ -509,6 +613,16 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                 className="w-full min-h-[120px] p-3 rounded-2xl border border-slate-200 bg-slate-50/50 transition focus:bg-white focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
                             />
                         </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowAppearanceModal(true)}
+                            className="mt-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2.5 font-semibold text-slate-800 transition hover:bg-slate-200 active:scale-95"
+                            disabled={busy || closing || deletingAccount}
+                        >
+                            <span className="material-symbols-outlined text-[18px]">palette</span>
+                            Rediger utseende
+                        </button>
 
                         <div className="mt-6 rounded-2xl border border-red-200 bg-red-50/70 p-4">
                             <div className="flex items-center justify-between gap-4">
@@ -642,6 +756,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     )}
                 </AppModal>
             ) : null}
+
+            <AppearanceModal
+                open={showAppearanceModal}
+                onClose={() => setShowAppearanceModal(false)}
+                themeId={profileThemeId}
+                fontId={profileFontId}
+                onThemeChange={setProfileThemeId}
+                onFontChange={setProfileFontId}
+            />
         </>
     );
 };
@@ -650,6 +773,8 @@ const UserProfile: React.FC = () => {
     const params = useParams();
     const router = useRouter();
     const id = Array.isArray(params.id) ? params.id[0] : params.id;
+    const viewerUid = auth.currentUser?.uid ?? '';
+    const viewerFollowing = useUserFollowing(viewerUid);
 
     const userRecipes = useUserRecipes(id || '');
     const userLikedRecipes = useUserLikedRecipes(id || '');
@@ -673,6 +798,13 @@ const UserProfile: React.FC = () => {
         placeholderData: (prev) => prev ?? [],
     });
     const collectionSummaries = useCollectionSummaries(publicCollections);
+
+    const isOwner = viewerUid === id;
+    const displayedRecipes = filterVisibleRecipes(
+        activeTab === 'myRecipes' ? userRecipes : userLikedRecipes,
+        viewerUid,
+        viewerFollowing,
+    );
 
     const logout = async () => {
         try {
@@ -721,14 +853,13 @@ const UserProfile: React.FC = () => {
     if (profileLoading) return <ProfileSkeleton />;
     if (!userData) return <div className="p-4">Fant ikke bruker.</div>;
 
-    const isOwner = auth.currentUser?.uid === id;
-    const displayedRecipes = activeTab === 'myRecipes' ? userRecipes : userLikedRecipes;
-
     const name = userData.name || 'User Profile';
     const photoURL = userData.photoURL || '';
     const backgroundPhotoURL = userData.backgroundPhotoURL || '';
     const bio = userData.bio || '';
     const favoriteFood = userData.favoriteFood || '';
+    const profileTheme = getProfileTheme(userData.profileThemeId);
+    const profileFont = getProfileFont(userData.profileFontId);
     const tabs: Array<{ key: 'myRecipes' | 'likedRecipes' | 'publicCollections'; label: string }> = [
         { key: 'myRecipes', label: 'Oppskrifter' },
         { key: 'likedRecipes', label: 'Likte' },
@@ -737,13 +868,13 @@ const UserProfile: React.FC = () => {
     const activeTabIndex = tabs.findIndex((tab) => tab.key === activeTab);
 
     return (
-        <div className="pb-24">
+        <div className="pb-24" style={{ backgroundColor: profileTheme.soft, fontFamily: profileFont.family }}>
             {/* Banner */}
-            <div className="relative h-[34vh] min-h-[220px] w-full overflow-hidden bg-[var(--accent-soft)]">
+            <div className="relative h-[34vh] min-h-[220px] w-full overflow-hidden" style={{ backgroundColor: profileTheme.soft }}>
                 {backgroundPhotoURL ? (
                     <img src={backgroundPhotoURL} alt={`${name} bakgrunnsbilde`} className="absolute inset-0 h-full w-full scale-105 object-cover" />
                 ) : (
-                    <div className="absolute inset-0 h-full w-full bg-[var(--accent)]" />
+                    <div className="absolute inset-0 h-full w-full" style={{ backgroundColor: profileTheme.soft }} />
                 )}
                 {/* layered depth: soft vignette */}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/25" />
@@ -752,16 +883,19 @@ const UserProfile: React.FC = () => {
 
             {/* Profile card — below the banner, solid background, avatar overlaps up */}
             <div className="relative z-10 mx-auto -mt-16 max-w-5xl px-4 md:-mt-20 md:w-2/3">
-                <div className="rounded-xl  bg-[#f2f1e8] p-5 shadow-sm sm:rounded-xl sm:p-6 md:p-8">
+                <div
+                    className="rounded-xl p-5 shadow-sm sm:rounded-xl sm:p-6 md:p-8"
+                    style={{ backgroundColor: profileTheme.main, color: '#fff' }}
+                >
                     <div className="md:flex md:items-end md:justify-between md:gap-10">
                         <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-end sm:gap-6 sm:text-left md:gap-8">
                             <div className="relative shrink-0">
                                 <div className="h-24 w-24 rounded-xl shadow-sm sm:h-28 sm:w-28 sm:rounded-xl md:h-40 md:w-40">
-                                    <div className="h-full w-full overflow-hidden rounded-lg bg-[var(--accent-soft)] sm:rounded-lg">
+                                    <div className="h-full w-full overflow-hidden rounded-lg sm:rounded-lg" style={{ backgroundColor: profileTheme.soft }}>
                                         {photoURL ? (
                                             <img src={photoURL} alt="User Avatar" className="h-full w-full object-cover" />
                                         ) : (
-                                            <div className="grid h-full w-full place-items-center text-4xl text-slate-400">
+                                            <div className="grid h-full w-full place-items-center text-4xl" style={{ color: profileTheme.accent }}>
                                                 🧑‍🍳
                                             </div>
                                         )}
@@ -771,7 +905,7 @@ const UserProfile: React.FC = () => {
 
                             <div className="min-w-0 w-full sm:pt-2 md:pb-2">
                                 <div className="flex items-center justify-center gap-3 sm:justify-start">
-                                    <h1 className="truncate text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl md:text-5xl">
+                                    <h1 className="truncate text-2xl font-semibold tracking-tight text-white sm:text-3xl md:text-5xl">
                                         {name}
                                     </h1>
 
@@ -779,7 +913,8 @@ const UserProfile: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={() => setShowEditProfile(true)}
-                                            className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-slate-200   transition hover:bg-slate-100 hover:text-slate-900  active:scale-90 sm:h-11 sm:w-11"
+                                            className="grid h-10 w-10 shrink-0 place-items-center rounded-full border transition active:scale-90 sm:h-11 sm:w-11"
+                                            style={{ borderColor: 'rgba(255,255,255,0.25)', backgroundColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
                                             aria-label="Rediger profil"
                                             title="Rediger profil"
                                         >
@@ -792,12 +927,13 @@ const UserProfile: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={() => setShowFollowersModal(true)}
-                                        className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200  px-3 py-1.5 transition hover:border-slate-300 hover:bg-slate-100 active:scale-95"
+                                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition active:scale-95"
+                                        style={{ border: '1px solid rgba(255,255,255,0.22)', backgroundColor: 'rgba(255,255,255,0.12)', color: '#fff' }}
                                         aria-label="Se følgere"
                                     >
                                         <span className="material-symbols-outlined text-[20px]">group</span>
                                         <span>
-                                            <span className="font-semibold text-neutral-900">{followerCount}</span> følgere
+                                            <span className="font-semibold text-white">{followerCount}</span> følgere
                                         </span>
                                     </button>
 
@@ -812,7 +948,7 @@ const UserProfile: React.FC = () => {
                                 </div>
 
                                 {bio ? (
-                                    <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-600 md:text-lg">
+                                    <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/85 md:text-lg">
                                         {bio}
                                     </p>
                                 ) : null}
@@ -834,9 +970,10 @@ const UserProfile: React.FC = () => {
                                     className={[
                                         'inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition active:scale-95 sm:text-base',
                                         isFollowing
-                                            ? 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
-                                            : 'border border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100',
+                                            ? 'border bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                                            : 'border text-white',
                                     ].join(' ')}
+                                    style={isFollowing ? undefined : { borderColor: 'rgba(255,255,255,0.25)', backgroundColor: 'rgba(255,255,255,0.14)' }}
                                 >
                                     <span className="material-symbols-outlined text-[20px]">
                                         {isFollowing ? 'check' : 'add'}
@@ -1001,6 +1138,8 @@ const UserProfile: React.FC = () => {
                     initialFavoriteFood={favoriteFood}
                     initialPhotoURL={photoURL}
                     initialBackgroundPhotoURL={backgroundPhotoURL}
+                    initialProfileThemeId={userData.profileThemeId || 'moss'}
+                    initialProfileFontId={userData.profileFontId || 'urbanist'}
                     uid={id}
                     onLogout={logout}
                     onSaved={(next) => {
@@ -1012,6 +1151,8 @@ const UserProfile: React.FC = () => {
                                     favoriteFood: next.favoriteFood,
                                     photoURL: next.photoURL,
                                     backgroundPhotoURL: next.backgroundPhotoURL,
+                                    profileThemeId: next.profileThemeId,
+                                    profileFontId: next.profileFontId,
                                 }
                                 : prev,
                         );

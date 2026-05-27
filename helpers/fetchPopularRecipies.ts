@@ -1,5 +1,6 @@
 import { getFirestore, collection, query, getDocs, limit, orderBy, Timestamp } from 'firebase/firestore';
 import { Recipe } from '@/app/types/Recipe';
+import { normalizeRecipeVisibility } from '@/helpers/recipeVisibility';
 
 function toDate(value: unknown): Date {
     if (value instanceof Date) return value;
@@ -31,7 +32,7 @@ export async function fetchPopularRecipes(top = 50): Promise<Recipe[]> {
     const recipes: Recipe[] = snap.docs.map((d) => {
         const data = d.data() as Omit<Recipe, 'id'>;
         return { id: d.id, ...data };
-    });
+    }).filter((recipe) => normalizeRecipeVisibility(recipe.visibility) === 'public');
 
     const scored = recipes.map((r) => {
         const likeCount = r.likeCount ?? 0;

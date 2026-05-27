@@ -7,6 +7,11 @@ export interface UserDoc {
     name?: string;
     following?: string[];
     photoURL?: string;
+    backgroundPhotoURL?: string;
+    bio?: string;
+    favoriteFood?: string;
+    profileThemeId?: string;
+    profileFontId?: string;
 }
 
 export function useUserData(uid: string): UserDoc | null {

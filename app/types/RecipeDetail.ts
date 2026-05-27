@@ -1,4 +1,5 @@
 import { CookingStep } from '@/app/types/CookingStep';
+import { RecipeVisibility } from '@/helpers/recipeVisibility';
 
 export interface RecipeDetail {
     id: string;
@@ -13,4 +14,5 @@ export interface RecipeDetail {
     cookingTime?: string;
     userId: string;
     coverImage?: string;
+    visibility?: RecipeVisibility;
 }

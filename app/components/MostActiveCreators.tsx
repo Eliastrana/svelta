@@ -8,9 +8,10 @@ import { firestore } from '@/firebase';
 import { fetchManyUsers } from '@/helpers/fetchManyUsers';
 import { UserDoc } from '@/hooks/useUserData';
 import CreatorStoriesModal from '@/app/components/CreatorStoriesModal';
+import { normalizeRecipeVisibility } from '@/helpers/recipeVisibility';
 
 type CreatorCount = { uid: string; recipeCount: number };
-type RecipeMinimal = { userId: string; createdAt?: unknown };
+type RecipeMinimal = { userId: string; createdAt?: unknown; visibility?: string };
 
 async function fetchTopActiveCreators(opts?: { topN?: number; scanLimit?: number }): Promise<CreatorCount[]> {
     const topN = opts?.topN ?? 2;
@@ -23,6 +24,7 @@ async function fetchTopActiveCreators(opts?: { topN?: number; scanLimit?: number
     const counts = new Map<string, number>();
     snap.forEach((d) => {
         const data = d.data() as RecipeMinimal;
+        if (normalizeRecipeVisibility(data.visibility) !== 'public') return;
         const uid = (data.userId || '').trim();
         if (!uid) return;
         counts.set(uid, (counts.get(uid) ?? 0) + 1);

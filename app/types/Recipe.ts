@@ -1,9 +1,11 @@
 import { Timestamp } from 'firebase/firestore';
+import { RecipeVisibility } from '@/helpers/recipeVisibility';
 
 
 export type RecipeStep = {
     title: string;
     description: string;
+    imageUrl?: string;
 };
 
 export type Recipe = {
@@ -17,6 +19,7 @@ export type Recipe = {
     coverImage?: string;
     image: string;
     userId: string;
+    visibility?: RecipeVisibility;
 
     ingredients?: string[];
     cookingSteps: RecipeStep[];

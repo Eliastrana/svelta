@@ -6,6 +6,8 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, firestore, storage } from '@/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { CookingStep } from '@/app/types/CookingStep';
+import { normalizeIngredientAmountInput } from '@/helpers/ingredientAmountParser';
+import { RecipeVisibility } from '@/helpers/recipeVisibility';
 
 import RecipeCreatedModal from '@/app/components/RecipeCreatedModal';
 
@@ -173,6 +175,15 @@ function SortableIngredientCard(props: {
     onRemove: (id: string) => void;
 }) {
     const { item, index, onChange, onRemove } = props;
+    const nameInputRef = useRef<HTMLInputElement | null>(null);
+    const [showAutoIndicator, setShowAutoIndicator] = useState(false);
+    const indicatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (indicatorTimeoutRef.current) clearTimeout(indicatorTimeoutRef.current);
+        };
+    }, []);
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: item.id,
@@ -188,9 +199,9 @@ function SortableIngredientCard(props: {
         <div
             ref={setNodeRef}
             style={style}
-            className={`rounded-2xl border border-slate-200 bg-white px-3 py-2 ${isDragging ? 'shadow-lg ring-2 ring-slate-200' : ''}`}
+            className={`rounded-2xl border border-slate-200 bg-white p-3 ${isDragging ? 'shadow-lg ring-2 ring-slate-200' : ''}`}
         >
-            <div className="flex items-center gap-2">
+            <div className="flex items-start gap-2">
                 <button
                     type="button"
                     className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition cursor-grab active:cursor-grabbing"
@@ -201,21 +212,45 @@ function SortableIngredientCard(props: {
                     <span className="material-symbols-outlined text-slate-600">drag_indicator</span>
                 </button>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1">
-                    <input
-                        type="text"
-                        placeholder="Mengde (f.eks. 2 ss / 150 g)"
-                        value={item.amount}
-                        onChange={(e) => onChange(item.id, 'amount', e.target.value)}
-                        className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200 sm:col-span-1"
-                    />
-                    <input
-                        type="text"
-                        placeholder="Ingrediens (f.eks. sukker)"
-                        value={item.name}
-                        onChange={(e) => onChange(item.id, 'name', e.target.value)}
-                        className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200 sm:col-span-2"
-                    />
+                <div className="flex-1">
+                    <label className="mb-2 block text-sm font-semibold text-slate-900">Ingrediens {index + 1}</label>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        <div className="relative sm:col-span-1">
+                            <input
+                                type="text"
+                                placeholder="Mengde (f.eks. 2 ss / 150 g)"
+                                value={item.amount}
+                                onChange={(e) => {
+                                    const parsed = normalizeIngredientAmountInput(e.target.value);
+                                    onChange(item.id, 'amount', parsed.formatted);
+                                    if (parsed.isCompleteAmount) {
+                                        if (indicatorTimeoutRef.current) clearTimeout(indicatorTimeoutRef.current);
+                                        setShowAutoIndicator(true);
+                                        indicatorTimeoutRef.current = setTimeout(() => {
+                                            setShowAutoIndicator(false);
+                                            indicatorTimeoutRef.current = null;
+                                        }, 1800);
+                                        requestAnimationFrame(() => nameInputRef.current?.focus());
+                                    }
+                                }}
+                                className="w-full rounded-2xl border border-slate-200 p-3 pr-20 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                            />
+                            {showAutoIndicator ? (
+                                <span className="pointer-events-none absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 rounded-full bg-[#eaf6e5] px-2 py-1 text-[11px] font-semibold text-[#365d2c]">
+                                    <span className="material-symbols-outlined text-[14px]">check</span>
+                                    Auto
+                                </span>
+                            ) : null}
+                        </div>
+                        <input
+                            ref={nameInputRef}
+                            type="text"
+                            placeholder="Ingrediens (f.eks. sukker)"
+                            value={item.name}
+                            onChange={(e) => onChange(item.id, 'name', e.target.value)}
+                            className="w-full rounded-2xl border border-slate-200 p-3 focus:outline-none focus:ring-2 focus:ring-slate-200 sm:col-span-2"
+                        />
+                    </div>
                 </div>
 
                 <button
@@ -246,14 +281,19 @@ const CreateRecipe = () => {
     const [ingredients, setIngredients] = useState<IngredientWithId[]>([]);
     const [newIngredientName, setNewIngredientName] = useState('');
     const [newIngredientAmount, setNewIngredientAmount] = useState('');
+    const [showIngredientAmountIndicator, setShowIngredientAmountIndicator] = useState(false);
 
     const [temperature, setTemperature] = useState('');
     const [cookingTime, setCookingTime] = useState('');
     const [portions, setPortions] = useState('');
 
     const [publishing, setPublishing] = useState(false);
+    const [visibility, setVisibility] = useState<RecipeVisibility>('public');
     const coverImagePreviewRef = useRef<string | null>(null);
     const cookingStepsRef = useRef<StepWithId[]>([]);
+    const newIngredientAmountRef = useRef<HTMLInputElement | null>(null);
+    const newIngredientNameRef = useRef<HTMLInputElement | null>(null);
+    const ingredientHintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const router = useRouter();
 
@@ -342,6 +382,16 @@ const CreateRecipe = () => {
     // ✅ success modal state
     const [createdRecipeId, setCreatedRecipeId] = useState<string>('');
 
+    const showIngredientHint = (visible: boolean) => {
+        if (ingredientHintTimeoutRef.current) clearTimeout(ingredientHintTimeoutRef.current);
+        setShowIngredientAmountIndicator(visible);
+        if (!visible) return;
+        ingredientHintTimeoutRef.current = setTimeout(() => {
+            setShowIngredientAmountIndicator(false);
+            ingredientHintTimeoutRef.current = null;
+        }, 1800);
+    };
+
     // Load draft
     useEffect(() => {
         const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -363,6 +413,7 @@ const CreateRecipe = () => {
             portions?: string;
             coverImagePreview?: string | null;
             tags?: string[];
+            visibility?: RecipeVisibility;
         } = JSON.parse(savedData);
 
         setTitle(formData.title || '');
@@ -373,6 +424,7 @@ const CreateRecipe = () => {
         setTemperature(formData.temperature || '');
         setCookingTime(formData.cookingTime || '');
         setPortions(formData.portions || '');
+        setVisibility(formData.visibility === 'private' ? 'private' : 'public');
         setCoverImagePreview(formData.coverImagePreview || null);
 
         const loadedSteps = formData.cookingSteps || [];
@@ -428,6 +480,7 @@ const CreateRecipe = () => {
             portions,
             coverImagePreview,
             tags,
+            visibility,
         };
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(formData));
     }, [
@@ -444,6 +497,7 @@ const CreateRecipe = () => {
         cookingTime,
         portions,
         coverImagePreview,
+        visibility,
     ]);
 
     const handleAddStep = () => {
@@ -500,12 +554,14 @@ const CreateRecipe = () => {
 
     const handleAddIngredient = () => {
         const name = newIngredientName.trim();
-        const amount = newIngredientAmount.trim();
+        const amount = normalizeIngredientAmountInput(newIngredientAmount).formatted;
         if (!name) return;
 
         setIngredients((prev) => [...prev, { id: makeId('ing'), name, amount }]);
         setNewIngredientName('');
         setNewIngredientAmount('');
+        showIngredientHint(false);
+        requestAnimationFrame(() => newIngredientAmountRef.current?.focus());
     };
 
     const handleIngredientChange = (id: string, field: 'name' | 'amount', value: string) => {
@@ -536,6 +592,7 @@ const CreateRecipe = () => {
 
     useEffect(() => {
         return () => {
+            if (ingredientHintTimeoutRef.current) clearTimeout(ingredientHintTimeoutRef.current);
             revokeBlobUrl(coverImagePreviewRef.current);
             cookingStepsRef.current.forEach((step) => revokeBlobUrl(step.imagePreview));
         };
@@ -698,6 +755,7 @@ const CreateRecipe = () => {
                 temperature,
                 cookingTime,
                 portions,
+                visibility,
                 userId: user.uid,
                 createdAt: serverTimestamp(),
                 coverImage: coverImageUrl,
@@ -817,6 +875,25 @@ const CreateRecipe = () => {
                             className="w-full min-h-[120px] p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                             required
                         />
+
+                        <label className="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700">
+                            <div>
+                                <p className="font-semibold text-slate-900">Privat oppskrift</p>
+                                <p className="mt-1 text-xs text-slate-600">
+                                    Bare folk som følger deg kan se den. Offentlige oppskrifter vises til alle.
+                                </p>
+                            </div>
+                            <span className="relative inline-flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={visibility === 'private'}
+                                    onChange={(e) => setVisibility(e.target.checked ? 'private' : 'public')}
+                                    className="peer sr-only"
+                                />
+                                <span className="h-7 w-12 rounded-full bg-slate-300 transition-colors duration-200 peer-checked:bg-[var(--accent)]" />
+                                <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 peer-checked:translate-x-5" />
+                            </span>
+                        </label>
                     </div>
 
                     {/* Cover image */}
@@ -858,32 +935,6 @@ const CreateRecipe = () => {
                                 <h2 className="text-base font-semibold text-slate-900">Ingredienser</h2>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                <input
-                                    type="text"
-                                    placeholder="Mengde (f.eks. 2 ss)"
-                                    value={newIngredientAmount}
-                                    onChange={(e) => setNewIngredientAmount(e.target.value)}
-                                    className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') e.preventDefault();
-                                    }}
-                                />
-                                <input
-                                    type="text"
-                                    placeholder="Ingrediens (f.eks. sukker)"
-                                    value={newIngredientName}
-                                    onChange={(e) => setNewIngredientName(e.target.value)}
-                                    className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200 sm:col-span-2"
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            handleAddIngredient();
-                                        }
-                                    }}
-                                />
-                            </div>
-
                             {ingredients.length > 0 ? (
                                 <SortableContext items={ingredients.map((i) => i.id)} strategy={verticalListSortingStrategy}>
                                     <div className="mt-4 space-y-2">
@@ -899,18 +950,71 @@ const CreateRecipe = () => {
                                     </div>
                                 </SortableContext>
                             ) : (
-                                <p className="text-slate-600 mt-4">Ingen ingredienser ennå — legg til over, og dra for å sortere.</p>
+                                <p className="mt-4 text-slate-600">Ingrediensene dukker opp her. Legg dem til én etter én, og dra for å sortere.</p>
                             )}
 
-                            <button
-                                type="button"
-                                onClick={handleAddIngredient}
-                                className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition disabled:opacity-50 mt-2"
-                                disabled={!newIngredientName.trim()}
-                            >
-                                <span className="material-symbols-outlined text-base">add</span>
-                                Legg til
-                            </button>
+                            <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 p-3">
+                                <div className="mb-2 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-slate-700">playlist_add</span>
+                                    <h3 className="text-sm font-semibold text-slate-900">Legg til neste ingrediens</h3>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                    <div className="relative sm:col-span-1">
+                                        <input
+                                            ref={newIngredientAmountRef}
+                                            type="text"
+                                            placeholder="Mengde (f.eks. 2ss, 1dl, 200g)"
+                                            value={newIngredientAmount}
+                                            onChange={(e) => {
+                                                const parsed = normalizeIngredientAmountInput(e.target.value);
+                                                setNewIngredientAmount(parsed.formatted);
+                                                if (parsed.isCompleteAmount) {
+                                                    showIngredientHint(true);
+                                                    requestAnimationFrame(() => newIngredientNameRef.current?.focus());
+                                                }
+                                            }}
+                                            className="w-full rounded-2xl border border-slate-200 p-3 pr-20 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    newIngredientNameRef.current?.focus();
+                                                }
+                                            }}
+                                        />
+                                        {showIngredientAmountIndicator ? (
+                                            <span className="pointer-events-none absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 rounded-full bg-[#eaf6e5] px-2 py-1 text-[11px] font-semibold text-[#365d2c]">
+                                                <span className="material-symbols-outlined text-[14px]">check</span>
+                                                Auto
+                                            </span>
+                                        ) : null}
+                                    </div>
+                                    <input
+                                        ref={newIngredientNameRef}
+                                        type="text"
+                                        placeholder="Ingrediens (f.eks. sukker)"
+                                        value={newIngredientName}
+                                        onChange={(e) => setNewIngredientName(e.target.value)}
+                                        className="w-full rounded-2xl border border-slate-200 p-3 focus:outline-none focus:ring-2 focus:ring-slate-200 sm:col-span-2"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                handleAddIngredient();
+                                            }
+                                        }}
+                                    />
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={handleAddIngredient}
+                                    className="mt-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 font-semibold text-slate-800 transition hover:bg-slate-200 disabled:opacity-50"
+                                    disabled={!newIngredientName.trim()}
+                                >
+                                    <span className="material-symbols-outlined text-base">add</span>
+                                    Legg til ingrediens
+                                </button>
+                            </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
                                 <div>
@@ -1081,26 +1185,26 @@ const CreateRecipe = () => {
 
 
                     {/* Bottom publish */}
-                    <div className="sm:hidden pt-2">
-                        <button
-                            type="submit"
-                            disabled={publishing}
-                            className={[
-                                'w-full rounded-full py-3 font-semibold shadow-lg brown-button transition',
-                                publishing ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95 active:scale-[0.99]',
-                            ].join(' ')}
-                        >
-    <span className="inline-flex items-center justify-center gap-2">
-        {publishing ? (
-            <span
-                className="inline-block h-5 w-5 rounded-full border-2 border-white/60 border-t-white animate-spin"
-                aria-hidden="true"
-            />
-        ) : null}
-        {publishing ? 'Publiserer…' : 'Publiser'}
-    </span>
-                        </button>
-                    </div>
+    {/*                <div className="sm:hidden pt-2">*/}
+    {/*                    <button*/}
+    {/*                        type="submit"*/}
+    {/*                        disabled={publishing}*/}
+    {/*                        className={[*/}
+    {/*                            'w-full rounded-full py-3 font-semibold shadow-lg brown-button transition',*/}
+    {/*                            publishing ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95 active:scale-[0.99]',*/}
+    {/*                        ].join(' ')}*/}
+    {/*                    >*/}
+    {/*<span className="inline-flex items-center justify-center gap-2">*/}
+    {/*    {publishing ? (*/}
+    {/*        <span*/}
+    {/*            className="inline-block h-5 w-5 rounded-full border-2 border-white/60 border-t-white animate-spin"*/}
+    {/*            aria-hidden="true"*/}
+    {/*        />*/}
+    {/*    ) : null}*/}
+    {/*    {publishing ? 'Publiserer…' : 'Publiser'}*/}
+    {/*</span>*/}
+    {/*                    </button>*/}
+    {/*                </div>*/}
                 </form>
             </div>
         </div>
