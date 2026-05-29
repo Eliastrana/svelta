@@ -516,7 +516,7 @@ const Home: React.FC = () => {
                 <div className="mt-10">
                     <h2 className="text-2xl font-semibold text-slate-900 md:text-3xl">Populære oppskrifter på Svelta</h2>
                     <p className="mt-2 text-sm text-slate-600 md:text-base">
-                        Utforsk offentlige oppskrifter fra våre flinke kokker!f
+                        Utforsk offentlige oppskrifter fra våre flinke kokker!
                     </p>
                 </div>
             ) : null}

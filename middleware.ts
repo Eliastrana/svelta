@@ -12,7 +12,7 @@ export function middleware(req: NextRequest) {
     const isAlwaysAllowed =
         pathname.startsWith('/_next/') ||
         pathname.startsWith('/__/') ||
-        pathname === '/favicon.ico' ||
+        pathname === '/old_favicon.ico' ||
         pathname === '/robots.txt' ||
         pathname === '/sitemap.xml' ||
         PUBLIC_FILE.test(pathname);

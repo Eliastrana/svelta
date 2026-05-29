@@ -539,171 +539,179 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
     return (
         <>
-            <AppModal onClose={onClose}>
+            <AppModal onClose={onClose} panelClassName="max-h-[85vh] overflow-hidden">
                 {({ closeWithAnim, closing }) => (
-                    <div className="relative max-h-[85vh] w-full overflow-y-auto p-5">
-                        <button
-                            type="button"
-                            onClick={closeWithAnim}
-                            className="absolute top-4 right-4 h-9 w-9 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700 grid place-items-center transition active:scale-90"
-                            aria-label="Lukk"
-                            disabled={closing || deletingAccount}
-                        >
-                            <span className="material-symbols-outlined">close</span>
-                        </button>
+                    <div className="flex max-h-[85vh] w-full flex-col">
+                        <div className="relative border-b border-slate-100 px-5 pb-4 pt-5">
+                            <button
+                                type="button"
+                                onClick={closeWithAnim}
+                                className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 active:scale-90"
+                                aria-label="Lukk"
+                                disabled={closing || deletingAccount}
+                            >
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
 
-                        <h2 className="text-xl font-semibold tracking-tight text-slate-900">Rediger profil</h2>
-                        <p className="text-sm text-slate-500 mt-1">Oppdater bio, favorittmat, profilbilde og bakgrunnsbilde.</p>
+                            <h2 className="text-xl font-semibold tracking-tight text-slate-900">Rediger profil</h2>
+                            <p className="mt-1 text-sm text-slate-500">
+                                Oppdater bio, favorittmat, profilbilde og bakgrunnsbilde.
+                            </p>
 
-
-                        <div className="mt-5">
-                            <label className="block text-sm font-semibold text-slate-900 mb-2">Bakgrunnsbilde</label>
-                            <label className="group block cursor-pointer overflow-hidden rounded-[28px] border border-slate-200 bg-slate-50 transition hover:border-slate-300">
-                                <div className="relative h-40 w-full overflow-hidden bg-[var(--accent-soft)]">
-                                    {backgroundPhotoPreview ? (
-                                        <img src={backgroundPhotoPreview} alt="Bakgrunnsbilde" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
-                                    ) : (
-                                        <div className="grid h-full w-full place-items-center text-slate-400">
-                                            <span className="material-symbols-outlined text-4xl">photo_camera</span>
-                                        </div>
-                                    )}
-                                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 transition group-hover:opacity-100" />
-                                </div>
-                                <div className="flex items-center justify-between px-4 py-3">
-                                    <span className="text-sm font-semibold text-slate-900">Bytt bakgrunnsbilde</span>
-                                    <span className="material-symbols-outlined text-slate-400 transition group-hover:text-slate-600">image</span>
-                                </div>
-                                <input type="file" accept="image/*" className="hidden" onChange={onPickBackgroundPhoto} />
-                            </label>
-                        </div>
-
-                        <div className="mt-5 flex items-center gap-4">
-                            <div className="h-16 w-16 shrink-0 rounded-2xl overflow-hidden border border-slate-200 bg-[var(--accent-soft)] shadow-sm">
-                                {photoPreview ? (
-                                    <img src={photoPreview} alt="Profilbilde" className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="grid h-full w-full place-items-center text-2xl text-slate-400">🧑‍🍳</div>
-                                )}
-                            </div>
-
-                            <div className="flex-1">
-                                <p className="text-sm font-semibold text-slate-900">{initialName}</p>
-                                <label className="mt-2 inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition active:scale-95 cursor-pointer w-fit">
-                                    <span className="material-symbols-outlined text-base">photo_camera</span>
-                                    <span className="text-sm font-semibold">Bytt bilde</span>
-                                    <input type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
-                                </label>
-                            </div>
-                        </div>
-
-                        <div className="mt-5">
-                            <label className="block text-sm font-semibold text-slate-900 mb-2">Favorittmat</label>
-                            <input
-                                value={favoriteFood}
-                                onChange={(e) => setFavoriteFood(e.target.value)}
-                                placeholder="f.eks. carbonara"
-                                className="w-full p-3 rounded-2xl border border-slate-200 bg-slate-50/50 transition focus:bg-white focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
-                            />
-                        </div>
-
-                        <div className="mt-4">
-                            <label className="block text-sm font-semibold text-slate-900 mb-2">Bio</label>
-                            <textarea
-                                value={bio}
-                                onChange={(e) => setBio(e.target.value)}
-                                placeholder="Skriv litt om deg selv..."
-                                className="w-full min-h-[120px] p-3 rounded-2xl border border-slate-200 bg-slate-50/50 transition focus:bg-white focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
-                            />
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={() => setShowAppearanceModal(true)}
-                            className="mt-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2.5 font-semibold text-slate-800 transition hover:bg-slate-200 active:scale-95"
-                            disabled={busy || closing || deletingAccount}
-                        >
-                            <span className="material-symbols-outlined text-[18px]">palette</span>
-                            Rediger utseende
-                        </button>
-
-                        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                            <label className="flex items-center justify-between gap-4">
-                                <div>
-                                    <p className="text-sm font-semibold text-slate-900">Privat profil</p>
-                                    <p className="mt-1 text-sm text-slate-500">
-                                        Nye følgere må godkjennes før de kan følge deg.
-                                    </p>
-                                </div>
-                                <span className="relative inline-flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        checked={isProfilePrivate}
-                                        onChange={(e) => setIsProfilePrivate(e.target.checked)}
-                                        className="peer sr-only"
-                                    />
-                                    <span className="h-7 w-12 rounded-full bg-slate-300 transition-colors duration-200 peer-checked:bg-[var(--accent)]" />
-                                    <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 peer-checked:translate-x-5" />
-                                </span>
-                            </label>
-                        </div>
-
-                        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50/70 p-4">
-                            <div className="flex items-center justify-between gap-4">
-                                <div>
-                                    <h3 className="text-sm font-semibold text-red-700">Slett bruker</h3>
-                                    <p className="mt-1 text-sm text-red-600">
-                                        Åpner en egen bekreftelse for permanent sletting av konto.
-                                    </p>
-                                </div>
-
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setDeleteError(null);
-                                        setDeleteConfirmText('');
-                                        setDeletePassword('');
-                                        setShowDeleteConfirm(true);
-                                    }}
-                                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 active:scale-95"
-                                    disabled={busy || closing || deletingAccount}
-                                >
-                                    <span className="material-symbols-outlined text-[18px]">delete</span>
-                                    Slett konto
-                                </button>
-                            </div>
-                        </div>
-
-                        {error ? (
-                            <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-100 bg-red-50 p-3">
-                                <span className="material-symbols-outlined text-red-500 text-[20px]">error</span>
-                                <p className="text-red-600 text-sm">{error}</p>
-                            </div>
-                        ) : null}
-
-                        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <button
                                 type="button"
                                 onClick={onLogout}
-                                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full font-semibold text-red-600 hover:bg-red-50 transition active:scale-95 cursor-pointer"
+                                className="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-slate-100 px-4 py-2.5 font-semibold text-slate-800 transition hover:bg-slate-200 active:scale-95"
                                 disabled={busy || closing || deletingAccount}
                             >
                                 <span className="material-symbols-outlined text-[20px]">logout</span>
                                 Logg ut
                             </button>
+                        </div>
 
-                            <div className="flex justify-end gap-2">
+                        <div className="flex-1 overflow-y-auto px-5 py-5">
+                            <div>
+                                <label className="mb-2 block text-sm font-semibold text-slate-900">Bakgrunnsbilde</label>
+                                <label className="group block cursor-pointer overflow-hidden rounded-[28px] border border-slate-200 bg-slate-50 transition hover:border-slate-300">
+                                    <div className="relative h-40 w-full overflow-hidden bg-[var(--accent-soft)]">
+                                        {backgroundPhotoPreview ? (
+                                            <img src={backgroundPhotoPreview} alt="Bakgrunnsbilde" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+                                        ) : (
+                                            <div className="grid h-full w-full place-items-center text-slate-400">
+                                                <span className="material-symbols-outlined text-4xl">photo_camera</span>
+                                            </div>
+                                        )}
+                                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 transition group-hover:opacity-100" />
+                                    </div>
+                                    <div className="flex items-center justify-between px-4 py-3">
+                                        <span className="text-sm font-semibold text-slate-900">Bytt bakgrunnsbilde</span>
+                                        <span className="material-symbols-outlined text-slate-400 transition group-hover:text-slate-600">image</span>
+                                    </div>
+                                    <input type="file" accept="image/*" className="hidden" onChange={onPickBackgroundPhoto} />
+                                </label>
+                            </div>
+
+                            <div className="mt-5 flex items-center gap-4">
+                                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-[var(--accent-soft)] shadow-sm">
+                                    {photoPreview ? (
+                                        <img src={photoPreview} alt="Profilbilde" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <div className="grid h-full w-full place-items-center text-2xl text-slate-400">🧑‍🍳</div>
+                                    )}
+                                </div>
+
+                                <div className="flex-1">
+                                    <p className="text-sm font-semibold text-slate-900">{initialName}</p>
+                                    <label className="mt-2 inline-flex w-fit cursor-pointer items-center gap-2 rounded-full bg-slate-100 px-3 py-2 transition hover:bg-slate-200 active:scale-95">
+                                        <span className="material-symbols-outlined text-base">photo_camera</span>
+                                        <span className="text-sm font-semibold">Bytt bilde</span>
+                                        <input type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="mt-5">
+                                <label className="mb-2 block text-sm font-semibold text-slate-900">Favorittmat</label>
+                                <input
+                                    value={favoriteFood}
+                                    onChange={(e) => setFavoriteFood(e.target.value)}
+                                    placeholder="f.eks. carbonara"
+                                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 p-3 transition focus:border-[var(--accent)] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[var(--accent-soft)]"
+                                />
+                            </div>
+
+                            <div className="mt-4">
+                                <label className="mb-2 block text-sm font-semibold text-slate-900">Bio</label>
+                                <textarea
+                                    value={bio}
+                                    onChange={(e) => setBio(e.target.value)}
+                                    placeholder="Skriv litt om deg selv..."
+                                    className="min-h-[120px] w-full rounded-2xl border border-slate-200 bg-slate-50/50 p-3 transition focus:border-[var(--accent)] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[var(--accent-soft)]"
+                                />
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setShowAppearanceModal(true)}
+                                className="mt-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2.5 font-semibold text-slate-800 transition hover:bg-slate-200 active:scale-95"
+                                disabled={busy || closing || deletingAccount}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">palette</span>
+                                Rediger utseende
+                            </button>
+
+                            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                <label className="flex items-center justify-between gap-4">
+                                    <div>
+                                        <p className="text-sm font-semibold text-slate-900">Privat profil</p>
+                                        <p className="mt-1 text-sm text-slate-500">
+                                            Nye følgere må godkjennes før de kan følge deg.
+                                        </p>
+                                    </div>
+                                    <span className="relative inline-flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={isProfilePrivate}
+                                            onChange={(e) => setIsProfilePrivate(e.target.checked)}
+                                            className="peer sr-only"
+                                        />
+                                        <span className="h-7 w-12 rounded-full bg-slate-300 transition-colors duration-200 peer-checked:bg-[var(--accent)]" />
+                                        <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 peer-checked:translate-x-5" />
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div className="mt-8 border-t border-slate-200 pt-6">
+                                <div className="rounded-2xl border border-red-200 bg-red-50/70 p-4">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-red-700">Slett konto</h3>
+                                            <p className="mt-1 text-sm text-red-600">
+                                                Dette er permanent og kan ikke angres.
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setDeleteError(null);
+                                                setDeleteConfirmText('');
+                                                setDeletePassword('');
+                                                setShowDeleteConfirm(true);
+                                            }}
+                                            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 active:scale-95"
+                                            disabled={busy || closing || deletingAccount}
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                            Slett konto
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {error ? (
+                                <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-100 bg-red-50 p-3">
+                                    <span className="material-symbols-outlined text-[20px] text-red-500">error</span>
+                                    <p className="text-sm text-red-600">{error}</p>
+                                </div>
+                            ) : null}
+                        </div>
+
+                        <div className="border-t border-slate-100 bg-white px-5 py-4">
+                            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                                 <button
                                     type="button"
                                     onClick={closeWithAnim}
-                                    className="px-5 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700 transition active:scale-95 cursor-pointer"
+                                    className="w-full cursor-pointer rounded-full bg-slate-100 px-5 py-2.5 font-semibold text-slate-700 transition hover:bg-slate-200 active:scale-95 sm:w-auto"
                                     disabled={busy || closing || deletingAccount}
                                 >
                                     Avbryt
                                 </button>
+
                                 <button
                                     type="button"
                                     onClick={() => void save(closeWithAnim)}
-                                    className="brown-button px-5 py-2.5 rounded-full font-semibold shadow-sm transition hover:opacity-95 active:scale-95 disabled:opacity-50"
+                                    className="brown-button w-full rounded-full px-5 py-2.5 font-semibold shadow-sm transition hover:opacity-95 active:scale-95 disabled:opacity-50 sm:w-auto"
                                     disabled={busy || closing || deletingAccount}
                                 >
                                     {busy ? 'Lagrer…' : 'Lagre'}
