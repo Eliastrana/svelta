@@ -1,6 +1,6 @@
 'use client';
 
-import { deleteUser, reauthenticateWithPopup, User } from 'firebase/auth';
+import { deleteUser, EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup, User } from 'firebase/auth';
 import {
     arrayRemove,
     collection,
@@ -53,6 +53,13 @@ function createBatchCommitter() {
 }
 
 export async function deleteUserAccountAndActivity(currentUser: User) {
+    return deleteUserAccountAndActivityWithOptions(currentUser, {});
+}
+
+export async function deleteUserAccountAndActivityWithOptions(
+    currentUser: User,
+    options: { password?: string },
+) {
     const uid = currentUser.uid;
 
     if (!uid) throw new Error('Mangler bruker-ID.');
@@ -61,11 +68,27 @@ export async function deleteUserAccountAndActivity(currentUser: User) {
     }
 
     const hasGoogleProvider = currentUser.providerData.some((p) => p.providerId === 'google.com');
-    if (!hasGoogleProvider) {
-        throw new Error('Logg inn på nytt med Google før du sletter kontoen.');
-    }
+    const hasPasswordProvider = currentUser.providerData.some((p) => p.providerId === 'password');
 
-    await reauthenticateWithPopup(currentUser, provider);
+    if (hasPasswordProvider) {
+        if (!currentUser.email) {
+            throw new Error('Fant ikke e-postadressen til kontoen.');
+        }
+
+        const password = options.password?.trim() ?? '';
+        if (!password) {
+            throw new Error('Skriv inn passordet ditt for å slette kontoen.');
+        }
+
+        await reauthenticateWithCredential(
+            currentUser,
+            EmailAuthProvider.credential(currentUser.email, password),
+        );
+    } else if (hasGoogleProvider) {
+        await reauthenticateWithPopup(currentUser, provider);
+    } else {
+        throw new Error('Logg inn på nytt før du sletter kontoen.');
+    }
 
     const allRecipesSnap = await getDocs(collection(firestore, 'recipes'));
     const allRecipeDocs = allRecipesSnap.docs;

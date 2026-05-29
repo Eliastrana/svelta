@@ -23,7 +23,7 @@ import AppModal from '@/app/components/AppModal';
 import CollectionCard from '@/app/components/CollectionCard';
 import { CollectionDoc, fetchPublicCollections } from '@/helpers/collectionHelpers';
 import { useCollectionSummaries } from '@/hooks/collections/useCollectionSummaries';
-import { deleteUserAccountAndActivity } from '@/helpers/deleteUserAccount';
+import { deleteUserAccountAndActivityWithOptions } from '@/helpers/deleteUserAccount';
 import { ensureUserDocument } from '@/helpers/ensureUserDocument';
 import { FollowState, getFollowState, toggleFollowAction } from '@/helpers/followRequests';
 import { DEFAULT_PROFILE_THEME_ID, PROFILE_FONTS, PROFILE_THEMES, getProfileFont, getProfileTheme } from '@/helpers/profileAppearance';
@@ -399,7 +399,10 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     const [deletingAccount, setDeletingAccount] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    const [deletePassword, setDeletePassword] = useState('');
     const [showAppearanceModal, setShowAppearanceModal] = useState(false);
+    const currentUser = auth.currentUser;
+    const requiresPasswordForDeletion = currentUser?.providerData.some((p) => p.providerId === 'password') ?? false;
 
     // sync when modal opens with new initial values
     useEffect(() => {
@@ -416,6 +419,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         setError(null);
         setDeleteError(null);
         setDeleteConfirmText('');
+        setDeletePassword('');
         setShowDeleteConfirm(false);
         setShowAppearanceModal(false);
         setDeletingAccount(false);
@@ -519,7 +523,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         try {
             setDeletingAccount(true);
             setDeleteError(null);
-            await deleteUserAccountAndActivity(currentUser);
+            await deleteUserAccountAndActivityWithOptions(currentUser, {
+                password: requiresPasswordForDeletion ? deletePassword : undefined,
+            });
             setShowDeleteConfirm(false);
             onClose();
             router.replace('/');
@@ -655,6 +661,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                     onClick={() => {
                                         setDeleteError(null);
                                         setDeleteConfirmText('');
+                                        setDeletePassword('');
                                         setShowDeleteConfirm(true);
                                     }}
                                     className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 active:scale-95"
@@ -742,6 +749,26 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                     disabled={deletingAccount}
                                 />
                             </div>
+
+                            {requiresPasswordForDeletion ? (
+                                <div className="mt-4">
+                                    <label className="mb-2 block text-sm font-semibold text-slate-900">
+                                        Skriv inn passordet ditt
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={deletePassword}
+                                        onChange={(e) => {
+                                            setDeletePassword(e.target.value);
+                                            if (deleteError) setDeleteError(null);
+                                        }}
+                                        placeholder="Passord"
+                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 p-3 transition focus:bg-white focus:outline-none focus:border-red-300 focus:ring-4 focus:ring-red-100"
+                                        autoComplete="current-password"
+                                        disabled={deletingAccount}
+                                    />
+                                </div>
+                            ) : null}
 
                             {deleteError ? (
                                 <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-100 bg-red-50 p-3">
