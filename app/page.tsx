@@ -1,8 +1,10 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 
 import RecipeCard from '@/app/components/RecipeCard';
 import MostActiveCreators from '@/app/components/MostActiveCreators';
@@ -61,6 +63,138 @@ const SkeletonCard: React.FC = () => {
     );
 };
 
+const PublicGallery: React.FC<{
+    recipes: Recipe[];
+    loading: boolean;
+    onRecipeClick: (recipeId: string) => void;
+}> = ({ recipes, loading, onRecipeClick }) => {
+    if (loading && recipes.length === 0) {
+        return (
+            <div className="relative left-1/2 mt-8 w-screen -translate-x-1/2 overflow-hidden px-4 md:px-8 lg:px-12">
+                <div className="flex gap-4">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                        <div key={`gallery-sk-${index}`} className="gallery-card shrink-0 animate-pulse">
+                            <div className="aspect-[4/5] rounded-[24px] bg-slate-100" />
+                            <div className="mt-3 h-5 w-3/4 rounded-full bg-slate-100" />
+                            <div className="mt-2 h-4 w-1/2 rounded-full bg-slate-100" />
+                        </div>
+                    ))}
+                </div>
+
+                <style jsx>{`
+                    .gallery-card {
+                        width: clamp(220px, 24vw, 360px);
+                    }
+
+                    @media (max-width: 640px) {
+                        .gallery-card {
+                            width: min(72vw, 300px);
+                        }
+                    }
+                `}</style>
+            </div>
+        );
+    }
+
+    if (recipes.length === 0) return null;
+
+    const trackRecipes = [...recipes, ...recipes];
+
+    return (
+        <div className="relative left-1/2 mt-8 w-screen -translate-x-1/2">
+            <div className="gallery-mask mt-5 px-4 md:px-8 lg:px-12">
+                <div className="gallery-track">
+                    {trackRecipes.map((recipe, index) => {
+                        return (
+                            <button
+                                key={`${recipe.id}-${index}`}
+                                type="button"
+                                onClick={() => onRecipeClick(recipe.id)}
+                                className="gallery-card group"
+                                aria-label={`Åpne oppskriften ${recipe.title}`}
+                            >
+                                <div className="relative aspect-square overflow-hidden rounded-[24px] bg-[#f2f1e8]">
+                                    {recipe.coverImage ? (
+                                        <Image
+                                            src={recipe.coverImage}
+                                            alt={recipe.title}
+                                            fill
+                                            sizes="(max-width: 1000px) 72vw, (max-width: 1600px) 32vw, 24vw"
+                                            className="object-cover transition duration-500 group-hover:scale-[1.03] hover:cursor-pointer"
+                                        />
+                                    ) : (
+                                        <div className="grid h-full w-full place-items-center text-5xl text-[#496444]">
+                                            🍽️
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/*<div className="px-1 pt-3 text-left">*/}
+                                {/*    <p className="line-clamp-2 text-lg font-semibold leading-tight text-slate-900">*/}
+                                {/*        {recipe.title}*/}
+                                {/*    </p>*/}
+                                {/*    <p className="mt-1 truncate text-sm text-slate-600">*/}
+                                {/*        {creator?.name || 'Svelta-kokk'}*/}
+                                {/*    </p>*/}
+                                {/*</div>*/}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            <style jsx>{`
+                .gallery-mask {
+                    overflow: hidden;
+
+                }
+
+                .gallery-track {
+                    display: flex;
+                    width: max-content;
+                    gap: 1rem;
+                    animation: publicGalleryScroll 42s linear infinite;
+                }
+
+                .gallery-track:hover {
+                    animation-play-state: paused;
+                }
+
+                .gallery-card {
+                    width: clamp(450px, 24vw, 540px);
+                    flex-shrink: 0;
+                    border-radius: 24px;
+                    transition: transform 180ms ease;
+                }
+
+                .gallery-card:hover {
+                    transform: translateY(-2px);
+                }
+
+                @keyframes publicGalleryScroll {
+                    from {
+                        transform: translateX(0);
+                    }
+                    to {
+                        transform: translateX(calc(-50% - 0.5rem));
+                    }
+                }
+
+                @media (max-width: 640px) {
+                    .gallery-card {
+                        width: min(72vw, 300px);
+                    }
+
+                    .gallery-track {
+                        gap: 0.75rem;
+                        animation-duration: 34s;
+                    }
+                }
+            `}</style>
+        </div>
+    );
+};
+
 const normalize = (s: string) =>
     s
         .toLowerCase()
@@ -69,6 +203,32 @@ const normalize = (s: string) =>
         .trim();
 
 const PAGE_SIZE = 8;
+const landingHeroVariants = {
+    hidden: { opacity: 0, y: 28, filter: 'blur(18px)' },
+    show: {
+        opacity: 1,
+        y: 0,
+        filter: 'blur(0px)',
+        transition: {
+            duration: 0.95,
+            ease: [0.22, 1, 0.36, 1] as const,
+            staggerChildren: 0.14,
+        },
+    },
+};
+
+const landingHeroItemVariants = {
+    hidden: { opacity: 0, y: 18, filter: 'blur(14px)' },
+    show: {
+        opacity: 1,
+        y: 0,
+        filter: 'blur(0px)',
+        transition: {
+            duration: 0.85,
+            ease: [0.22, 1, 0.36, 1] as const,
+        },
+    },
+};
 
 const Home: React.FC = () => {
     const router = useRouter();
@@ -258,27 +418,67 @@ const Home: React.FC = () => {
     return (
         <div className="p-4 md:max-w-5xl lg:w-2/3 md:mx-auto md:mb-24">
             {showPublicLanding ? (
-                <section className=" py-8 ">
-                    <div className=" max-w-3xl">
-                        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
-                            Oppskrifter, kokebøker og matglede samlet på ett sted
-                        </h1>
-                        <p className="mx-auto mt-4  text-base leading-relaxed text-slate-600 sm:text-lg">
+                <motion.section
+                    className="py-8 pt-20 md:pt-40"
+                    variants={landingHeroVariants}
+                    initial="hidden"
+                    animate="show"
+                >
+                    <div className="max-w-5xl sm:mx-auto">
+                        <motion.div
+                            className="flex flex-col items-center gap-4 sm:flex-row sm:items-stretch"
+                            variants={landingHeroItemVariants}
+                        >
+                            <motion.div
+                                className="relative h-20 w-20 shrink-0 sm:h-auto"
+                                variants={landingHeroItemVariants}
+                            >
+                                <Image
+                                    src="/brod.png"
+                                    alt="Brod"
+                                    fill
+                                    className="object-contain"
+                                />
+                            </motion.div>
+
+                            <motion.h1
+                                className="text-center text-4xl font-semibold tracking-tight text-slate-900 sm:text-left sm:text-5xl"
+                                variants={landingHeroItemVariants}
+                            >
+                                Oppskrifter, kokebøker og matglede samlet på ett sosialt medium
+                            </motion.h1>
+                        </motion.div>
+
+                        <motion.p
+                            className="mx-auto mt-4 text-center text-base leading-relaxed text-slate-600 sm:text-left sm:text-lg"
+                            variants={landingHeroItemVariants}
+                        >
                             Svelta er en sosial oppskriftsapp der du kan dele egne retter, oppdage nye favoritter,
                             følge andre kokker og lagre oppskrifter i egne kokebøker.
-                        </p>
+                        </motion.p>
 
-                        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                            <button
+                        <motion.div
+                            className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:items-start"
+                            variants={landingHeroItemVariants}
+                        >
+                            <motion.button
                                 type="button"
                                 onClick={() => router.push('/login')}
                                 className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-6 py-3 font-semibold text-white transition hover:opacity-95 active:scale-[0.99]"
+                                whileHover={{ y: -1 }}
+                                whileTap={{ scale: 0.99 }}
                             >
-                                Logg inn
-                            </button>
-                        </div>
+                                Bli med!
+                            </motion.button>
+                        </motion.div>
                     </div>
-                </section>
+
+                    <PublicGallery
+                        recipes={popularRecipes}
+                        loading={loadingPopular}
+                        onRecipeClick={(recipeId) => router.push(`/recipe/${recipeId}`)}
+                    />
+                </motion.section>
             ) : (
                 <div className="md:flex items-center justify-between ">
                     <h2 className="md:text-3xl text-2xl font-semibold text-slate-900">Oppskrifter</h2>
@@ -316,43 +516,48 @@ const Home: React.FC = () => {
                 <div className="mt-10">
                     <h2 className="text-2xl font-semibold text-slate-900 md:text-3xl">Populære oppskrifter på Svelta</h2>
                     <p className="mt-2 text-sm text-slate-600 md:text-base">
-                        Utforsk offentlige oppskrifter fra Svelta før du logger inn.
+                        Utforsk offentlige oppskrifter fra våre flinke kokker!f
                     </p>
                 </div>
             ) : null}
 
-            {activeFeed === 'popular' && <MostActiveCreators />}
+            
 
-            {/* ✅ Search field */}
-            <div className="mt-4 sticky top-0 z-30 py-2">
-                <div className="relative">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
-            search
-          </span>
+            {!showPublicLanding ? (
+                <>
+                    {activeFeed === 'popular' && <MostActiveCreators />}
 
-                    <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Søk etter oppskrifter, ingredienser, beskrivelser..."
-                        className="w-full pl-12 pr-12 py-3 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    />
+                    <div className="mt-4 sticky top-0 z-30 py-2">
+                        <div className="relative">
+                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                                search
+                            </span>
 
-                    {search.trim().length > 0 && (
-                        <button
-                            type="button"
-                            onClick={() => setSearch('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full hover:bg-slate-100 grid place-items-center"
-                            aria-label="Tøm søk"
-                        >
-                            <span className="material-symbols-outlined text-slate-600">close</span>
-                        </button>
-                    )}
-                </div>
+                            <input
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Søk etter oppskrifter, ingredienser, beskrivelser..."
+                                className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-12 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                            />
 
-                {q && !showSkeletonGrid && (
-                    <p className="mt-2 text-sm text-slate-600">Viser {recipes.length} treff</p>
-                )}
-            </div>
+                            {search.trim().length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearch('')}
+                                    className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full hover:bg-slate-100"
+                                    aria-label="Tøm søk"
+                                >
+                                    <span className="material-symbols-outlined text-slate-600">close</span>
+                                </button>
+                            )}
+                        </div>
+
+                        {q && !showSkeletonGrid && (
+                            <p className="mt-2 text-sm text-slate-600">Viser {recipes.length} treff</p>
+                        )}
+                    </div>
+                </>
+            ) : null}
 
             {/* optional: link to own profile */}
             {user ? (
@@ -414,17 +619,29 @@ const Home: React.FC = () => {
                 )}
             </div>
 
-            <div className="text-xl text-center flex flex-col items-center justify-center mt-20 mb-10 ">
-                Vet du fortsatt ikke hva du vil ha?
-                <button
-                    type="button"
-                    onClick={() => router.push('/?recommend=1')}
-                    className="mt-4 inline-flex items-center gap-2 rounded-full px-5 py-2 brown-button transition"
-                >
-                    <span className="material-symbols-outlined">skillet</span>
-                    Spør kokken
-                </button>
-            </div>
+            {!showPublicLanding ? (
+
+                <div className="text-xl text-center flex flex-col items-center justify-center mt-20 mb-10 ">
+                    Vet du fortsatt ikke hva du vil ha?
+                    <button
+                        type="button"
+                        onClick={() => router.push('/?recommend=1')}
+                        className="mt-4 inline-flex items-center gap-2 rounded-full px-5 py-2 brown-button transition"
+                    >
+                        <span className="material-symbols-outlined">skillet</span>
+                        Spør kokken
+                    </button>
+                </div>
+
+            ) : (
+
+                <div>
+
+                </div>
+
+            )}
+
+
         </div>
     );
 };
