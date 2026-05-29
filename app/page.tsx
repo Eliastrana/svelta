@@ -217,6 +217,7 @@ const Home: React.FC = () => {
 
     const shouldBlockHome = Boolean(user && !onboardingResolved);
     const shouldShowOnboarding = Boolean(user && showOnboarding && viewerProfile);
+    const showPublicLanding = !isLoggedIn;
 
     if (shouldBlockHome) {
         return (
@@ -256,37 +257,83 @@ const Home: React.FC = () => {
 
     return (
         <div className="p-4 md:max-w-5xl lg:w-2/3 md:mx-auto md:mb-24">
-            {/* Header & feed toggle */}
-            <div className="md:flex items-center justify-between ">
-                <h2 className="md:text-3xl text-2xl font-semibold text-slate-900">Oppskrifter</h2>
+            {showPublicLanding ? (
+                <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-8 shadow-sm sm:px-8 sm:py-10">
+                    <div className="mx-auto max-w-3xl text-center">
+                        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
+                            Svelta
+                        </p>
+                        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
+                            Oppskrifter, kokebøker og matglede samlet på ett sted
+                        </h1>
+                        <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
+                            Svelta er en sosial oppskriftsapp der du kan dele egne retter, oppdage nye favoritter,
+                            følge andre kokker og lagre oppskrifter i egne kokebøker.
+                        </p>
 
-                <div className="relative inline-flex w-full max-w-sm rounded-full border border-slate-200 bg-slate-50 p-1 mt-6">
-                    <div
-                        className="absolute top-0 left-0 h-full w-1/2 rounded-full bg-white shadow-sm transition-transform duration-300"
-                        style={{ transform: activeFeed === 'popular' ? 'translateX(100%)' : undefined }}
-                    />
+                        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                            <button
+                                type="button"
+                                onClick={() => router.push('/login')}
+                                className="inline-flex items-center justify-center rounded-full bg-slate-900 px-6 py-3 font-semibold text-white transition hover:opacity-95 active:scale-[0.99]"
+                            >
+                                Logg inn med Google
+                            </button>
 
-                    <button
-                        onClick={() => setActiveFeed('following')}
-                        className={`relative w-1/2 py-1 text-sm font-medium focus:outline-none flex items-center justify-center ${
-                            activeFeed === 'following' ? 'text-slate-900' : 'text-slate-500'
-                        }`}
-                        type="button"
-                    >
-                        Følger
-                    </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setActiveFeed('popular');
+                                    window.scrollTo({ top: 640, behavior: 'smooth' });
+                                }}
+                                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-6 py-3 font-semibold text-slate-700 transition hover:bg-slate-100 active:scale-[0.99]"
+                            >
+                                Se populære oppskrifter
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            ) : (
+                <div className="md:flex items-center justify-between ">
+                    <h2 className="md:text-3xl text-2xl font-semibold text-slate-900">Oppskrifter</h2>
 
-                    <button
-                        onClick={() => setActiveFeed('popular')}
-                        className={`relative w-1/2 py-1 text-sm font-medium focus:outline-none flex items-center justify-center ${
-                            activeFeed === 'popular' ? 'text-slate-900' : 'text-slate-500'
-                        }`}
-                        type="button"
-                    >
-                        Populære
-                    </button>
+                    <div className="relative inline-flex w-full max-w-sm rounded-full border border-slate-200 bg-slate-50 p-1 mt-6">
+                        <div
+                            className="absolute top-0 left-0 h-full w-1/2 rounded-full bg-white shadow-sm transition-transform duration-300"
+                            style={{ transform: activeFeed === 'popular' ? 'translateX(100%)' : undefined }}
+                        />
+
+                        <button
+                            onClick={() => setActiveFeed('following')}
+                            className={`relative w-1/2 py-1 text-sm font-medium focus:outline-none flex items-center justify-center ${
+                                activeFeed === 'following' ? 'text-slate-900' : 'text-slate-500'
+                            }`}
+                            type="button"
+                        >
+                            Følger
+                        </button>
+
+                        <button
+                            onClick={() => setActiveFeed('popular')}
+                            className={`relative w-1/2 py-1 text-sm font-medium focus:outline-none flex items-center justify-center ${
+                                activeFeed === 'popular' ? 'text-slate-900' : 'text-slate-500'
+                            }`}
+                            type="button"
+                        >
+                            Populære
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {showPublicLanding ? (
+                <div className="mt-10">
+                    <h2 className="text-2xl font-semibold text-slate-900 md:text-3xl">Populære oppskrifter på Svelta</h2>
+                    <p className="mt-2 text-sm text-slate-600 md:text-base">
+                        Utforsk offentlige oppskrifter fra Svelta før du logger inn.
+                    </p>
+                </div>
+            ) : null}
 
             {activeFeed === 'popular' && <MostActiveCreators />}
 
@@ -322,10 +369,12 @@ const Home: React.FC = () => {
             </div>
 
             {/* optional: link to own profile */}
-            <div
-                onClick={() => (user ? router.push(`/user/${user.uid}`) : alert('No user logged in'))}
-                className="flex items-center justify-between mb-4 cursor-pointer"
-            />
+            {user ? (
+                <div
+                    onClick={() => router.push(`/user/${user.uid}`)}
+                    className="mb-4 flex cursor-pointer items-center justify-between"
+                />
+            ) : null}
 
             {activeFeed === 'popular' && popularIsError && (
                 <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">

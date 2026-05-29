@@ -20,6 +20,7 @@ export function middleware(req: NextRequest) {
 
     // ✅ Public routes (important for share previews)
     const isPublicRoute =
+        pathname === '/' ||
         pathname === '/login' ||
         pathname === '/logout' ||
         pathname.startsWith('/recipe/'); // 👈 allow recipe pages publicly

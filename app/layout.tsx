@@ -39,8 +39,8 @@ const syne = Syne({
 
 
 export const metadata: Metadata = {
-    title: 'Svelta',
-    description: 'Del dine beste oppskrifter',
+    title: 'Svelta | Sosial oppskriftsapp',
+    description: 'Svelta er en sosial oppskriftsapp der du kan dele oppskrifter, oppdage nye retter, følge kokker og bygge egne kokebøker.',
 };
 
 export default function RootLayout({
@@ -49,15 +49,18 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
+        <html lang="no">
         <head>
             <meta
                 name="viewport"
                 content="width=device-width, initial-scale=1.0"
             />
-            <meta name="description" content="A simple recipe app." />
-            <meta name="keywords" content="recipe, app, cooking, food" />
-            <meta name="author" content="Your Name" />
+            <meta
+                name="description"
+                content="Svelta er en sosial oppskriftsapp der du kan dele oppskrifter, oppdage nye retter, følge kokker og bygge egne kokebøker."
+            />
+            <meta name="keywords" content="Svelta, oppskrifter, mat, kokebok, matapp, sosial oppskriftsapp" />
+            <meta name="author" content="Svelta" />
 
             <link rel="apple-touch-icon" sizes="57x57" href="/favicon/apple-icon-57x57.png" />
             <link rel="apple-touch-icon" sizes="60x60" href="/favicon/apple-icon-60x60.png" />
