@@ -13,6 +13,7 @@ import {
 } from 'firebase/auth';
 import { auth, provider } from '@/firebase';
 import { ensureUserDocument } from '@/helpers/ensureUserDocument';
+import Image from 'next/image';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -376,7 +377,8 @@ export default function LoginPage() {
                                 disabled={loading || authResolving}
                                 className="flex w-full items-center justify-center gap-3 rounded-full border border-[#ddd6c8] bg-[#fbfaf5] px-6 py-3 font-semibold text-[#201d17] transition hover:border-[#cfc7b7] hover:bg-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                <span className="text-lg">G</span>
+                                <Image src={"/google_logo.png"} alt={"Google logo"} width={24} height={24} />
+
                                 Fortsett med Google
                             </button>
 
