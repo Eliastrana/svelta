@@ -1,7 +1,7 @@
 // app/login/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     onAuthStateChanged,
     signInWithPopup,
@@ -57,6 +57,8 @@ async function finishLogin(user: User) {
 
 export default function LoginPage() {
     const [loading, setLoading] = useState(false);
+    const [authResolving, setAuthResolving] = useState(true);
+    const loginCompletedRef = useRef(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -66,11 +68,16 @@ export default function LoginPage() {
                 const result = await getRedirectResult(auth);
 
                 if (!cancelled && result?.user) {
+                    loginCompletedRef.current = true;
                     await finishLogin(result.user);
                 }
             } catch (error) {
                 console.error('Error handling redirect result', error);
                 setLoading(false);
+            } finally {
+                if (!cancelled) {
+                    setAuthResolving(false);
+                }
             }
         }
 
@@ -83,8 +90,18 @@ export default function LoginPage() {
 
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                setAuthResolving(false);
+                return;
+            }
+
+            if (loginCompletedRef.current) {
+                return;
+            }
+
             if (user) {
                 try {
+                    loginCompletedRef.current = true;
                     await finishLogin(user);
                 } catch (error) {
                     console.error('Error finalizing login', error);
@@ -109,10 +126,12 @@ export default function LoginPage() {
             setLoading(true);
             if (shouldPreferPopup()) {
                 try {
+                    loginCompletedRef.current = true;
                     const result = await signInWithPopup(auth, provider);
                     await finishLogin(result.user);
                     return;
                 } catch (error) {
+                    loginCompletedRef.current = false;
                     console.error('Popup sign-in failed, falling back to redirect', error);
                 }
             }
@@ -123,6 +142,22 @@ export default function LoginPage() {
             setLoading(false);
         }
     };
+
+    if (authResolving || loading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-[#fbfaf7] px-4">
+                <div className="flex flex-col items-center gap-4 text-center text-neutral-700">
+                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#e7e2d7] border-t-[#3a3a36]" />
+                    <div>
+                        <p className="text-2xl font-semibold">Svelta</p>
+                        <p className="mt-1 text-sm text-neutral-500">
+                            {loading ? 'Sender deg til Google…' : 'Logger deg inn…'}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="relative min-h-screen overflow-hidden flex items-center justify-center md:p-40 p-4">
@@ -160,7 +195,7 @@ export default function LoginPage() {
 
                 <button
                     onClick={signIn}
-                    disabled={loading}
+                    disabled={loading || authResolving}
                     className="rounded-full px-6 py-2 font-semibold text-white shadow-lg
                     bg-gradient-to-r from-stone-700 via-stone-800 to-stone-700
                     hover:opacity-95 active:scale-[0.99] transition hover:cursor-pointer

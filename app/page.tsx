@@ -258,37 +258,23 @@ const Home: React.FC = () => {
     return (
         <div className="p-4 md:max-w-5xl lg:w-2/3 md:mx-auto md:mb-24">
             {showPublicLanding ? (
-                <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-8 shadow-sm sm:px-8 sm:py-10">
-                    <div className="mx-auto max-w-3xl text-center">
-                        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                            Svelta
-                        </p>
+                <section className=" py-8 ">
+                    <div className=" max-w-3xl">
                         <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
                             Oppskrifter, kokebøker og matglede samlet på ett sted
                         </h1>
-                        <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
+                        <p className="mx-auto mt-4  text-base leading-relaxed text-slate-600 sm:text-lg">
                             Svelta er en sosial oppskriftsapp der du kan dele egne retter, oppdage nye favoritter,
                             følge andre kokker og lagre oppskrifter i egne kokebøker.
                         </p>
 
-                        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                             <button
                                 type="button"
                                 onClick={() => router.push('/login')}
-                                className="inline-flex items-center justify-center rounded-full bg-slate-900 px-6 py-3 font-semibold text-white transition hover:opacity-95 active:scale-[0.99]"
+                                className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-6 py-3 font-semibold text-white transition hover:opacity-95 active:scale-[0.99]"
                             >
                                 Logg inn med Google
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setActiveFeed('popular');
-                                    window.scrollTo({ top: 640, behavior: 'smooth' });
-                                }}
-                                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-6 py-3 font-semibold text-slate-700 transition hover:bg-slate-100 active:scale-[0.99]"
-                            >
-                                Se populære oppskrifter
                             </button>
                         </div>
                     </div>
