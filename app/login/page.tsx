@@ -88,9 +88,14 @@ export default function LoginPage() {
 
             {/* Content */}
             <div className="flex flex-col items-center text-center max-w-5xl mx-auto">
+
                 <h1 className="md:text-8xl text-5xl font-bold mb-8 text-neutral-700">
-                    Del dine beste oppskrifter
+                   Svelta
                 </h1>
+
+                <h3 className="md:text-4xl text-3xl mb-8 text-neutral-700">
+                    Del dine beste oppskrifter
+                </h3>
 
                 <button
                     onClick={signIn}
