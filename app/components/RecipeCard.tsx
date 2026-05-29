@@ -287,7 +287,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                     className="flex min-w-0 items-center gap-2 text-left transition hover:opacity-80"
                     aria-label={`Gå til profilen til ${userName}`}
                 >
-                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-ful" style={{ backgroundColor: imageFallbackBackground, borderColor: `${theme?.main ?? '#d8d7cb'}33` }}>
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full" style={{ backgroundColor: imageFallbackBackground, borderColor: `${theme?.main ?? '#d8d7cb'}33` }}>
                         {userPhoto ? (
                             <Image
                                 src={userPhoto}
