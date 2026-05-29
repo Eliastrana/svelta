@@ -50,7 +50,7 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
                     const data = docSnap.data() as { userId?: string };
                     const userId = data.userId || docSnap.id;
 
-                    const userDocRef = doc(firestore, 'users', userId);
+                    const userDocRef = doc(firestore, 'publicUsers', userId);
                     const userDocSnap = await getDoc(userDocRef);
 
                     let userData: Partial<LikedUser> = {};

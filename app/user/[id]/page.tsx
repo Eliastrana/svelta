@@ -27,6 +27,7 @@ import { deleteUserAccountAndActivity } from '@/helpers/deleteUserAccount';
 import { ensureUserDocument } from '@/helpers/ensureUserDocument';
 import { FollowState, getFollowState, toggleFollowAction } from '@/helpers/followRequests';
 import { DEFAULT_PROFILE_THEME_ID, PROFILE_FONTS, PROFILE_THEMES, getProfileFont, getProfileTheme } from '@/helpers/profileAppearance';
+import { syncPublicUserProfile } from '@/helpers/publicUserProfile';
 import { filterVisibleRecipes } from '@/helpers/recipeVisibility';
 import { useUserFollowing } from '@/hooks/useUserFollowing';
 
@@ -476,6 +477,12 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 profileThemeId,
                 profileFontId,
                 isProfilePrivate,
+            });
+
+            await syncPublicUserProfile(uid, {
+                name: initialName,
+                photoURL: nextPhotoURL,
+                favoriteFood: favoriteFood.trim(),
             });
 
             onSaved({

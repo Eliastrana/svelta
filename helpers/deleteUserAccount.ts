@@ -225,6 +225,7 @@ export async function deleteUserAccountAndActivity(currentUser: User) {
         });
     }
 
+    await deleteDoc(doc(firestore, 'publicUsers', uid));
     await deleteDoc(doc(firestore, 'users', uid));
     await deleteUser(currentUser);
 }

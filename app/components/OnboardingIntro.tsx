@@ -6,6 +6,7 @@ import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
 import { firestore, storage } from '@/firebase';
 import { PROFILE_FONTS, PROFILE_THEMES, getProfileFont, getProfileTheme } from '@/helpers/profileAppearance';
+import { syncPublicUserProfile } from '@/helpers/publicUserProfile';
 
 type OnboardingIntroProps = {
     open: boolean;
@@ -173,6 +174,11 @@ const OnboardingIntro: React.FC<OnboardingIntroProps> = ({
             };
 
             await updateDoc(doc(firestore, 'users', uid), payload);
+            await syncPublicUserProfile(uid, {
+                name: initialName,
+                photoURL: payload.photoURL,
+                favoriteFood: payload.favoriteFood,
+            });
             onComplete(payload);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Kunne ikke fullføre introduksjonen.');
@@ -409,7 +415,7 @@ const OnboardingIntro: React.FC<OnboardingIntroProps> = ({
                             }
                             setStep((prev) => Math.min(STEPS.length - 1, prev + 1));
                         }}
-                        className="rounded-full px-5 py-3 font-semibold text-white transition hover:opacity-95 disabled:opacity-60"
+                        className="rounded-full px-5 py-3 font-semibold transition hover:opacity-95 disabled:opacity-60"
                         style={{ backgroundColor: activeTheme.main }}
                         disabled={saving}
                     >

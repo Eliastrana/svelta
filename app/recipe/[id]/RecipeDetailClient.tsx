@@ -11,7 +11,7 @@ import AddToCollectionModal from '@/app/components/AddToCollectionModal';
 import AppModal from '@/app/components/AppModal';
 
 import { useRecipe } from '@/hooks/useRecipe';
-import { useUserData } from '@/hooks/useUserData';
+import { usePublicUserData } from '@/hooks/usePublicUserData';
 import { useUserFollowing } from '@/hooks/useUserFollowing';
 import { auth, firestore } from '@/firebase';
 import RatingStars from '@/app/components/RatingStars';
@@ -97,7 +97,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
     const [recipeRaw, loading] = useRecipe(id);
     const recipe = recipeRaw as RecipeForDetail | null;
 
-    const creatorDoc = useUserData(recipe?.userId || '');
+    const creatorDoc = usePublicUserData(recipe?.userId || '');
 
     const currentUid = auth.currentUser?.uid ?? '';
     const viewerFollowing = useUserFollowing(currentUid);

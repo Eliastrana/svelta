@@ -24,16 +24,30 @@ export const fetchManyUsers = async (
     );
 
     const out: Record<string, UserDoc> = {};
+    const fetchChunk = async (collectionName: 'publicUsers' | 'users', ids: string[]) => {
+        const snap = await getDocs(
+            query(
+                collection(firestore, collectionName),
+                where(documentId(), 'in', ids),
+            ),
+        );
+
+        snap.forEach((d) => (out[d.id] = d.data() as UserDoc));
+    };
 
     await Promise.all(
         chunks.map(async (ids) => {
-            const snap = await getDocs(
-                query(
-                    collection(firestore, 'users'),
-                    where(documentId(), 'in', ids),                   // ✔ match doc-ID
-                ),
-            );
-            snap.forEach((d) => (out[d.id] = d.data() as UserDoc));
+            await fetchChunk('publicUsers', ids);
+
+            const missingIds = ids.filter((id) => !out[id]);
+            if (missingIds.length > 0) {
+                try {
+                    await fetchChunk('users', missingIds);
+                } catch {
+                    // Logged-out public pages may not be allowed to read private user docs.
+                    // In that case we keep whatever was available in publicUsers.
+                }
+            }
         }),
     );
 

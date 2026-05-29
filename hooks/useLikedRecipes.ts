@@ -79,7 +79,7 @@ export function useUserLikedRecipes(userId: string): RecipeWithCreator[] {
 
                     let creator: Creator | undefined;
                     if (recipeData.userId) {
-                        const creatorSnap = await getDoc(doc(firestore, 'users', recipeData.userId));
+                        const creatorSnap = await getDoc(doc(firestore, 'publicUsers', recipeData.userId));
                         if (creatorSnap.exists()) {
                             const c = creatorSnap.data() as Creator;
                             creator = { name: c.name, photoURL: c.photoURL };

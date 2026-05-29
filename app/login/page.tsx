@@ -1,16 +1,20 @@
-// app/login/page.tsx
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+    createUserWithEmailAndPassword,
+    getRedirectResult,
     onAuthStateChanged,
+    signInWithEmailAndPassword,
     signInWithPopup,
     signInWithRedirect,
-    getRedirectResult,
+    updateProfile,
     User,
 } from 'firebase/auth';
 import { auth, provider } from '@/firebase';
 import { ensureUserDocument } from '@/helpers/ensureUserDocument';
+
+type AuthMode = 'signin' | 'signup';
 
 function getSafeNextPath(): string {
     if (typeof window === 'undefined') return '/';
@@ -34,10 +38,7 @@ function shouldPreferPopup(): boolean {
     );
 }
 
-async function finishLogin(user: User) {
-    await ensureUserDocument(user);
-
-    const token = await user.getIdToken(true);
+async function persistSession(token: string) {
     try {
         const response = await fetch('/api/auth/session', {
             method: 'POST',
@@ -51,13 +52,24 @@ async function finishLogin(user: User) {
     } catch (error) {
         console.error('Error storing auth session cookie', error);
     }
+}
 
+async function finishLogin(user: User) {
+    await ensureUserDocument(user);
+    const token = await user.getIdToken(true);
+    await persistSession(token);
     window.location.replace(getSafeNextPath());
 }
 
 export default function LoginPage() {
+    const [mode, setMode] = useState<AuthMode>('signin');
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [authResolving, setAuthResolving] = useState(true);
+    const [formError, setFormError] = useState<string | null>(null);
     const loginCompletedRef = useRef(false);
 
     useEffect(() => {
@@ -81,7 +93,7 @@ export default function LoginPage() {
             }
         }
 
-        handleRedirectResult();
+        void handleRedirectResult();
 
         return () => {
             cancelled = true;
@@ -95,18 +107,14 @@ export default function LoginPage() {
                 return;
             }
 
-            if (loginCompletedRef.current) {
-                return;
-            }
+            if (loginCompletedRef.current) return;
 
-            if (user) {
-                try {
-                    loginCompletedRef.current = true;
-                    await finishLogin(user);
-                } catch (error) {
-                    console.error('Error finalizing login', error);
-                    window.location.replace('/');
-                }
+            try {
+                loginCompletedRef.current = true;
+                await finishLogin(user);
+            } catch (error) {
+                console.error('Error finalizing login', error);
+                window.location.replace('/');
             }
         });
 
@@ -121,9 +129,22 @@ export default function LoginPage() {
         }
     }, []);
 
-    const signIn = async () => {
+    useEffect(() => {
+        setFormError(null);
+    }, [mode]);
+
+    const isSignup = mode === 'signup';
+
+    const submitLabel = useMemo(() => {
+        if (loading) return isSignup ? 'Oppretter konto…' : 'Logger inn…';
+        return isSignup ? 'Opprett konto' : 'Logg inn';
+    }, [isSignup, loading]);
+
+    const handleGoogleAuth = async () => {
         try {
             setLoading(true);
+            setFormError(null);
+
             if (shouldPreferPopup()) {
                 try {
                     loginCompletedRef.current = true;
@@ -139,6 +160,72 @@ export default function LoginPage() {
             await signInWithRedirect(auth, provider);
         } catch (error) {
             console.error('Error during sign in', error);
+            setFormError('Kunne ikke starte Google-innlogging.');
+            setLoading(false);
+        }
+    };
+
+    const handleCredentialsAuth = async (event: React.FormEvent) => {
+        event.preventDefault();
+        setFormError(null);
+
+        const trimmedEmail = email.trim();
+        const trimmedName = name.trim();
+
+        if (!trimmedEmail || !password) {
+            setFormError('Fyll inn e-post og passord.');
+            return;
+        }
+
+        if (isSignup) {
+            if (!trimmedName) {
+                setFormError('Fyll inn navn.');
+                return;
+            }
+
+            if (password.length < 6) {
+                setFormError('Passordet må være minst 6 tegn.');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                setFormError('Passordene er ikke like.');
+                return;
+            }
+        }
+
+        try {
+            setLoading(true);
+
+            if (isSignup) {
+                loginCompletedRef.current = true;
+                const result = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
+                await updateProfile(result.user, { displayName: trimmedName });
+                await finishLogin(result.user);
+                return;
+            }
+
+            loginCompletedRef.current = true;
+            const result = await signInWithEmailAndPassword(auth, trimmedEmail, password);
+            await finishLogin(result.user);
+        } catch (error) {
+            console.error('Error during email auth', error);
+            loginCompletedRef.current = false;
+
+            const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
+
+            if (code.includes('auth/email-already-in-use')) {
+                setFormError('Denne e-posten er allerede i bruk.');
+            } else if (code.includes('auth/invalid-credential') || code.includes('auth/wrong-password') || code.includes('auth/user-not-found')) {
+                setFormError('Ugyldig e-post eller passord.');
+            } else if (code.includes('auth/invalid-email')) {
+                setFormError('E-postadressen er ugyldig.');
+            } else if (code.includes('auth/weak-password')) {
+                setFormError('Passordet er for svakt.');
+            } else {
+                setFormError('Kunne ikke fullføre innloggingen akkurat nå.');
+            }
+
             setLoading(false);
         }
     };
@@ -147,11 +234,10 @@ export default function LoginPage() {
         return (
             <div className="flex min-h-screen items-center justify-center bg-[#fbfaf7] px-4">
                 <div className="flex flex-col items-center gap-4 text-center text-neutral-700">
-                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#e7e2d7] border-t-[#3a3a36]" />
                     <div>
                         <p className="text-2xl font-semibold">Svelta</p>
                         <p className="mt-1 text-sm text-neutral-500">
-                            {loading ? 'Sender deg til Google…' : 'Logger deg inn…'}
+                            {loading ? 'Gjør klar kontoen din…' : 'Logger deg inn…'}
                         </p>
                     </div>
                 </div>
@@ -160,49 +246,153 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="relative min-h-screen overflow-hidden flex items-center justify-center md:p-40 p-4">
-            <div className="absolute inset-0 -z-10">
-                <div className="absolute inset-0 bg-[#fbfaf7]" />
+        <div className="min-h-screen bg-[#fbfaf7] px-4 py-8 md:px-8 md:py-12">
+            <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl items-center justify-center">
+                <div className="w-full max-w-xl overflow-hidden rounded-[32px] border border-[#e5dfd1] bg-white shadow-[0_20px_70px_rgba(40,37,29,0.08)] transition-all duration-300 ease-out">
+                    <div className="p-5 sm:p-7 md:p-10">
+                        <div className="mx-auto max-w-md">
+                            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[#201d17]">
+                                {isSignup ? 'Opprett konto' : 'Logg inn'}
+                            </h1>
+                            <p className="mt-2 text-sm leading-relaxed text-[#6b665b]">
+                                {isSignup
+                                    ? 'Lag en konto med e-post eller bruk Google.'
+                                    : 'Fortsett med e-post eller bruk Google.'}
+                            </p>
 
-                <div
-                    className="absolute -top-56 -left-56 h-[760px] w-[760px] rounded-full blur-3xl opacity-90
-                    bg-gradient-to-br from-stone-200 via-amber-100 to-transparent"
-                />
+                            <div className="mt-6 inline-flex w-full rounded-full border border-[#ded8ca] bg-[#f6f3ea] p-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setMode('signin')}
+                                    className={[
+                                        'flex-1 rounded-full px-4 py-2.5 text-sm font-semibold transition',
+                                        mode === 'signin' ? 'bg-white text-[#201d17] shadow-sm' : 'text-[#6b665b]',
+                                    ].join(' ')}
+                                >
+                                    Logg inn
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setMode('signup')}
+                                    className={[
+                                        'flex-1 rounded-full px-4 py-2.5 text-sm font-semibold transition',
+                                        mode === 'signup' ? 'bg-white text-[#201d17] shadow-sm' : 'text-[#6b665b]',
+                                    ].join(' ')}
+                                >
+                                    Opprett konto
+                                </button>
+                            </div>
 
-                <div
-                    className="absolute -bottom-72 -right-72 h-[920px] w-[920px] rounded-full blur-3xl opacity-90
-                    bg-gradient-to-tr from-amber-100 via-stone-200 to-transparent"
-                />
+                            <form onSubmit={handleCredentialsAuth} className="mt-6 space-y-4">
+                                <div
+                                    className={[
+                                        'grid transition-all duration-300 ease-out',
+                                        isSignup ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+                                    ].join(' ')}
+                                >
+                                    <div className="overflow-hidden">
+                                        <label className="mb-4 block">
+                                            <span className="mb-2 block text-sm font-medium text-[#2e2a23]">Navn</span>
+                                            <input
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                placeholder="Ditt navn"
+                                                className="w-full rounded-2xl border border-[#ddd6c8] bg-[#fbfaf5] px-4 py-3 text-[#201d17] outline-none transition placeholder:text-[#9a9385] focus:border-[#c8c0b1] focus:bg-white"
+                                                autoComplete="name"
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
 
-                <div
-                    className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[620px] w-[620px] rounded-full blur-3xl opacity-80
-                    bg-gradient-to-br from-stone-100 via-amber-50 to-transparent"
-                />
+                                <label className="block">
+                                    <span className="mb-2 block text-sm font-medium text-[#2e2a23]">E-post</span>
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="navn@epost.no"
+                                        className="w-full rounded-2xl border border-[#ddd6c8] bg-[#fbfaf5] px-4 py-3 text-[#201d17] outline-none transition placeholder:text-[#9a9385] focus:border-[#c8c0b1] focus:bg-white"
+                                        autoComplete="email"
+                                    />
+                                </label>
 
-                <div className="absolute inset-0 opacity-80 bg-gradient-to-b from-white/60 via-transparent to-white/70" />
+                                <label className="block">
+                                    <span className="mb-2 block text-sm font-medium text-[#2e2a23]">Passord</span>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder={isSignup ? 'Minst 6 tegn' : 'Passord'}
+                                        className="w-full rounded-2xl border border-[#ddd6c8] bg-[#fbfaf5] px-4 py-3 text-[#201d17] outline-none transition placeholder:text-[#9a9385] focus:border-[#c8c0b1] focus:bg-white"
+                                        autoComplete={isSignup ? 'new-password' : 'current-password'}
+                                    />
+                                </label>
 
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_25%,rgba(2,6,23,0.08)_100%)]" />
-            </div>
+                                <div
+                                    className={[
+                                        'grid transition-all duration-300 ease-out',
+                                        isSignup ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+                                    ].join(' ')}
+                                >
+                                    <div className="overflow-hidden">
+                                        <label className="block">
+                                            <span className="mb-2 block text-sm font-medium text-[#2e2a23]">Gjenta passord</span>
+                                            <input
+                                                type="password"
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                placeholder="Gjenta passord"
+                                                className="w-full rounded-2xl border border-[#ddd6c8] bg-[#fbfaf5] px-4 py-3 text-[#201d17] outline-none transition placeholder:text-[#9a9385] focus:border-[#c8c0b1] focus:bg-white"
+                                                autoComplete="new-password"
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
 
-            <div className="flex flex-col items-center text-center max-w-5xl mx-auto">
-                <h1 className="md:text-8xl text-5xl font-bold mb-8 text-neutral-700">
-                    Svelta
-                </h1>
+                                {formError ? (
+                                    <div className="rounded-2xl border border-[#f1c6c0] bg-[#fff1ef] px-4 py-3 text-sm text-[#8a3328]">
+                                        {formError}
+                                    </div>
+                                ) : null}
 
-                <h3 className="md:text-4xl text-3xl mb-8 text-neutral-700">
-                    Del dine beste oppskrifter
-                </h3>
+                                <button
+                                    type="submit"
+                                    disabled={loading || authResolving}
+                                    className="w-full rounded-full bg-[#201d17] px-6 py-3 font-semibold text-white transition hover:opacity-95 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {submitLabel}
+                                </button>
+                            </form>
 
-                <button
-                    onClick={signIn}
-                    disabled={loading || authResolving}
-                    className="rounded-full px-6 py-2 font-semibold text-white shadow-lg
-                    bg-gradient-to-r from-stone-700 via-stone-800 to-stone-700
-                    hover:opacity-95 active:scale-[0.99] transition hover:cursor-pointer
-                    disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                    {loading ? 'Sender deg til Google...' : 'Logg inn med Google'}
-                </button>
+                            <div className="my-6 flex items-center gap-3 text-sm text-[#8a8377]">
+                                <div className="h-px flex-1 bg-[#e4ded0]" />
+                                <span>Eller</span>
+                                <div className="h-px flex-1 bg-[#e4ded0]" />
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={handleGoogleAuth}
+                                disabled={loading || authResolving}
+                                className="flex w-full items-center justify-center gap-3 rounded-full border border-[#ddd6c8] bg-[#fbfaf5] px-6 py-3 font-semibold text-[#201d17] transition hover:border-[#cfc7b7] hover:bg-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                <span className="text-lg">G</span>
+                                Fortsett med Google
+                            </button>
+
+                            <p className="mt-6 text-center text-sm text-[#7a7468]">
+                                {isSignup ? 'Har du allerede konto?' : 'Har du ikke konto ennå?'}{' '}
+                                <button
+                                    type="button"
+                                    onClick={() => setMode(isSignup ? 'signin' : 'signup')}
+                                    className="font-semibold text-[#201d17] underline underline-offset-4"
+                                >
+                                    {isSignup ? 'Logg inn' : 'Opprett konto'}
+                                </button>
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

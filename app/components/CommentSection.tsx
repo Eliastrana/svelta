@@ -114,7 +114,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
             await Promise.all(
                 uniqueUserIds.map(async (uid) => {
                     if (!usersMap[uid]) {
-                        const userDocRef = doc(firestore, 'users', uid);
+                        const userDocRef = doc(firestore, 'publicUsers', uid);
                         const docSnap = await getDoc(userDocRef);
 
                         if (docSnap.exists()) {

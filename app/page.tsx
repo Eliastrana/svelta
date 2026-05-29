@@ -274,7 +274,7 @@ const Home: React.FC = () => {
                                 onClick={() => router.push('/login')}
                                 className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-6 py-3 font-semibold text-white transition hover:opacity-95 active:scale-[0.99]"
                             >
-                                Logg inn med Google
+                                Logg inn
                             </button>
                         </div>
                     </div>
