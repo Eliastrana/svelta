@@ -417,6 +417,12 @@ const Home: React.FC = () => {
 
     return (
         <div className="p-4 md:max-w-5xl lg:w-2/3 md:mx-auto md:mb-24">
+            <div className="mb-3">
+            {!showPublicLanding && activeFeed === 'popular' ? (
+                <MostActiveCreators />
+            ) : null}
+            </div>
+
             {showPublicLanding ? (
                 <motion.section
                     className="py-8 pt-20 md:pt-40"
@@ -480,10 +486,35 @@ const Home: React.FC = () => {
                     />
                 </motion.section>
             ) : (
-                <div className="md:flex items-center justify-between ">
-                    <h2 className="md:text-3xl text-2xl font-semibold text-slate-900">Oppskrifter</h2>
 
-                    <div className="relative inline-flex w-full max-w-sm rounded-full border border-slate-200 bg-slate-50 p-1 mt-6">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div className="relative w-full md:flex-1">
+        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+            search
+        </span>
+
+                        <input
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Søk etter oppskrifter, ingredienser, beskrivelser..."
+                            className="w-full text-sm rounded-full border border-slate-200 bg-white py-2 pl-12 pr-12 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                        />
+
+                        {search.trim().length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setSearch('')}
+                                className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full hover:bg-slate-100"
+                                aria-label="Tøm søk"
+                            >
+                                <span className="material-symbols-outlined text-slate-600">close</span>
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="relative inline-flex w-full rounded-full border border-slate-200 bg-slate-50 p-1 md:w-72 md:shrink-0">
+
+
                         <div
                             className="absolute top-0 left-0 h-full w-1/2 rounded-full bg-white shadow-sm transition-transform duration-300"
                             style={{ transform: activeFeed === 'popular' ? 'translateX(100%)' : undefined }}
@@ -525,31 +556,31 @@ const Home: React.FC = () => {
 
             {!showPublicLanding ? (
                 <>
-                    {activeFeed === 'popular' && <MostActiveCreators />}
+                    {/*{activeFeed === 'popular' && <MostActiveCreators />}*/}
 
-                    <div className="mt-4 sticky top-0 z-30 py-2">
+                    <div className=" sticky top-0 z-30 py-2">
                         <div className="relative">
-                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
-                                search
-                            </span>
+                            {/*<span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">*/}
+                            {/*    search*/}
+                            {/*</span>*/}
 
-                            <input
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Søk etter oppskrifter, ingredienser, beskrivelser..."
-                                className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-12 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                            />
+                            {/*<input*/}
+                            {/*    value={search}*/}
+                            {/*    onChange={(e) => setSearch(e.target.value)}*/}
+                            {/*    placeholder="Søk etter oppskrifter, ingredienser, beskrivelser..."*/}
+                            {/*    className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-12 focus:outline-none focus:ring-2 focus:ring-slate-200"*/}
+                            {/*/>*/}
 
-                            {search.trim().length > 0 && (
-                                <button
-                                    type="button"
-                                    onClick={() => setSearch('')}
-                                    className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full hover:bg-slate-100"
-                                    aria-label="Tøm søk"
-                                >
-                                    <span className="material-symbols-outlined text-slate-600">close</span>
-                                </button>
-                            )}
+                            {/*{search.trim().length > 0 && (*/}
+                            {/*    <button*/}
+                            {/*        type="button"*/}
+                            {/*        onClick={() => setSearch('')}*/}
+                            {/*        className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full hover:bg-slate-100"*/}
+                            {/*        aria-label="Tøm søk"*/}
+                            {/*    >*/}
+                            {/*        <span className="material-symbols-outlined text-slate-600">close</span>*/}
+                            {/*    </button>*/}
+                            {/*)}*/}
                         </div>
 
                         {q && !showSkeletonGrid && (
@@ -576,7 +607,7 @@ const Home: React.FC = () => {
             {/* Content */}
             <div className="mb-40">
                 {showFollowingCTA ? (
-                    <div className="mt-6 rounded-2xl bg-white shadow-sm p-4">
+                    <div className="mt-3 rounded-2xl bg-white shadow-sm p-4">
                         <p className="text-slate-700">Du følger ingen enda.</p>
                         <button
                             onClick={() => router.push('/add-friends')}
@@ -586,7 +617,7 @@ const Home: React.FC = () => {
                         </button>
                     </div>
                 ) : showSkeletonGrid ? (
-                    <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-10">
                         {Array.from({ length: 6 }).map((_, i) => (
                             <SkeletonCard key={`sk-${i}`} />
                         ))}
@@ -596,7 +627,7 @@ const Home: React.FC = () => {
                         <p className="text-slate-600">Ingen tilgjengelige oppskrifter.</p>
                     </div>
                 ) : (
-                    <div className="mt-6">
+                    <div className="">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {recipes.map((recipe) => (
                                 <RecipeCard key={recipe.id} recipe={recipe} creator={usersMap[recipe.userId]} />
