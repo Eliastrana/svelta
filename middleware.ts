@@ -23,6 +23,7 @@ export function middleware(req: NextRequest) {
         pathname === '/' ||
         pathname === '/login' ||
         pathname === '/logout' ||
+        pathname === '/api/auth/session' ||
         pathname.startsWith('/recipe/'); // 👈 allow recipe pages publicly
 
     if (isPublicRoute) {

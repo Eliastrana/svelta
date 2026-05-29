@@ -5,8 +5,8 @@ import { onIdTokenChanged } from 'firebase/auth';
 import { auth } from '@/firebase';
 
 function setCookie(token: string) {
-    const isLocalhost =
-        typeof window !== 'undefined' && window.location.hostname === 'localhost';
+    const isHttps =
+        typeof window !== 'undefined' && window.location.protocol === 'https:';
 
     document.cookie = [
         `yourAuthToken=${token}`,
@@ -15,23 +15,23 @@ function setCookie(token: string) {
         // NB: Dette er kun en presence-check hos deg (ikke verifisering),
         // så sikkerheten kommer egentlig fra Firebase-reglene dine.
         `Max-Age=${60 * 60 * 24 * 7}`, // 7 dager
-        isLocalhost ? `SameSite=Lax` : `SameSite=None`,
-        isLocalhost ? `` : `Secure`,
+        isHttps ? `SameSite=None` : `SameSite=Lax`,
+        isHttps ? `Secure` : ``,
     ]
         .filter(Boolean)
         .join('; ');
 }
 
 function clearCookie() {
-    const isLocalhost =
-        typeof window !== 'undefined' && window.location.hostname === 'localhost';
+    const isHttps =
+        typeof window !== 'undefined' && window.location.protocol === 'https:';
 
     document.cookie = [
         `yourAuthToken=`,
         `Path=/`,
         `Max-Age=0`,
-        isLocalhost ? `SameSite=Lax` : `SameSite=None`,
-        isLocalhost ? `` : `Secure`,
+        isHttps ? `SameSite=None` : `SameSite=Lax`,
+        isHttps ? `Secure` : ``,
     ]
         .filter(Boolean)
         .join('; ');

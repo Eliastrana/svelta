@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import {
     onAuthStateChanged,
+    signInWithPopup,
     signInWithRedirect,
     getRedirectResult,
     User,
@@ -23,24 +24,33 @@ function getSafeNextPath(): string {
     return next;
 }
 
+function shouldPreferPopup(): boolean {
+    if (typeof window === 'undefined') return false;
+
+    return (
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.protocol === 'http:'
+    );
+}
+
 async function finishLogin(user: User) {
     await ensureUserDocument(user);
 
     const token = await user.getIdToken(true);
+    try {
+        const response = await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token }),
+        });
 
-    const isLocalhost =
-        typeof window !== 'undefined' &&
-        window.location.hostname === 'localhost';
-
-    document.cookie = [
-        `yourAuthToken=${token}`,
-        `Path=/`,
-        `Max-Age=${60 * 60}`,
-        isLocalhost ? `SameSite=Lax` : `SameSite=None`,
-        isLocalhost ? `` : `Secure`,
-    ]
-        .filter(Boolean)
-        .join('; ');
+        if (!response.ok) {
+            console.error('Could not persist auth session cookie');
+        }
+    } catch (error) {
+        console.error('Error storing auth session cookie', error);
+    }
 
     window.location.replace(getSafeNextPath());
 }
@@ -60,6 +70,7 @@ export default function LoginPage() {
                 }
             } catch (error) {
                 console.error('Error handling redirect result', error);
+                setLoading(false);
             }
         }
 
@@ -73,7 +84,12 @@ export default function LoginPage() {
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, async (user) => {
             if (user) {
-                await finishLogin(user);
+                try {
+                    await finishLogin(user);
+                } catch (error) {
+                    console.error('Error finalizing login', error);
+                    window.location.replace('/');
+                }
             }
         });
 
@@ -91,6 +107,16 @@ export default function LoginPage() {
     const signIn = async () => {
         try {
             setLoading(true);
+            if (shouldPreferPopup()) {
+                try {
+                    const result = await signInWithPopup(auth, provider);
+                    await finishLogin(result.user);
+                    return;
+                } catch (error) {
+                    console.error('Popup sign-in failed, falling back to redirect', error);
+                }
+            }
+
             await signInWithRedirect(auth, provider);
         } catch (error) {
             console.error('Error during sign in', error);
