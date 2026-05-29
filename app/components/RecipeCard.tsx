@@ -10,6 +10,7 @@ import { Recipe } from '@/app/types/Recipe';
 import { RecipeDetail } from '@/app/types/RecipeDetail';
 import { fetchRecipeById } from '@/helpers/fetchRecipeById';
 import { DEFAULT_PROFILE_THEME_ID, ProfileTheme } from '@/helpers/profileAppearance';
+import { normalizeRecipeVisibility } from '@/helpers/recipeVisibility';
 
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -26,6 +27,8 @@ interface RecipeCardProps {
     isOwner?: boolean;
     onDelete?: (recipeId: string) => void;
     theme?: ProfileTheme;
+    locked?: boolean;
+    onLockedClick?: () => void;
 }
 
 const RecipeCardSkeleton: React.FC = () => {
@@ -63,6 +66,8 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                                                             isOwner = false,
                                                             onDelete,
                                                             theme,
+                                                            locked = false,
+                                                            onLockedClick,
                                                         }) => {
     const router = useRouter();
     const qc = useQueryClient();
@@ -109,6 +114,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
     };
 
     const prefetchRecipe = () => {
+        if (locked) return;
         router.prefetch(`/recipe/${recipe.id}`);
 
         qc.setQueryData(['recipe', recipe.id], recipe);
@@ -121,11 +127,13 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
     };
 
     const handleEnter = (e: React.MouseEvent) => {
+        if (locked) return;
         setTip({ show: true, x: e.clientX, y: e.clientY });
         prefetchRecipe();
     };
 
     const handleMove = (e: React.MouseEvent) => {
+        if (locked) return;
         setTip((prev) => ({ ...prev, x: e.clientX, y: e.clientY }));
     };
 
@@ -134,6 +142,10 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
     };
 
     const handleCardClick = () => {
+        if (locked) {
+            onLockedClick?.();
+            return;
+        }
         prefetchRecipe();
         router.push(`/recipe/${recipe.id}`);
     };
@@ -164,6 +176,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
     const ratingCount = typeof recipe.ratingCount === 'number' ? recipe.ratingCount : 0;
     const avg = ratingCount > 0 ? ratingSum / ratingCount : 0;
     const avgText = avg.toFixed(1).replace('.', ',');
+    const visibility = normalizeRecipeVisibility(recipe.visibility);
     const isBaseSveltaTheme = theme?.id === DEFAULT_PROFILE_THEME_ID;
     const cardBackground = theme
         ? isBaseSveltaTheme
@@ -200,6 +213,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
             onTouchStart={prefetchRecipe}
             role="button"
             tabIndex={0}
+            aria-label={locked ? `${recipe.title} er privat` : `Åpne oppskriften ${recipe.title}`}
         >
             {/* Image */}
             <div className="relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-xl" style={{ backgroundColor: imageFallbackBackground }}>
@@ -210,7 +224,10 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                         fill
                         sizes="(max-width: 768px) 100vw, 50vw"
                         quality={70}
-                        className="object-cover transition-transform duration-300 ease-out hover:scale-105"
+                        className={[
+                            'object-cover transition-transform duration-300 ease-out',
+                            locked ? 'scale-[1.02] blur-md' : 'hover:scale-105',
+                        ].join(' ')}
                     />
                 ) : (
                     <div className="grid h-full w-full place-items-center" style={{ color: cardMutedText }}>
@@ -220,8 +237,33 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                     </div>
                 )}
 
+                {locked ? (
+                    <>
+                        <div className="absolute inset-0 bg-black/18" />
+                        <div className="absolute inset-0 grid place-items-center">
+                            <div
+                                className="grid h-40 w-40 place-items-center "
+                                style={{ color: '#fff8' }}
+                            >
+                                <span className="material-symbols-outlined !text-[40px]">lock</span>
+                            </div>
+                        </div>
+                    </>
+                ) : null}
+
                 {/* Top-right quick stats */}
                 <div className="absolute right-3 top-3 flex items-center gap-2">
+                    {visibility === 'private' && !locked ? (
+                        <div
+                            className="inline-flex items-center justify-center rounded-full px-2 py-1 text-xs font-bold shadow-sm backdrop-blur"
+                            style={{ backgroundColor: overlayChipBackground, color: chipText }}
+                            aria-label="Privat oppskrift"
+                            title="Privat oppskrift"
+                        >
+                            <span className="material-symbols-outlined text-[10px]">lock</span>
+                        </div>
+                    ) : null}
+
                     {ratingCount > 0 ? (
                         <div className="inline-flex items-center gap-1 rounded-full px-2 text-xs font-bold shadow-sm backdrop-blur" style={{ backgroundColor: overlayChipBackground, color: chipText }}>
                             <span className="material-symbols-outlined text-[16px]">

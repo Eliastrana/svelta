@@ -1,8 +1,10 @@
-import { arrayRemove, arrayUnion, doc, getDoc, writeBatch } from 'firebase/firestore';
+import { arrayRemove, arrayUnion, doc, getDoc, increment, writeBatch } from 'firebase/firestore';
 import { firestore } from '@/firebase';
 
 export type FollowableUserDoc = {
     following?: string[];
+    followingCount?: number;
+    followerCount?: number;
     incomingFollowRequests?: string[];
     outgoingFollowRequests?: string[];
     isProfilePrivate?: boolean;
@@ -58,9 +60,11 @@ export async function toggleFollowAction(currentUid: string, targetUid: string):
     if (isFollowing) {
         batch.update(currentRef, {
             following: arrayRemove(targetUid),
+            followingCount: increment(-1),
             outgoingFollowRequests: arrayRemove(targetUid),
         });
         batch.update(targetRef, {
+            followerCount: increment(-1),
             incomingFollowRequests: arrayRemove(currentUid),
         });
         await batch.commit();
@@ -91,9 +95,11 @@ export async function toggleFollowAction(currentUid: string, targetUid: string):
 
     batch.update(currentRef, {
         following: arrayUnion(targetUid),
+        followingCount: increment(1),
         outgoingFollowRequests: arrayRemove(targetUid),
     });
     batch.update(targetRef, {
+        followerCount: increment(1),
         incomingFollowRequests: arrayRemove(currentUid),
     });
     await batch.commit();
@@ -123,6 +129,10 @@ export async function respondToFollowRequest(
     if (accept) {
         batch.update(requesterRef, {
             following: arrayUnion(profileOwnerUid),
+            followingCount: increment(1),
+        });
+        batch.update(ownerRef, {
+            followerCount: increment(1),
         });
     }
 

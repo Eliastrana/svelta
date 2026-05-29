@@ -25,6 +25,8 @@ export async function ensureUserDocument(user: User) {
     const data = {
         name: user.displayName || 'Unnamed User',
         following: [],
+        followingCount: 0,
+        followerCount: 0,
         incomingFollowRequests: [],
         outgoingFollowRequests: [],
         isProfilePrivate: false,

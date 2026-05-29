@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -10,6 +11,9 @@ import {
     collection,
     deleteDoc,
     getDocs,
+    getCountFromServer,
+    query,
+    where,
 } from 'firebase/firestore';
 import { auth, firestore, storage } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -28,12 +32,14 @@ import { ensureUserDocument } from '@/helpers/ensureUserDocument';
 import { FollowState, getFollowState, toggleFollowAction } from '@/helpers/followRequests';
 import { DEFAULT_PROFILE_THEME_ID, PROFILE_FONTS, PROFILE_THEMES, getProfileFont, getProfileTheme } from '@/helpers/profileAppearance';
 import { syncPublicUserProfile } from '@/helpers/publicUserProfile';
-import { filterVisibleRecipes } from '@/helpers/recipeVisibility';
+import { canViewRecipe, filterVisibleRecipes } from '@/helpers/recipeVisibility';
 import { useUserFollowing } from '@/hooks/useUserFollowing';
 
 interface UserData {
     name?: string;
     following?: string[];
+    followingCount?: number;
+    followerCount?: number;
     incomingFollowRequests?: string[];
     outgoingFollowRequests?: string[];
     isProfilePrivate?: boolean;
@@ -65,13 +71,11 @@ const FollowersModal: React.FC<{
         const fetchFollowers = async () => {
             setLoading(true);
             try {
-                const usersSnap = await getDocs(collection(firestore, 'users'));
+                const usersSnap = await getDocs(
+                    query(collection(firestore, 'users'), where('following', 'array-contains', profileUserId)),
+                );
 
                 const results: ProfileListUser[] = usersSnap.docs
-                    .filter((d) => {
-                        const data = d.data() as UserData;
-                        return Array.isArray(data.following) && data.following.includes(profileUserId);
-                    })
                     .map((d) => {
                         const data = d.data() as UserData;
                         return {
@@ -158,12 +162,14 @@ const FollowersModal: React.FC<{
                                             onClick={() => closeWithAnim()}
                                             className="group flex items-center gap-3 rounded-2xl border border-transparent p-2.5 transition hover:border-slate-100 hover:bg-slate-50 active:scale-[0.99]"
                                         >
-                                            <div className="h-11 w-11 rounded-full overflow-hidden bg-[var(--accent-soft)] shrink-0 ring-1 ring-slate-100">
+                                            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[var(--accent-soft)] ring-1 ring-slate-100">
                                                 {u.photoURL ? (
-                                                    <img
+                                                    <Image
                                                         src={u.photoURL}
                                                         alt={u.name || 'User'}
-                                                        className="w-full h-full object-cover"
+                                                        fill
+                                                        sizes="44px"
+                                                        className="object-cover"
                                                     />
                                                 ) : (
                                                     <div className="w-full h-full grid place-items-center text-slate-500">
@@ -575,7 +581,14 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                 <label className="group block cursor-pointer overflow-hidden rounded-[28px] border border-slate-200 bg-slate-50 transition hover:border-slate-300">
                                     <div className="relative h-40 w-full overflow-hidden bg-[var(--accent-soft)]">
                                         {backgroundPhotoPreview ? (
-                                            <img src={backgroundPhotoPreview} alt="Bakgrunnsbilde" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+                                            <Image
+                                                src={backgroundPhotoPreview}
+                                                alt="Bakgrunnsbilde"
+                                                fill
+                                                sizes="(max-width: 768px) 100vw, 480px"
+                                                unoptimized
+                                                className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                                            />
                                         ) : (
                                             <div className="grid h-full w-full place-items-center text-slate-400">
                                                 <span className="material-symbols-outlined text-4xl">photo_camera</span>
@@ -592,9 +605,16 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                             </div>
 
                             <div className="mt-5 flex items-center gap-4">
-                                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-[var(--accent-soft)] shadow-sm">
+                                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-[var(--accent-soft)] shadow-sm">
                                     {photoPreview ? (
-                                        <img src={photoPreview} alt="Profilbilde" className="h-full w-full object-cover" />
+                                        <Image
+                                            src={photoPreview}
+                                            alt="Profilbilde"
+                                            fill
+                                            sizes="64px"
+                                            unoptimized
+                                            className="object-cover"
+                                        />
                                     ) : (
                                         <div className="grid h-full w-full place-items-center text-2xl text-slate-400">🧑‍🍳</div>
                                     )}
@@ -837,6 +857,7 @@ const UserProfile: React.FC = () => {
     const [followerCount, setFollowerCount] = useState(0);
     const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [showLockedRecipePrompt, setShowLockedRecipePrompt] = useState(false);
 
     const [profileLoading, setProfileLoading] = useState(true);
 
@@ -852,11 +873,10 @@ const UserProfile: React.FC = () => {
     const collectionSummaries = useCollectionSummaries(publicCollections);
 
     const isOwner = viewerUid === id;
-    const displayedRecipes = filterVisibleRecipes(
-        activeTab === 'myRecipes' ? userRecipes : userLikedRecipes,
-        viewerUid,
-        viewerFollowing,
-    );
+    const displayedRecipes =
+        activeTab === 'myRecipes'
+            ? userRecipes
+            : filterVisibleRecipes(userLikedRecipes, viewerUid, viewerFollowing);
 
     const logout = async () => {
         try {
@@ -865,6 +885,38 @@ const UserProfile: React.FC = () => {
         } catch (err) {
             console.error('Error logging out:', err);
         }
+    };
+
+    const handleFollowToggle = async () => {
+        if (!auth.currentUser) {
+            router.push('/login');
+            return;
+        }
+        if (!id) return;
+
+        const result = await toggleFollowAction(auth.currentUser.uid, id);
+        if (result === 'followed') {
+            setFollowerCount((prevCount) => prevCount + 1);
+        } else if (result === 'unfollowed') {
+            setFollowerCount((prevCount) => Math.max(0, prevCount - 1));
+        }
+
+        setUserData((prev) => {
+            if (!prev) return prev;
+            const incoming = new Set(prev.incomingFollowRequests ?? []);
+            if (result === 'requested') incoming.add(auth.currentUser!.uid);
+            if (result === 'request_cancelled' || result === 'unfollowed' || result === 'followed') {
+                incoming.delete(auth.currentUser!.uid);
+            }
+            return { ...prev, incomingFollowRequests: Array.from(incoming) };
+        });
+
+        setFollowState((prev) => {
+            if (result === 'followed') return 'following';
+            if (result === 'unfollowed' || result === 'request_cancelled') return 'not_following';
+            if (result === 'requested') return 'requested';
+            return prev;
+        });
     };
 
     useEffect(() => {
@@ -893,13 +945,17 @@ const UserProfile: React.FC = () => {
 
     useEffect(() => {
         if (!id) return;
+        if (typeof userData?.followerCount === 'number') {
+            setFollowerCount(userData.followerCount);
+            return;
+        }
+
         (async () => {
-            const all = await getDocs(collection(firestore, 'users'));
-            setFollowerCount(
-                all.docs.filter((d) => Array.isArray(d.data().following) && d.data().following.includes(id)).length,
-            );
+            const followersQuery = query(collection(firestore, 'users'), where('following', 'array-contains', id));
+            const countSnap = await getCountFromServer(followersQuery);
+            setFollowerCount(countSnap.data().count);
         })();
-    }, [id]);
+    }, [id, userData?.followerCount]);
 
     if (!id) return <div className="p-4">No user id provided.</div>;
     if (profileLoading) return <ProfileSkeleton />;
@@ -925,7 +981,14 @@ const UserProfile: React.FC = () => {
             {/* Banner */}
             <div className="relative h-[34vh] min-h-[220px] w-full overflow-hidden" style={{ backgroundColor: profileTheme.soft }}>
                 {backgroundPhotoURL ? (
-                    <img src={backgroundPhotoURL} alt={`${name} bakgrunnsbilde`} className="absolute inset-0 h-full w-full scale-105 object-cover" />
+                    <Image
+                        src={backgroundPhotoURL}
+                        alt={`${name} bakgrunnsbilde`}
+                        fill
+                        sizes="100vw"
+                        className="absolute inset-0 scale-105 object-cover"
+                        priority
+                    />
                 ) : (
                     <div className="absolute inset-0 h-full w-full" style={{ backgroundColor: profileTheme.soft }} />
                 )}
@@ -944,9 +1007,15 @@ const UserProfile: React.FC = () => {
                         <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-end sm:gap-6 sm:text-left md:gap-8">
                             <div className="relative shrink-0">
                                 <div className="h-24 w-24 rounded-xl shadow-sm sm:h-28 sm:w-28 sm:rounded-xl md:h-40 md:w-40">
-                                    <div className="h-full w-full overflow-hidden rounded-lg sm:rounded-lg" style={{ backgroundColor: profileTheme.soft }}>
+                                    <div className="relative h-full w-full overflow-hidden rounded-lg sm:rounded-lg" style={{ backgroundColor: profileTheme.soft }}>
                                         {photoURL ? (
-                                            <img src={photoURL} alt="User Avatar" className="h-full w-full object-cover" />
+                                            <Image
+                                                src={photoURL}
+                                                alt="User Avatar"
+                                                fill
+                                                sizes="(max-width: 640px) 96px, (max-width: 768px) 112px, 160px"
+                                                className="object-cover"
+                                            />
                                         ) : (
                                             <div className="grid h-full w-full place-items-center text-4xl" style={{ color: profileTheme.accent }}>
                                                 🧑‍🍳
@@ -1019,31 +1088,7 @@ const UserProfile: React.FC = () => {
                         {!isOwner && auth.currentUser ? (
                             <div className="mt-5 flex items-center justify-center md:mt-0 md:justify-end md:pb-2 shrink-0">
                                 <button
-                                    onClick={async () => {
-                                        const result = await toggleFollowAction(auth.currentUser!.uid, id);
-                                        if (result === 'followed') {
-                                            setFollowerCount((prevCount) => prevCount + 1);
-                                        } else if (result === 'unfollowed') {
-                                            setFollowerCount((prevCount) => Math.max(0, prevCount - 1));
-                                        }
-
-                                        setUserData((prev) => {
-                                            if (!prev) return prev;
-                                            const incoming = new Set(prev.incomingFollowRequests ?? []);
-                                            if (result === 'requested') incoming.add(auth.currentUser!.uid);
-                                            if (result === 'request_cancelled' || result === 'unfollowed' || result === 'followed') {
-                                                incoming.delete(auth.currentUser!.uid);
-                                            }
-                                            return { ...prev, incomingFollowRequests: Array.from(incoming) };
-                                        });
-
-                                        setFollowState((prev) => {
-                                            if (result === 'followed') return 'following';
-                                            if (result === 'unfollowed' || result === 'request_cancelled') return 'not_following';
-                                            if (result === 'requested') return 'requested';
-                                            return prev;
-                                        });
-                                    }}
+                                    onClick={() => void handleFollowToggle()}
                                     className={[
                                         'inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition active:scale-95 sm:text-base',
                                         followState === 'following'
@@ -1158,6 +1203,12 @@ const UserProfile: React.FC = () => {
                                 isOwner={isOwner && activeTab === 'myRecipes'}
                                 creator={activeTab === 'myRecipes' ? userData : recipe.creator}
                                 theme={profileTheme}
+                                locked={
+                                    activeTab === 'myRecipes' &&
+                                    !isOwner &&
+                                    !canViewRecipe(recipe, viewerUid, viewerFollowing)
+                                }
+                                onLockedClick={() => setShowLockedRecipePrompt(true)}
                                 onDelete={(rid) => {
                                     setPendingDeleteId(rid);
                                     setShowConfirm(true);
@@ -1176,6 +1227,51 @@ const UserProfile: React.FC = () => {
                     onClose={() => setShowFollowersModal(false)}
                 />
             )}
+
+            {showLockedRecipePrompt ? (
+                <AppModal onClose={() => setShowLockedRecipePrompt(false)}>
+                    {({ closeWithAnim, closing }) => (
+                        <div className="p-6">
+                            <div className="mb-4 grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-700">
+                                <span className="material-symbols-outlined">lock</span>
+                            </div>
+                            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+                                Denne oppskriften er privat
+                            </h2>
+                            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                                Følg {name} for å låse opp private oppskrifter og se hele innholdet.
+                            </p>
+                            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                <button
+                                    type="button"
+                                    onClick={closeWithAnim}
+                                    className="rounded-full bg-slate-100 px-5 py-2.5 font-semibold text-slate-700 transition hover:bg-slate-200 active:scale-95"
+                                    disabled={closing}
+                                >
+                                    Avbryt
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        await handleFollowToggle();
+                                        closeWithAnim();
+                                    }}
+                                    className="confirm-button rounded-full px-5 py-2.5 font-semibold shadow-sm transition active:scale-95"
+                                    disabled={closing || followState === 'self'}
+                                >
+                                    {followState === 'following'
+                                        ? 'Følger allerede'
+                                        : followState === 'requested'
+                                            ? 'Forespurt'
+                                            : isPrivateProfile
+                                                ? 'Be om å følge'
+                                                : 'Følg'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </AppModal>
+            ) : null}
 
             {/* Delete confirmation */}
             {showConfirm && pendingDeleteId && (

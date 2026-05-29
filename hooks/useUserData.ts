@@ -6,6 +6,8 @@ import { doc, onSnapshot } from 'firebase/firestore';
 export interface UserDoc {
     name?: string;
     following?: string[];
+    followingCount?: number;
+    followerCount?: number;
     incomingFollowRequests?: string[];
     outgoingFollowRequests?: string[];
     isProfilePrivate?: boolean;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { deleteDoc, doc } from 'firebase/firestore';
@@ -36,6 +36,16 @@ type RecipeForDetail = {
 
 type Props = {
     id: string;
+};
+
+type WakeLockSentinelLike = {
+    release: () => Promise<void>;
+};
+
+type NavigatorWithWakeLock = Navigator & {
+    wakeLock?: {
+        request: (type: 'screen') => Promise<WakeLockSentinelLike>;
+    };
 };
 
 const RecipeDetailSkeleton: React.FC = () => {
@@ -93,6 +103,9 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [wakeLockEnabled, setWakeLockEnabled] = useState(false);
+    const [wakeLockSupported, setWakeLockSupported] = useState(false);
+    const [checkedSteps, setCheckedSteps] = useState<boolean[]>([]);
 
     const [recipeRaw, loading] = useRecipe(id);
     const recipe = recipeRaw as RecipeForDetail | null;
@@ -132,6 +145,127 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                 .map((s) => ({ name: String(s).trim(), amount: '' }))
                 .filter((i) => i.name.length > 0);
     }, [recipe]);
+
+    useEffect(() => {
+        if (!recipe) {
+            setCheckedSteps([]);
+            return;
+        }
+
+        const fallback = recipe.cookingSteps.map(() => false);
+        if (typeof window === 'undefined') {
+            setCheckedSteps(fallback);
+            return;
+        }
+
+        try {
+            const savedValue = window.localStorage.getItem(`recipe-step-checks:${id}`);
+            if (!savedValue) {
+                setCheckedSteps(fallback);
+                return;
+            }
+
+            const parsed = JSON.parse(savedValue);
+            if (!Array.isArray(parsed)) {
+                setCheckedSteps(fallback);
+                return;
+            }
+
+            const normalized = recipe.cookingSteps.map((_, index) => Boolean(parsed[index]));
+            setCheckedSteps(normalized);
+        } catch (error) {
+            console.debug('Could not read recipe step checks:', error);
+            setCheckedSteps(fallback);
+        }
+    }, [id, recipe]);
+
+    useEffect(() => {
+        if (!recipe || typeof window === 'undefined') return;
+
+        try {
+            window.localStorage.setItem(`recipe-step-checks:${id}`, JSON.stringify(checkedSteps));
+        } catch (error) {
+            console.debug('Could not store recipe step checks:', error);
+        }
+    }, [checkedSteps, id, recipe]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const wakeLockApi = (navigator as NavigatorWithWakeLock).wakeLock;
+        setWakeLockSupported(Boolean(wakeLockApi?.request));
+
+        try {
+            const savedPreference = window.localStorage.getItem('recipe-wake-lock-enabled');
+            setWakeLockEnabled(savedPreference === 'true');
+        } catch (error) {
+            console.debug('Could not read wake lock preference:', error);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        try {
+            window.localStorage.setItem('recipe-wake-lock-enabled', String(wakeLockEnabled));
+        } catch (error) {
+            console.debug('Could not store wake lock preference:', error);
+        }
+    }, [wakeLockEnabled]);
+
+    useEffect(() => {
+        let mounted = true;
+        let wakeLock: WakeLockSentinelLike | null = null;
+
+        const requestWakeLock = async () => {
+            if (typeof window === 'undefined') return;
+            if (!wakeLockEnabled) return;
+            if (document.visibilityState !== 'visible') return;
+
+            const wakeLockApi = (navigator as NavigatorWithWakeLock).wakeLock;
+            if (!wakeLockApi?.request) return;
+
+            try {
+                wakeLock = await wakeLockApi.request('screen');
+            } catch (error) {
+                console.debug('Wake lock unavailable for recipe page:', error);
+            }
+        };
+
+        const releaseWakeLock = async () => {
+            if (!wakeLock) return;
+
+            try {
+                await wakeLock.release();
+            } catch (error) {
+                console.debug('Wake lock release failed:', error);
+            } finally {
+                wakeLock = null;
+            }
+        };
+
+        const handleVisibilityChange = async () => {
+            if (!mounted) return;
+
+            if (document.visibilityState === 'visible') {
+                await requestWakeLock();
+                return;
+            }
+
+            await releaseWakeLock();
+        };
+
+        if (wakeLockEnabled && wakeLockSupported) {
+            void requestWakeLock();
+        }
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            mounted = false;
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            void releaseWakeLock();
+        };
+    }, [wakeLockEnabled, wakeLockSupported]);
 
     if (loading) return <RecipeDetailSkeleton />;
 
@@ -177,6 +311,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
 
     const userName = creatorDoc?.name || 'Ukjent brukernavn';
     const userPhoto = creatorDoc?.photoURL || '';
+    const completedStepCount = checkedSteps.filter(Boolean).length;
 
     const handleDelete = async () => {
         if (!isOwner) return;
@@ -190,6 +325,14 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
         } finally {
             setDeleting(false);
         }
+    };
+
+    const toggleStep = (index: number) => {
+        setCheckedSteps((prev) => prev.map((value, currentIndex) => (currentIndex === index ? !value : value)));
+    };
+
+    const resetCheckedSteps = () => {
+        setCheckedSteps(recipe.cookingSteps.map(() => false));
     };
 
     return (
@@ -320,6 +463,31 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                         </button>
                         </section>
 
+                        <section className="rounded-xl bg-[#f2f1e8] px-5 py-4">
+                            <label className="flex items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-sm font-semibold text-[#12340d]">Hold skjermen våken</p>
+                                    <p className="mt-1 text-xs text-[#496444]">
+                                        {wakeLockSupported
+                                            ? 'Skjermen holdes på mens du følger oppskriften.'
+                                            : 'Ikke støttet i denne nettleseren.'}
+                                    </p>
+                                </div>
+
+                                <span className="relative inline-flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={wakeLockEnabled}
+                                        onChange={(e) => setWakeLockEnabled(e.target.checked)}
+                                        className="peer sr-only"
+                                        disabled={!wakeLockSupported}
+                                    />
+                                    <span className="h-7 w-12 rounded-full bg-slate-300 transition-colors duration-200 peer-checked:bg-[#12340d] peer-disabled:opacity-50" />
+                                    <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 peer-checked:translate-x-5 peer-disabled:opacity-80" />
+                                </span>
+                            </label>
+                        </section>
+
                         {/* Ingredients card */}
                         <section className="min-w-0 overflow-hidden rounded-xl bg-[#f2f1e8] p-6 md:p-8">
                         <h2 className="text-3xl font-bold tracking-tight">
@@ -370,36 +538,81 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
 
                     {/* Steps */}
                     <section className="min-w-0 overflow-hidden rounded-xl bg-[#f2f1e8] p-6 md:p-8">
-                        <h2 className="text-3xl font-bold tracking-tight">
-                            Fremgangsmåte
-                        </h2>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <h2 className="text-3xl font-bold tracking-tight">
+                                    Fremgangsmåte
+                                </h2>
+                                {/*<p className="mt-2 text-sm text-[#496444]">*/}
+                                {/*    {completedStepCount}/{recipe.cookingSteps.length} fullført*/}
+                                {/*</p>*/}
+                            </div>
+
+                            {completedStepCount > 0 ? (
+                                <button
+                                    type="button"
+                                    onClick={resetCheckedSteps}
+                                    className="inline-flex items-center gap-2 self-start rounded-full bg-[#e5e5d7] px-4 py-2 text-sm font-semibold text-[#12340d] transition hover:bg-[#d8d7cb] active:scale-[0.99]"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">restart_alt</span>
+                                    Nullstill
+                                </button>
+                            ) : null}
+                        </div>
 
                         <div className="mt-6 space-y-5">
                             {recipe.cookingSteps.map((step, i) => (
                                 <div
                                     key={`step-${i}`}
-                                    className="border-t border-[#d8d7cb] pt-5"
+                                    className={[
+                                        'border-t border-[#d8d7cb] pt-5 transition-opacity',
+                                        checkedSteps[i] ? 'opacity-70' : 'opacity-100',
+                                    ].join(' ')}
                                 >
-                                    <h3 className="text-xl font-bold [overflow-wrap:anywhere]">
-                                        {i + 1}. {step.title}
-                                    </h3>
+                                    <div className="flex items-start gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleStep(i)}
+                                            className={[
+                                                'mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border transition active:scale-95',
+                                                checkedSteps[i]
+                                                    ? 'border-[#12340d] bg-[#12340d] text-white'
+                                                    : 'border-[#c7c6b8] bg-[#fbfaf4] text-[#496444] hover:border-[#12340d]',
+                                            ].join(' ')}
+                                            aria-label={checkedSteps[i] ? `Marker steg ${i + 1} som ikke fullført` : `Marker steg ${i + 1} som fullført`}
+                                            aria-pressed={checkedSteps[i]}
+                                        >
+                                            {checkedSteps[i] ? <span className="material-symbols-outlined text-[16px]">check</span> : null}
+                                        </button>
 
-                                    <p className="mt-2 text-base leading-relaxed [overflow-wrap:anywhere]">
-                                        {step.description}
-                                    </p>
+                                        <div className="min-w-0 flex-1">
+                                            <h3
+                                                className={[
+                                                    'text-xl font-bold [overflow-wrap:anywhere]',
+                                                    checkedSteps[i] ? 'line-through decoration-2' : '',
+                                                ].join(' ')}
+                                            >
+                                                {i + 1}. {step.title}
+                                            </h3>
 
-                                    {step.imageUrl ? (
-                                        <div className="relative mt-4 aspect-[4/3] w-full overflow-hidden rounded-xl bg-[#e5e5d7]">
-                                            <Image
-                                                src={step.imageUrl}
-                                                alt={`Stegbilde ${i + 1}`}
-                                                fill
-                                                className="object-cover"
-                                                sizes="(max-width: 1024px) 100vw, 724px"
-                                                quality={80}
-                                            />
+                                            <p className="mt-2 text-base leading-relaxed [overflow-wrap:anywhere]">
+                                                {step.description}
+                                            </p>
+
+                                            {step.imageUrl ? (
+                                                <div className="relative mt-4 aspect-[4/3] w-full overflow-hidden rounded-xl bg-[#e5e5d7]">
+                                                    <Image
+                                                        src={step.imageUrl}
+                                                        alt={`Stegbilde ${i + 1}`}
+                                                        fill
+                                                        className="object-cover"
+                                                        sizes="(max-width: 1024px) 100vw, 724px"
+                                                        quality={80}
+                                                    />
+                                                </div>
+                                            ) : null}
                                         </div>
-                                    ) : null}
+                                    </div>
                                 </div>
                             ))}
                         </div>

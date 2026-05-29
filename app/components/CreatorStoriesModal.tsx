@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { firestore } from '@/firebase';
 import AppModal from '@/app/components/AppModal';
@@ -98,9 +99,10 @@ const CreatorStoriesModal: React.FC<Props> = ({
                                                   creators,
                                                   initialCreatorUid,
                                                   onClose,
-                                                  autoAdvanceMs = 10_000,
-                                                  maxRecipesPerCreator = 25,
-                                              }) => {
+                                              autoAdvanceMs = 10_000,
+                                              maxRecipesPerCreator = 25,
+                                          }) => {
+    const router = useRouter();
     const closeWithAnimRef = useRef<() => void>(() => {});
     const timerRef = useRef<number | null>(null);
 
@@ -118,7 +120,7 @@ const CreatorStoriesModal: React.FC<Props> = ({
 
     const creator = creators[creatorIndex];
     const currentUid = creator?.uid ?? '';
-    const recipes = recipesByUid[currentUid] ?? [];
+    const recipes = useMemo(() => recipesByUid[currentUid] ?? [], [currentUid, recipesByUid]);
     const currentRecipe = recipes[recipeIndex];
 
     const closeWithAnim = () => closeWithAnimRef.current();
@@ -290,6 +292,7 @@ const CreatorStoriesModal: React.FC<Props> = ({
     const photoURL = creator?.photoURL ?? '';
     const totalSegments = Math.max(recipes.length, 1);
     const openHref = currentRecipe ? `/recipe/${currentRecipe.id}` : '#';
+    const profileHref = creator ? `/user/${creator.uid}` : '#';
 
     return (
         <AppModal
@@ -328,9 +331,26 @@ const CreatorStoriesModal: React.FC<Props> = ({
 
                             <div className="mt-3 flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <div className="h-9 w-9 rounded-full overflow-hidden bg-white/15 border border-white/10">
-                                        {photoURL ? <img src={photoURL} alt={name} className="w-full h-full object-cover" /> : null}
-                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            closeWithAnim();
+                                            router.push(profileHref);
+                                        }}
+                                        className="relative z-40 h-9 w-9 overflow-hidden rounded-full border border-white/10 bg-white/15 transition hover:scale-[1.03] active:scale-95"
+                                        aria-label={`Gå til profilen til ${name}`}
+                                    >
+                                        {photoURL ? (
+                                            <Image
+                                                src={photoURL}
+                                                alt={name}
+                                                fill
+                                                sizes="36px"
+                                                className="object-cover"
+                                            />
+                                        ) : null}
+                                    </button>
 
                                     <div className="min-w-0">
                                         <p className="text-sm font-semibold text-white truncate">{name}</p>

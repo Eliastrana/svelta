@@ -8,12 +8,12 @@ import {
     where,
     onSnapshot,
     getDoc,
-    doc,
     DocumentData,
     QueryDocumentSnapshot,
     DocumentReference,
 } from 'firebase/firestore';
 import { Recipe } from '@/app/types/Recipe';
+import { fetchManyUsers } from '@/helpers/fetchManyUsers';
 
 type Creator = {
     name?: string;
@@ -77,15 +77,6 @@ export function useUserLikedRecipes(userId: string): RecipeWithCreator[] {
                     const ratingSum = typeof recipeData.ratingSum === 'number' ? recipeData.ratingSum : 0;
                     const ratingCount = typeof recipeData.ratingCount === 'number' ? recipeData.ratingCount : 0;
 
-                    let creator: Creator | undefined;
-                    if (recipeData.userId) {
-                        const creatorSnap = await getDoc(doc(firestore, 'publicUsers', recipeData.userId));
-                        if (creatorSnap.exists()) {
-                            const c = creatorSnap.data() as Creator;
-                            creator = { name: c.name, photoURL: c.photoURL };
-                        }
-                    }
-
                     return {
                         id: recipeId,
                         ...recipeData,
@@ -93,13 +84,28 @@ export function useUserLikedRecipes(userId: string): RecipeWithCreator[] {
                         commentCount,
                         ratingSum,
                         ratingCount,
-                        creator,
                     } as RecipeWithCreator;
                 });
 
                 const resolved = (await Promise.all(recipePromises)).filter(
                     (x): x is RecipeWithCreator => x !== null
                 );
+
+                const creatorIds = Array.from(
+                    new Set(
+                        resolved
+                            .map((recipe) => recipe.userId)
+                            .filter((value): value is string => Boolean(value)),
+                    ),
+                );
+                const creatorsMap = creatorIds.length > 0 ? await fetchManyUsers(creatorIds) : {};
+
+                resolved.forEach((recipe) => {
+                    const creator = creatorsMap[recipe.userId];
+                    if (creator) {
+                        recipe.creator = { name: creator.name, photoURL: creator.photoURL };
+                    }
+                });
 
                 // Optional: sort newest first if createdAt is Firestore Timestamp
                 resolved.sort((a, b) => {

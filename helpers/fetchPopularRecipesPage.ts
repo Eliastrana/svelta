@@ -2,6 +2,7 @@
 import {
     getFirestore,
     collection,
+    CollectionReference,
     query,
     orderBy,
     getDocs,
@@ -25,25 +26,39 @@ export async function fetchPopularRecipesPage(params: {
     const db = getFirestore();
     const pageSize = params.pageSize ?? 10;
 
-    // Primary sort = popularityScore
-    // Secondary sort = createdAt for stable ordering / tie-break
-    const baseQuery = query(
-        collection(db, "recipes"),
-        orderBy("popularityScore", "desc"),
-        orderBy("createdAt", "desc"),
-        limit(pageSize)
-    );
+    const fetchPage = async (collectionName: string, shouldFilterVisibility: boolean) => {
+        const collectionRef = collection(db, collectionName) as CollectionReference<DocumentData>;
+        const baseQuery = query(
+            collectionRef,
+            orderBy("popularityScore", "desc"),
+            orderBy("createdAt", "desc"),
+            limit(pageSize)
+        );
 
-    const q = params.cursor ? query(baseQuery, startAfter(params.cursor)) : baseQuery;
-    const snap = await getDocs(q);
+        const q = params.cursor ? query(baseQuery, startAfter(params.cursor)) : baseQuery;
+        const snap = await getDocs(q);
 
-    const items: Recipe[] = snap.docs
-        .map((d) => ({
-            id: d.id,
-            ...(d.data() as Omit<Recipe, "id">),
-        }))
-        .filter((recipe) => normalizeRecipeVisibility(recipe.visibility) === 'public');
+        const items: Recipe[] = snap.docs
+            .map((d) => ({
+                id: d.id,
+                ...(d.data() as Omit<Recipe, "id">),
+            }))
+            .filter((recipe) => shouldFilterVisibility ? normalizeRecipeVisibility(recipe.visibility) === 'public' : true);
 
-    const nextCursor = snap.docs.length ? snap.docs[snap.docs.length - 1] : null;
-    return { items, nextCursor };
+        return {
+            items,
+            nextCursor: snap.docs.length ? snap.docs[snap.docs.length - 1] : null,
+        };
+    };
+
+    try {
+        const precomputed = await fetchPage("publicPopularRecipes", false);
+        if (precomputed.items.length > 0 || params.cursor) {
+            return precomputed;
+        }
+    } catch {
+        // Fall back to querying recipes directly until the precomputed feed exists.
+    }
+
+    return fetchPage("recipes", true);
 }

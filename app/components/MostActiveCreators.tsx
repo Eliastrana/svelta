@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, orderBy, query } from 'firebase/firestore';
+import Image from 'next/image';
 
 import { firestore } from '@/firebase';
 import { fetchManyUsers } from '@/helpers/fetchManyUsers';
@@ -16,6 +17,18 @@ type RecipeMinimal = { userId: string; createdAt?: unknown; visibility?: string 
 async function fetchTopActiveCreators(opts?: { topN?: number; scanLimit?: number }): Promise<CreatorCount[]> {
     const topN = opts?.topN ?? 2;
     const scanLimit = opts?.scanLimit ?? 200;
+
+    try {
+        const feedSnap = await getDoc(doc(firestore, 'publicFeedMeta', 'topActiveCreators'));
+        if (feedSnap.exists()) {
+            const data = feedSnap.data() as { creators?: CreatorCount[] };
+            if (Array.isArray(data.creators) && data.creators.length > 0) {
+                return data.creators.slice(0, topN);
+            }
+        }
+    } catch {
+        // Fall back to deriving it live until the precomputed doc exists.
+    }
 
     const recipesRef = collection(firestore, 'recipes');
     const q = query(recipesRef, orderBy('createdAt', 'desc'), limit(scanLimit));
@@ -47,7 +60,9 @@ function StoryAvatar(props: { src?: string; name: string; animateKey?: number })
             <div className="absolute inset-0 rounded-full bg-white p-[2px]">
                 <div className="h-full w-full rounded-full overflow-hidden bg-slate-100">
                     {src ? (
-                        <img src={src} alt={name} className="h-full w-full object-cover" />
+                        <div className="relative h-full w-full">
+                            <Image src={src} alt={name} fill sizes="40px" className="object-cover" />
+                        </div>
                     ) : (
                         <div className="h-full w-full grid place-items-center text-slate-500">🧑‍🍳</div>
                     )}
@@ -101,6 +116,8 @@ export default function MostActiveCreators() {
         queryKey: ['topActiveCreators'],
         queryFn: () => fetchTopActiveCreators({ topN: 2, scanLimit: 250 }),
         placeholderData: (prev) => prev ?? [],
+        staleTime: 5 * 60 * 1000,
+        gcTime: 30 * 60 * 1000,
     });
 
     const creatorIds = React.useMemo(() => topCreators.map((c) => c.uid), [topCreators]);
@@ -110,6 +127,8 @@ export default function MostActiveCreators() {
         queryFn: () => fetchManyUsers(creatorIds),
         enabled: creatorIds.length > 0,
         placeholderData: (prev) => prev ?? {},
+        staleTime: 10 * 60 * 1000,
+        gcTime: 30 * 60 * 1000,
     });
 
     // ✅ modal state

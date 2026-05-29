@@ -1,7 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { getDocs, collection } from 'firebase/firestore';
-import { firestore } from '@/firebase';
+import Image from 'next/image';
 import { useUserData } from '@/hooks/useUserData';
 
 interface UserProfileDisplayProps {
@@ -15,23 +14,10 @@ const UserProfileDisplayFollowers: React.FC<UserProfileDisplayProps> = ({
     const [followerCount, setFollowerCount] = useState<number>(0);
 
     useEffect(() => {
-        const fetchFollowers = async () => {
-            const usersRef = collection(firestore, 'users');
-            const snapshot = await getDocs(usersRef);
-            const followers = snapshot.docs.filter((docSnap) => {
-                const data = docSnap.data();
-                return (
-                    data.following &&
-                    Array.isArray(data.following) &&
-                    data.following.includes(uid)
-                );
-            });
-            setFollowerCount(followers.length);
-        };
-        if (uid) {
-            fetchFollowers();
+        if (typeof userData?.followerCount === 'number') {
+            setFollowerCount(userData.followerCount);
         }
-    }, [uid]);
+    }, [userData?.followerCount]);
 
     if (!userData) {
         return <div>Loading...</div>;
@@ -39,13 +25,17 @@ const UserProfileDisplayFollowers: React.FC<UserProfileDisplayProps> = ({
 
     return (
         <div className="flex space-x-2 items-center cursor-pointer">
-            {userData.photoURL && (
-                <img
-                    src={userData.photoURL}
-                    alt={userData.name || 'User'}
-                    className="h-16 w-16 rounded-full overflow-hidden"
-                />
-            )}
+            {userData.photoURL ? (
+                <div className="relative h-16 w-16 overflow-hidden rounded-full">
+                    <Image
+                        src={userData.photoURL}
+                        alt={userData.name || 'User'}
+                        fill
+                        sizes="64px"
+                        className="object-cover"
+                    />
+                </div>
+            ) : null}
             <div>
                 <h1 className="text-2xl">{userData.name || 'Ukjent bruker'}</h1>
                 <p className="text-sm">{followerCount} følgere</p>
