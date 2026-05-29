@@ -11,6 +11,7 @@ export function middleware(req: NextRequest) {
     // (public/ assets like /icons/chef.png, /og-default.jpg, etc.)
     const isAlwaysAllowed =
         pathname.startsWith('/_next/') ||
+        pathname.startsWith('/__/') ||
         pathname === '/favicon.ico' ||
         pathname === '/robots.txt' ||
         pathname === '/sitemap.xml' ||
