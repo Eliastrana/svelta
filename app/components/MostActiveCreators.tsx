@@ -80,7 +80,11 @@ async function fetchStoryCreators(opts?: {
 
     if (mode === 'following') {
         const followingIds = Array.from(
-            new Set([...(opts?.followingIds ?? []).filter(Boolean), opts?.viewerUid].filter(Boolean)),
+            new Set(
+                [...(opts?.followingIds ?? []), opts?.viewerUid].filter(
+                    (value): value is string => typeof value === 'string' && value.trim().length > 0,
+                ),
+            ),
         );
         if (followingIds.length === 0) return [];
 
