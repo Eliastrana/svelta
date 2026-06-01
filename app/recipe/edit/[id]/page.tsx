@@ -65,6 +65,21 @@ type DraftPayload = {
     coverImagePreview?: string | null;
 };
 
+const sanitizeRecipeData = (value?: Partial<RecipeData> | null): RecipeData => ({
+    title: value?.title ?? '',
+    description: value?.description ?? '',
+    image: value?.image ?? '',
+    bgColor: value?.bgColor ?? '#ffffff',
+    fontStyle: value?.fontStyle ?? 'sans-serif',
+    cookingSteps: Array.isArray(value?.cookingSteps) ? value.cookingSteps : [],
+    ingredients: Array.isArray(value?.ingredients) ? value.ingredients : [],
+    temperature: value?.temperature ?? '',
+    cookingTime: value?.cookingTime ?? '',
+    coverImage: value?.coverImage ?? '',
+    portions: value?.portions ?? '',
+    visibility: value?.visibility === 'private' ? 'private' : 'public',
+});
+
 const makeId = (): string =>
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
@@ -452,7 +467,7 @@ const EditRecipePage: React.FC = () => {
             }
 
             if (draft.recipeData) {
-                setRecipeData(draft.recipeData);
+                setRecipeData(sanitizeRecipeData(draft.recipeData));
             }
 
             // ingredients: prioriter detailed, ellers legacy
@@ -518,7 +533,7 @@ const EditRecipePage: React.FC = () => {
 
                 const alreadyHasTitle = (recipeData.title ?? '').trim().length > 0;
                 if (!alreadyHasTitle) {
-                    setRecipeData(data);
+                    setRecipeData(sanitizeRecipeData(data));
 
                     // Ingredients: ny hvis finnes, ellers legacy
                     if (Array.isArray(data.ingredientsDetailed) && data.ingredientsDetailed.length > 0) {
@@ -766,7 +781,11 @@ const EditRecipePage: React.FC = () => {
 
         try {
             await updateDoc(doc(firestore, 'recipes', recipeId), {
-                ...recipeData,
+                title: trimmedTitle,
+                description: recipeData.description,
+                image: recipeData.image,
+                bgColor: recipeData.bgColor,
+                fontStyle: recipeData.fontStyle,
                 // legacy
                 ingredients: ingredientsForDb.map((x) => x.name),
                 // ny

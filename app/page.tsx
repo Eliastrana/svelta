@@ -418,9 +418,14 @@ const Home: React.FC = () => {
     return (
         <div className="p-4 md:max-w-5xl lg:w-2/3 md:mx-auto md:mb-24">
             <div className="mb-3">
-            {!showPublicLanding && activeFeed === 'popular' ? (
-                <MostActiveCreators />
-            ) : null}
+                {!showPublicLanding && (activeFeed === 'popular' || (activeFeed === 'following' && following.length > 0)) ? (
+                    <MostActiveCreators
+                        mode={activeFeed === 'following' ? 'following' : 'popular'}
+                        followingIds={activeFeed === 'following' ? following : []}
+                        viewerUid={user?.uid ?? ''}
+                        storyWindowHours={24 * 30}
+                    />
+                ) : null}
             </div>
 
             {showPublicLanding ? (

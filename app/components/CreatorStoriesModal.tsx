@@ -6,6 +6,7 @@ import { collection, getDocs, limit, orderBy, query, where } from 'firebase/fire
 import { firestore } from '@/firebase';
 import AppModal from '@/app/components/AppModal';
 import Image from 'next/image';
+import { canViewRecipe } from '@/helpers/recipeVisibility';
 
 type CreatorLite = {
     uid: string;
@@ -19,6 +20,8 @@ type StoryRecipe = {
     title: string;
     description?: string;
     coverImage?: string;
+    createdAt?: unknown;
+    visibility?: string;
 };
 
 type Props = {
@@ -26,12 +29,33 @@ type Props = {
     creators: CreatorLite[]; // rekkefølge = story-rekkefølge
     initialCreatorUid: string; // hvem du klikket på
     onClose: () => void;
+    onCreatorViewed?: (uid: string) => void;
 
     autoAdvanceMs?: number; // default 10s
     maxRecipesPerCreator?: number; // default 25
+    storyWindowHours?: number;
+    viewerUid?: string;
+    followingIds?: string[];
 };
 
-async function fetchCreatorRecipes(uid: string, maxRecipes: number): Promise<StoryRecipe[]> {
+function toMillis(value: unknown): number {
+    if (value && typeof value === 'object' && 'toMillis' in value && typeof (value as { toMillis: () => number }).toMillis === 'function') {
+        return (value as { toMillis: () => number }).toMillis();
+    }
+    if (value instanceof Date) return value.getTime();
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+    }
+    return 0;
+}
+
+async function fetchCreatorRecipes(
+    uid: string,
+    maxRecipes: number,
+    opts: { storyWindowHours: number; viewerUid?: string; followingIds?: string[] },
+): Promise<StoryRecipe[]> {
     const q = query(
         collection(firestore, 'recipes'),
         where('userId', '==', uid),
@@ -40,25 +64,31 @@ async function fetchCreatorRecipes(uid: string, maxRecipes: number): Promise<Sto
     );
 
     const snap = await getDocs(q);
+    const cutoffMs = Date.now() - opts.storyWindowHours * 60 * 60 * 1000;
 
-    return snap.docs.map((d) => {
-        const data = d.data() as {
-            userId?: string;
-            title?: string;
-            description?: string;
-            coverImage?: string;
-            // coverImageStory?: string;
-        };
+    return snap.docs
+        .map((d) => {
+            const data = d.data() as {
+                userId?: string;
+                title?: string;
+                description?: string;
+                coverImage?: string;
+                createdAt?: unknown;
+                visibility?: string;
+            };
 
-        return {
-            id: d.id,
-            userId: (data.userId ?? uid) as string,
-            title: (data.title ?? 'Oppskrift') as string,
-            description: data.description,
-            coverImage: data.coverImage,
-            // coverImageStory: data.coverImageStory,
-        };
-    });
+            return {
+                id: d.id,
+                userId: (data.userId ?? uid) as string,
+                title: (data.title ?? 'Oppskrift') as string,
+                description: data.description,
+                coverImage: data.coverImage,
+                createdAt: data.createdAt,
+                visibility: data.visibility,
+            };
+        })
+        .filter((recipe) => toMillis(recipe.createdAt) >= cutoffMs)
+        .filter((recipe) => canViewRecipe(recipe, opts.viewerUid, opts.followingIds ?? []));
 }
 
 /* ---------- fast placeholder (shimmer blur) ---------- */
@@ -98,9 +128,13 @@ const CreatorStoriesModal: React.FC<Props> = ({
                                                   open,
                                                   creators,
                                                   initialCreatorUid,
-                                                  onClose,
+                                              onClose,
+                                              onCreatorViewed,
                                               autoAdvanceMs = 10_000,
                                               maxRecipesPerCreator = 25,
+                                              storyWindowHours = 24 * 30,
+                                              viewerUid,
+                                              followingIds = [],
                                           }) => {
     const router = useRouter();
     const closeWithAnimRef = useRef<() => void>(() => {});
@@ -219,7 +253,11 @@ const CreatorStoriesModal: React.FC<Props> = ({
 
             setLoadingUid(uid);
             try {
-                const list = await fetchCreatorRecipes(uid, maxRecipesPerCreator);
+                const list = await fetchCreatorRecipes(uid, maxRecipesPerCreator, {
+                    storyWindowHours,
+                    viewerUid,
+                    followingIds,
+                });
                 if (cancelled) return;
                 setRecipesByUid((prev) => ({ ...prev, [uid]: list }));
             } finally {
@@ -236,7 +274,7 @@ const CreatorStoriesModal: React.FC<Props> = ({
             cancelled = true;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, currentUid, creatorIndex, creators, maxRecipesPerCreator]);
+    }, [open, currentUid, creatorIndex, creators, maxRecipesPerCreator, storyWindowHours, viewerUid, followingIds]);
 
     // ✅ Prefetch images (raw URLs) so browser cache is warm
     useEffect(() => {
@@ -275,6 +313,9 @@ const CreatorStoriesModal: React.FC<Props> = ({
 
         const list = recipesByUid[currentUid];
         if (!list) return; // not loaded yet
+        if (list.length > 0) {
+            onCreatorViewed?.(currentUid);
+        }
         if (list.length > 0) return;
 
         const nextIdx = creatorIndex + 1;
@@ -284,7 +325,7 @@ const CreatorStoriesModal: React.FC<Props> = ({
             setRecipeIndex(0);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, creatorIndex, currentUid, recipesByUid, loadingUid]);
+    }, [open, creatorIndex, currentUid, recipesByUid, loadingUid, onCreatorViewed]);
 
     if (!open) return null;
 

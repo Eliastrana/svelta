@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write .",
-    "backfill:public-users": "node --env-file=.env.local scripts/backfillPublicUsers.mjs"
+    "backfill:public-users": "node --env-file=.env.local scripts/backfillPublicUsers.mjs",
+    "fix:recipe-timestamps": "node --env-file=.env.local scripts/fixRecipeTimestampMaps.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
