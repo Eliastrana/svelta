@@ -24,9 +24,9 @@ function rand(min: number, max: number): number {
 }
 
 function ConfettiBurstFromBottom({
-                                     run,
-                                     durationMs = 2200,
-                                 }: {
+    run,
+    durationMs = 2200,
+}: {
     run: boolean;
     durationMs?: number;
 }) {
@@ -43,7 +43,14 @@ function ConfettiBurstFromBottom({
         if (!ctx) return;
 
         let particles: ConfettiParticle[] = [];
-        const palette = ['#E6D5B8', '#D9C4A0', '#CBB38D', '#BFA67C', '#A98F66', '#8C6B3E'];
+        const palette = [
+            '#E6D5B8',
+            '#D9C4A0',
+            '#CBB38D',
+            '#BFA67C',
+            '#A98F66',
+            '#8C6B3E',
+        ];
 
         const resize = () => {
             const dpr = window.devicePixelRatio || 1;
@@ -166,12 +173,18 @@ export type RecipeCreatedModalProps = {
     onOpenRecipe?: () => void;
 };
 
-const RecipeCreatedModal: React.FC<RecipeCreatedModalProps> = ({ recipeId, onClose }) => {
+const RecipeCreatedModal: React.FC<RecipeCreatedModalProps> = ({
+    recipeId,
+    onClose,
+}) => {
     const [copied, setCopied] = useState(false);
     const [confettiRun, setConfettiRun] = useState(true);
 
     const recipeUrl = useMemo(() => {
-        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.svelta.no';
+        const origin =
+            typeof window !== 'undefined'
+                ? window.location.origin
+                : 'https://www.svelta.no';
         return `${origin}/recipe/${recipeId}`;
     }, [recipeId]);
 
@@ -192,24 +205,49 @@ const RecipeCreatedModal: React.FC<RecipeCreatedModalProps> = ({ recipeId, onClo
         }
     };
 
-
-
     return (
         <>
             <ConfettiBurstFromBottom run={confettiRun} durationMs={2200} />
 
             <AppModal onClose={onClose} overlayClassName="z-[70]">
                 {({ closeWithAnim, closing }) => (
-                <div>
-                    <div className="p-5">
-                        <div className="flex items-start justify-between gap-3">
-                            <div>
-                                <h3 className="text-xl font-semibold text-slate-900">
-                                    Gratulerer med din nye oppskrift 🎉
-                                </h3>
-                                <p className="text-sm text-slate-600 mt-1">
-                                    Dette så vanvittig godt ut – del den med en venn!
-                                </p>
+                    <div>
+                        <div className="p-5">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <h3 className="text-xl font-semibold text-slate-900">
+                                        Gratulerer med din nye oppskrift 🎉
+                                    </h3>
+                                    <p className="text-sm text-slate-600 mt-1">
+                                        Dette så vanvittig godt ut – del den med
+                                        en venn!
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setConfettiRun(false);
+                                        closeWithAnim();
+                                    }}
+                                    disabled={closing}
+                                    className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition active:scale-95"
+                                    aria-label="Lukk"
+                                >
+                                    <span className="material-symbols-outlined text-slate-700">
+                                        close
+                                    </span>
+                                </button>
+                            </div>
+
+                            <div className="mt-4 flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => void copyLink()}
+                                    className="flex-1 rounded-full py-2 font-semibold shadow-sm brown-button hover:opacity-95 active:scale-[0.99] transition"
+                                >
+                                    {copied ? 'Kopiert!' : 'Del'}
+                                </button>
                             </div>
 
                             <button
@@ -218,40 +256,12 @@ const RecipeCreatedModal: React.FC<RecipeCreatedModalProps> = ({ recipeId, onClo
                                     setConfettiRun(false);
                                     closeWithAnim();
                                 }}
-                                disabled={closing}
-                                className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition active:scale-95"
-                                aria-label="Lukk"
+                                className="mt-3 w-full rounded-full py-2 font-semibold bg-white border border-slate-200 hover:bg-slate-50 transition"
                             >
-                                <span className="material-symbols-outlined text-slate-700">close</span>
+                                Se oppskriften
                             </button>
                         </div>
-
-
-
-                        <div className="mt-4 flex gap-2">
-                            <button
-                                type="button"
-                                onClick={() => void copyLink()}
-                                className="flex-1 rounded-full py-2 font-semibold shadow-sm brown-button hover:opacity-95 active:scale-[0.99] transition"
-                            >
-                                {copied ? 'Kopiert!' : 'Del'}
-                            </button>
-
-
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setConfettiRun(false);
-                                closeWithAnim();
-                            }}
-                            className="mt-3 w-full rounded-full py-2 font-semibold bg-white border border-slate-200 hover:bg-slate-50 transition"
-                        >
-                            Se oppskriften
-                        </button>
                     </div>
-                </div>
                 )}
             </AppModal>
         </>

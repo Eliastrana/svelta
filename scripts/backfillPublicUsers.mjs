@@ -1,4 +1,9 @@
-import { getApps, initializeApp, applicationDefault, cert } from 'firebase-admin/app';
+import {
+    getApps,
+    initializeApp,
+    applicationDefault,
+    cert,
+} from 'firebase-admin/app';
 import { getFirestore, FieldPath } from 'firebase-admin/firestore';
 
 function getAdminApp() {
@@ -12,7 +17,10 @@ function getAdminApp() {
             credential: cert({
                 projectId: parsed.project_id,
                 clientEmail: parsed.client_email,
-                privateKey: String(parsed.private_key || '').replace(/\\n/g, '\n'),
+                privateKey: String(parsed.private_key || '').replace(
+                    /\\n/g,
+                    '\n'
+                ),
             }),
         });
     }
@@ -41,7 +49,10 @@ async function main() {
     const { dryRun } = parseArgs(process.argv);
     const db = getFirestore(getAdminApp());
 
-    const usersSnap = await db.collection('users').orderBy(FieldPath.documentId()).get();
+    const usersSnap = await db
+        .collection('users')
+        .orderBy(FieldPath.documentId())
+        .get();
 
     if (usersSnap.empty) {
         console.log('No users found.');
@@ -49,7 +60,11 @@ async function main() {
     }
 
     console.log(`Found ${usersSnap.size} users.`);
-    console.log(dryRun ? 'Running in dry-run mode. No writes will be made.' : 'Writing publicUsers documents...');
+    console.log(
+        dryRun
+            ? 'Running in dry-run mode. No writes will be made.'
+            : 'Writing publicUsers documents...'
+    );
 
     let batch = db.batch();
     let opCount = 0;
@@ -82,7 +97,9 @@ async function main() {
 
     await flush();
 
-    console.log(`Done. ${dryRun ? 'Would sync' : 'Synced'} ${synced} publicUsers documents.`);
+    console.log(
+        `Done. ${dryRun ? 'Would sync' : 'Synced'} ${synced} publicUsers documents.`
+    );
 }
 
 main().catch((error) => {

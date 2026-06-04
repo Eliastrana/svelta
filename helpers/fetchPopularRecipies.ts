@@ -1,4 +1,12 @@
-import { getFirestore, collection, query, getDocs, limit, orderBy, Timestamp } from 'firebase/firestore';
+import {
+    getFirestore,
+    collection,
+    query,
+    getDocs,
+    limit,
+    orderBy,
+    Timestamp,
+} from 'firebase/firestore';
 import { Recipe } from '@/app/types/Recipe';
 import { normalizeRecipeVisibility } from '@/helpers/recipeVisibility';
 
@@ -24,24 +32,31 @@ export async function fetchPopularRecipes(top = 50): Promise<Recipe[]> {
     const q = query(
         collection(db, 'recipes'),
         orderBy('createdAt', 'desc'),
-        limit(scanLimit),
+        limit(scanLimit)
     );
 
     const snap = await getDocs(q);
 
-    const recipes: Recipe[] = snap.docs.map((d) => {
-        const data = d.data() as Omit<Recipe, 'id'>;
-        return { id: d.id, ...data };
-    }).filter((recipe) => normalizeRecipeVisibility(recipe.visibility) === 'public');
+    const recipes: Recipe[] = snap.docs
+        .map((d) => {
+            const data = d.data() as Omit<Recipe, 'id'>;
+            return { id: d.id, ...data };
+        })
+        .filter(
+            (recipe) =>
+                normalizeRecipeVisibility(recipe.visibility) === 'public'
+        );
 
     const scored = recipes.map((r) => {
         const likeCount = r.likeCount ?? 0;
         const commentCount = r.commentCount ?? 0;
 
         const createdAtDate = toDate(r.createdAt);
-        const ageInHours = (Date.now() - createdAtDate.getTime()) / (1000 * 60 * 60);
+        const ageInHours =
+            (Date.now() - createdAtDate.getTime()) / (1000 * 60 * 60);
 
-        const popularityScore = (likeCount + commentCount * 2) / (ageInHours + 2);
+        const popularityScore =
+            (likeCount + commentCount * 2) / (ageInHours + 2);
 
         return { ...r, popularityScore };
     });

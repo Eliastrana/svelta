@@ -36,34 +36,40 @@ export async function POST(request: Request) {
 
     const title = (body.title ?? '').trim();
     const description = (body.description ?? '').trim();
-    const ingredientsDetailed = Array.isArray(body.ingredientsDetailed) ? body.ingredientsDetailed : [];
-    const cookingSteps = Array.isArray(body.cookingSteps) ? body.cookingSteps : [];
+    const ingredientsDetailed = Array.isArray(body.ingredientsDetailed)
+        ? body.ingredientsDetailed
+        : [];
+    const cookingSteps = Array.isArray(body.cookingSteps)
+        ? body.cookingSteps
+        : [];
 
     if (!title && !description) {
         return NextResponse.json(
             { error: 'title eller description må være med' },
-            { status: 400 },
+            { status: 400 }
         );
     }
 
     const ingredientsText =
         ingredientsDetailed.length > 0
             ? ingredientsDetailed
-                .map((i) => {
-                    const amount = (i.amount ?? '').trim();
-                    const name = (i.name ?? '').trim();
-                    return `${amount} ${name}`.trim();
-                })
-                .filter(Boolean)
-                .join(', ')
+                  .map((i) => {
+                      const amount = (i.amount ?? '').trim();
+                      const name = (i.name ?? '').trim();
+                      return `${amount} ${name}`.trim();
+                  })
+                  .filter(Boolean)
+                  .join(', ')
             : '';
 
     const stepsText =
         cookingSteps.length > 0
             ? cookingSteps
-                .map((s, idx) => `${idx + 1}. ${(s.title ?? '').trim()} – ${(s.description ?? '').trim()}`.trim())
-                .filter(Boolean)
-                .join('\n')
+                  .map((s, idx) =>
+                      `${idx + 1}. ${(s.title ?? '').trim()} – ${(s.description ?? '').trim()}`.trim()
+                  )
+                  .filter(Boolean)
+                  .join('\n')
             : '';
 
     const prompt = `
@@ -108,15 +114,23 @@ KRAV:
             if (start >= 0 && end > start) {
                 parsed = JSON.parse(raw.slice(start, end + 1));
             } else {
-                return NextResponse.json({ error: 'Kunne ikke parse tags fra modellen.' }, { status: 500 });
+                return NextResponse.json(
+                    { error: 'Kunne ikke parse tags fra modellen.' },
+                    { status: 500 }
+                );
             }
         }
 
         if (!Array.isArray(parsed)) {
-            return NextResponse.json({ error: 'Ugyldig format fra modellen.' }, { status: 500 });
+            return NextResponse.json(
+                { error: 'Ugyldig format fra modellen.' },
+                { status: 500 }
+            );
         }
 
-        const tags = sanitizeTags(parsed.filter((x) => typeof x === 'string') as string[]);
+        const tags = sanitizeTags(
+            parsed.filter((x) => typeof x === 'string') as string[]
+        );
 
         // sørg for 5–10 hvis mulig
         const finalTags = tags.slice(0, 10);
@@ -124,6 +138,9 @@ KRAV:
         return NextResponse.json({ tags: finalTags });
     } catch (err) {
         console.error('generate-tags error', err);
-        return NextResponse.json({ error: 'Feil ved generering av tags.' }, { status: 500 });
+        return NextResponse.json(
+            { error: 'Feil ved generering av tags.' },
+            { status: 500 }
+        );
     }
 }

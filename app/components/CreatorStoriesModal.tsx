@@ -2,7 +2,14 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
+import {
+    collection,
+    getDocs,
+    limit,
+    orderBy,
+    query,
+    where,
+} from 'firebase/firestore';
 import { firestore } from '@/firebase';
 import AppModal from '@/app/components/AppModal';
 import Image from 'next/image';
@@ -39,7 +46,12 @@ type Props = {
 };
 
 function toMillis(value: unknown): number {
-    if (value && typeof value === 'object' && 'toMillis' in value && typeof (value as { toMillis: () => number }).toMillis === 'function') {
+    if (
+        value &&
+        typeof value === 'object' &&
+        'toMillis' in value &&
+        typeof (value as { toMillis: () => number }).toMillis === 'function'
+    ) {
         return (value as { toMillis: () => number }).toMillis();
     }
     if (value instanceof Date) return value.getTime();
@@ -54,13 +66,17 @@ function toMillis(value: unknown): number {
 async function fetchCreatorRecipes(
     uid: string,
     maxRecipes: number,
-    opts: { storyWindowHours: number; viewerUid?: string; followingIds?: string[] },
+    opts: {
+        storyWindowHours: number;
+        viewerUid?: string;
+        followingIds?: string[];
+    }
 ): Promise<StoryRecipe[]> {
     const q = query(
         collection(firestore, 'recipes'),
         where('userId', '==', uid),
         orderBy('createdAt', 'desc'),
-        limit(maxRecipes),
+        limit(maxRecipes)
     );
 
     const snap = await getDocs(q);
@@ -88,12 +104,16 @@ async function fetchCreatorRecipes(
             };
         })
         .filter((recipe) => toMillis(recipe.createdAt) >= cutoffMs)
-        .filter((recipe) => canViewRecipe(recipe, opts.viewerUid, opts.followingIds ?? []));
+        .filter((recipe) =>
+            canViewRecipe(recipe, opts.viewerUid, opts.followingIds ?? [])
+        );
 }
 
 /* ---------- fast placeholder (shimmer blur) ---------- */
 const toBase64 = (str: string) =>
-    typeof window === 'undefined' ? Buffer.from(str).toString('base64') : window.btoa(str);
+    typeof window === 'undefined'
+        ? Buffer.from(str).toString('base64')
+        : window.btoa(str);
 
 const shimmer = (w: number, h: number) => `
 <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
@@ -114,28 +134,26 @@ const blurDataURL = `data:image/svg+xml;base64,${toBase64(shimmer(900, 1200))}`;
 function preloadImages(urls: Array<string | undefined | null>) {
     if (typeof window === 'undefined') return;
 
-    urls
-        .filter(Boolean)
-        .forEach((url) => {
-            const img = new window.Image();
-            img.decoding = 'async';
-            img.loading = 'eager';
-            img.src = url as string;
-        });
+    urls.filter(Boolean).forEach((url) => {
+        const img = new window.Image();
+        img.decoding = 'async';
+        img.loading = 'eager';
+        img.src = url as string;
+    });
 }
 
 const CreatorStoriesModal: React.FC<Props> = ({
-                                                  open,
-                                                  creators,
-                                                  initialCreatorUid,
-                                              onClose,
-                                              onCreatorViewed,
-                                              autoAdvanceMs = 10_000,
-                                              maxRecipesPerCreator = 25,
-                                              storyWindowHours = 24 * 30,
-                                              viewerUid,
-                                              followingIds = [],
-                                          }) => {
+    open,
+    creators,
+    initialCreatorUid,
+    onClose,
+    onCreatorViewed,
+    autoAdvanceMs = 10_000,
+    maxRecipesPerCreator = 25,
+    storyWindowHours = 24 * 30,
+    viewerUid,
+    followingIds = [],
+}) => {
     const router = useRouter();
     const closeWithAnimRef = useRef<() => void>(() => {});
     const timerRef = useRef<number | null>(null);
@@ -145,16 +163,22 @@ const CreatorStoriesModal: React.FC<Props> = ({
         return idx >= 0 ? idx : 0;
     }, [creators, initialCreatorUid]);
 
-    const [creatorIndex, setCreatorIndex] = useState<number>(initialCreatorIndex);
+    const [creatorIndex, setCreatorIndex] =
+        useState<number>(initialCreatorIndex);
     const [recipeIndex, setRecipeIndex] = useState<number>(0);
 
     // cache: uid -> recipes
-    const [recipesByUid, setRecipesByUid] = useState<Record<string, StoryRecipe[]>>({});
+    const [recipesByUid, setRecipesByUid] = useState<
+        Record<string, StoryRecipe[]>
+    >({});
     const [loadingUid, setLoadingUid] = useState<string>('');
 
     const creator = creators[creatorIndex];
     const currentUid = creator?.uid ?? '';
-    const recipes = useMemo(() => recipesByUid[currentUid] ?? [], [currentUid, recipesByUid]);
+    const recipes = useMemo(
+        () => recipesByUid[currentUid] ?? [],
+        [currentUid, recipesByUid]
+    );
     const currentRecipe = recipes[recipeIndex];
 
     const closeWithAnim = () => closeWithAnimRef.current();
@@ -260,11 +284,15 @@ const CreatorStoriesModal: React.FC<Props> = ({
 
             setLoadingUid(uid);
             try {
-                const list = await fetchCreatorRecipes(uid, maxRecipesPerCreator, {
-                    storyWindowHours,
-                    viewerUid,
-                    followingIds,
-                });
+                const list = await fetchCreatorRecipes(
+                    uid,
+                    maxRecipesPerCreator,
+                    {
+                        storyWindowHours,
+                        viewerUid,
+                        followingIds,
+                    }
+                );
                 if (cancelled) return;
                 setRecipesByUid((prev) => ({ ...prev, [uid]: list }));
             } finally {
@@ -281,7 +309,16 @@ const CreatorStoriesModal: React.FC<Props> = ({
             cancelled = true;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, currentUid, creatorIndex, creators, maxRecipesPerCreator, storyWindowHours, viewerUid, followingIds]);
+    }, [
+        open,
+        currentUid,
+        creatorIndex,
+        creators,
+        maxRecipesPerCreator,
+        storyWindowHours,
+        viewerUid,
+        followingIds,
+    ]);
 
     // ✅ Prefetch images (raw URLs) so browser cache is warm
     useEffect(() => {
@@ -291,7 +328,9 @@ const CreatorStoriesModal: React.FC<Props> = ({
         const prevRecipe = recipes[recipeIndex - 1];
 
         const nextCreatorUid = creators[creatorIndex + 1]?.uid;
-        const nextCreatorFirst = nextCreatorUid ? recipesByUid[nextCreatorUid]?.[0] : undefined;
+        const nextCreatorFirst = nextCreatorUid
+            ? recipesByUid[nextCreatorUid]?.[0]
+            : undefined;
 
         preloadImages([
             imgSrc,
@@ -299,7 +338,15 @@ const CreatorStoriesModal: React.FC<Props> = ({
             prevRecipe?.coverImage,
             nextCreatorFirst?.coverImage,
         ]);
-    }, [open, creatorIndex, creators, recipesByUid, recipes, recipeIndex, imgSrc]);
+    }, [
+        open,
+        creatorIndex,
+        creators,
+        recipesByUid,
+        recipes,
+        recipeIndex,
+        imgSrc,
+    ]);
 
     // auto advance
     useEffect(() => {
@@ -352,26 +399,55 @@ const CreatorStoriesModal: React.FC<Props> = ({
                 return (
                     <>
                         {/* tap zones */}
-                        <button type="button" aria-label="Forrige" onClick={prev} className="absolute inset-y-0 left-0 w-1/3 z-20" />
-                        <button type="button" aria-label="Neste" onClick={next} className="absolute inset-y-0 right-0 w-2/3 z-20" />
+                        <button
+                            type="button"
+                            aria-label="Forrige"
+                            onClick={prev}
+                            className="absolute inset-y-0 left-0 w-1/3 z-20"
+                        />
+                        <button
+                            type="button"
+                            aria-label="Neste"
+                            onClick={next}
+                            className="absolute inset-y-0 right-0 w-2/3 z-20"
+                        />
 
                         {/* Top UI */}
                         <div className="absolute top-0 left-0 right-0 z-30 p-3">
                             {/* progress */}
                             <div className="flex gap-1">
-                                {Array.from({ length: totalSegments }).map((_, i) => {
-                                    const done = i < recipeIndex;
-                                    const active = i === recipeIndex;
+                                {Array.from({ length: totalSegments }).map(
+                                    (_, i) => {
+                                        const done = i < recipeIndex;
+                                        const active = i === recipeIndex;
 
-                                    return (
-                                        <div key={`seg-${i}`} className="h-1 flex-1 rounded-full bg-white/25 overflow-hidden">
+                                        return (
                                             <div
-                                                className={['h-full rounded-full', done ? 'w-full bg-white/80' : active ? 'bg-white/80' : 'w-0'].join(' ')}
-                                                style={active && autoAdvanceMs > 0 ? { animation: `storyfill ${autoAdvanceMs}ms linear forwards` } : undefined}
-                                            />
-                                        </div>
-                                    );
-                                })}
+                                                key={`seg-${i}`}
+                                                className="h-1 flex-1 rounded-full bg-white/25 overflow-hidden"
+                                            >
+                                                <div
+                                                    className={[
+                                                        'h-full rounded-full',
+                                                        done
+                                                            ? 'w-full bg-white/80'
+                                                            : active
+                                                              ? 'bg-white/80'
+                                                              : 'w-0',
+                                                    ].join(' ')}
+                                                    style={
+                                                        active &&
+                                                        autoAdvanceMs > 0
+                                                            ? {
+                                                                  animation: `storyfill ${autoAdvanceMs}ms linear forwards`,
+                                                              }
+                                                            : undefined
+                                                    }
+                                                />
+                                            </div>
+                                        );
+                                    }
+                                )}
                             </div>
 
                             <div className="mt-3 flex items-center justify-between">
@@ -398,9 +474,15 @@ const CreatorStoriesModal: React.FC<Props> = ({
                                     </button>
 
                                     <div className="min-w-0">
-                                        <p className="text-sm font-semibold text-white truncate">{name}</p>
+                                        <p className="text-sm font-semibold text-white truncate">
+                                            {name}
+                                        </p>
                                         <p className="text-[11px] text-white/70">
-                                            {loadingUid === currentUid ? 'Laster…' : recipes.length > 0 ? `${recipeIndex + 1}/${recipes.length}` : ''}
+                                            {loadingUid === currentUid
+                                                ? 'Laster…'
+                                                : recipes.length > 0
+                                                  ? `${recipeIndex + 1}/${recipes.length}`
+                                                  : ''}
                                         </p>
                                     </div>
                                 </div>
@@ -411,7 +493,9 @@ const CreatorStoriesModal: React.FC<Props> = ({
                                     className="h-10 w-10 grid place-items-center rounded-full hover:bg-white/10 transition"
                                     aria-label="Lukk"
                                 >
-                                    <span className="material-symbols-outlined text-white">close</span>
+                                    <span className="material-symbols-outlined text-white">
+                                        close
+                                    </span>
                                 </button>
                             </div>
                         </div>
@@ -426,7 +510,10 @@ const CreatorStoriesModal: React.FC<Props> = ({
 
                                         <Image
                                             src={imgSrc}
-                                            alt={currentRecipe?.title ?? 'Oppskrift'}
+                                            alt={
+                                                currentRecipe?.title ??
+                                                'Oppskrift'
+                                            }
                                             fill
                                             sizes="(max-width: 768px) 100vw, 768px"
                                             quality={70}
@@ -434,17 +521,23 @@ const CreatorStoriesModal: React.FC<Props> = ({
                                             placeholder="blur"
                                             blurDataURL={blurDataURL}
                                             loading="eager"
-                                            onLoadingComplete={() => setImgLoaded(true)}
+                                            onLoadingComplete={() =>
+                                                setImgLoaded(true)
+                                            }
                                             className={[
                                                 'object-cover transition-opacity duration-300',
-                                                imgLoaded ? 'opacity-100' : 'opacity-0',
+                                                imgLoaded
+                                                    ? 'opacity-100'
+                                                    : 'opacity-0',
                                             ].join(' ')}
                                         />
 
                                         {/* Optional: subtle loader text for slow networks */}
                                         {!imgLoaded && (
                                             <div className="absolute inset-0 grid place-items-center">
-                                                <p className="text-white/60 text-sm">Laster bilde…</p>
+                                                <p className="text-white/60 text-sm">
+                                                    Laster bilde…
+                                                </p>
                                             </div>
                                         )}
                                     </div>
@@ -459,17 +552,22 @@ const CreatorStoriesModal: React.FC<Props> = ({
                                 <div className="absolute left-0 right-0 bottom-0 p-4 md:p-6 z-20">
                                     {currentRecipe ? (
                                         <div className="max-w-xl">
-                                            <h2 className="text-2xl md:text-3xl font-semibold text-white leading-tight">{currentRecipe.title}</h2>
+                                            <h2 className="text-2xl md:text-3xl font-semibold text-white leading-tight">
+                                                {currentRecipe.title}
+                                            </h2>
 
                                             {currentRecipe.description ? (
-                                                <p className="mt-2 text-sm md:text-base text-white/80 line-clamp-4">{currentRecipe.description}</p>
+                                                <p className="mt-2 text-sm md:text-base text-white/80 line-clamp-4">
+                                                    {currentRecipe.description}
+                                                </p>
                                             ) : null}
 
                                             <div className="mt-4 flex items-center gap-2">
                                                 <a
                                                     href={openHref}
                                                     onClick={(e) => {
-                                                        if (!currentRecipe) e.preventDefault();
+                                                        if (!currentRecipe)
+                                                            e.preventDefault();
                                                     }}
                                                     aria-label="Åpne oppskriften"
                                                     className={[
@@ -478,7 +576,9 @@ const CreatorStoriesModal: React.FC<Props> = ({
                                                         'backdrop-blur transition active:scale-[0.99]',
                                                     ].join(' ')}
                                                 >
-                                                    <span className="material-symbols-outlined text-[20px]">open_in_new</span>
+                                                    <span className="material-symbols-outlined text-[20px]">
+                                                        open_in_new
+                                                    </span>
                                                     Åpne
                                                 </a>
 
@@ -492,7 +592,9 @@ const CreatorStoriesModal: React.FC<Props> = ({
                                                     ].join(' ')}
                                                 >
                                                     Neste
-                                                    <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                                                    <span className="material-symbols-outlined text-[20px]">
+                                                        arrow_forward
+                                                    </span>
                                                 </button>
                                             </div>
                                         </div>

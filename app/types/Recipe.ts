@@ -1,7 +1,6 @@
 import { Timestamp } from 'firebase/firestore';
 import { RecipeVisibility } from '@/helpers/recipeVisibility';
 
-
 export type RecipeStep = {
     title: string;
     description: string;
@@ -30,7 +29,6 @@ export type Recipe = {
     ratingSum?: number;
     ratingCount?: number;
 
-
     createdAt?: Timestamp;
 
     // Denormalized counts
@@ -38,7 +36,6 @@ export type Recipe = {
     commentCount?: number;
 
     tags?: string[];
-
 
     // Optional (used for popular sorting only, not stored)
     popularityScore?: number;

@@ -24,9 +24,9 @@ type CollectionItem = {
 type CheckedMap = Record<string, boolean>;
 
 export default function AddToCollectionModal({
-                                                 recipeId,
-                                                 onClose,
-                                             }: {
+    recipeId,
+    onClose,
+}: {
     recipeId: string;
     onClose: () => void;
 }) {
@@ -35,7 +35,9 @@ export default function AddToCollectionModal({
 
     const queryClient = useQueryClient();
 
-    const { data: collections = [] } = useCollections(uid) as { data: CollectionItem[] };
+    const { data: collections = [] } = useCollections(uid) as {
+        data: CollectionItem[];
+    };
     const collectionSummaries = useCollectionSummaries(collections);
 
     const [checkedMap, setCheckedMap] = useState<CheckedMap>({});
@@ -65,9 +67,11 @@ export default function AddToCollectionModal({
 
             await Promise.all(
                 collections.map(async (c) => {
-                    const snap = await getDoc(doc(db, 'collectionsRecipes', c.id, 'recipes', recipeId));
+                    const snap = await getDoc(
+                        doc(db, 'collectionsRecipes', c.id, 'recipes', recipeId)
+                    );
                     map[c.id] = snap.exists();
-                }),
+                })
             );
 
             if (!cancelled) setCheckedMap(map);
@@ -80,7 +84,8 @@ export default function AddToCollectionModal({
 
     useEffect(() => {
         return () => {
-            if (coverPreview.startsWith('blob:')) URL.revokeObjectURL(coverPreview);
+            if (coverPreview.startsWith('blob:'))
+                URL.revokeObjectURL(coverPreview);
         };
     }, [coverPreview]);
 
@@ -111,7 +116,10 @@ export default function AddToCollectionModal({
             let coverImage = '';
 
             if (coverFile) {
-                const imageRef = ref(storage, `collection-covers/${uid}/${Date.now()}-${coverFile.name}`);
+                const imageRef = ref(
+                    storage,
+                    `collection-covers/${uid}/${Date.now()}-${coverFile.name}`
+                );
                 const snap = await uploadBytes(imageRef, coverFile);
                 coverImage = await getDownloadURL(snap.ref);
             }
@@ -121,11 +129,13 @@ export default function AddToCollectionModal({
                 name,
                 coverImage,
                 newListDescription,
-                newListIsPublic,
+                newListIsPublic
             );
             const newCollectionId = colRef.id;
 
-            await queryClient.invalidateQueries({ queryKey: ['collections', uid] });
+            await queryClient.invalidateQueries({
+                queryKey: ['collections', uid],
+            });
 
             setCheckedMap((prev) => ({ ...prev, [newCollectionId]: true }));
             toggle.mutate({
@@ -139,7 +149,8 @@ export default function AddToCollectionModal({
             setNewListDescription('');
             setNewListIsPublic(false);
             setCoverFile(null);
-            if (coverPreview.startsWith('blob:')) URL.revokeObjectURL(coverPreview);
+            if (coverPreview.startsWith('blob:'))
+                URL.revokeObjectURL(coverPreview);
             setCoverPreview('');
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
@@ -159,19 +170,35 @@ export default function AddToCollectionModal({
     };
 
     return (
-        <AppModal onClose={onClose} panelClassName="max-h-[85vh] overflow-hidden">
+        <AppModal
+            onClose={onClose}
+            panelClassName="max-h-[85vh] overflow-hidden"
+        >
             {({ closeWithAnim }) => (
                 <div className="flex max-h-[85vh] flex-col p-4 sm:p-6">
-                    <h3 className="mb-4 pr-10 text-lg font-semibold text-slate-900">Legg til i liste</h3>
+                    <h3 className="mb-4 pr-10 text-lg font-semibold text-slate-900">
+                        Legg til i liste
+                    </h3>
 
                     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start">
                         <label className="flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center self-start overflow-hidden rounded-2xl border border-slate-200 bg-[var(--accent-soft)] text-slate-700">
                             {coverPreview ? (
-                                <img src={coverPreview} alt="Omslag" className="h-full w-full object-cover" />
+                                <img
+                                    src={coverPreview}
+                                    alt="Omslag"
+                                    className="h-full w-full object-cover"
+                                />
                             ) : (
-                                <span className="material-symbols-outlined">photo_camera</span>
+                                <span className="material-symbols-outlined">
+                                    photo_camera
+                                </span>
                             )}
-                            <input type="file" accept="image/*" className="hidden" onChange={onPickCover} />
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={onPickCover}
+                            />
                         </label>
 
                         <div className="min-w-0 flex-1">
@@ -179,7 +206,9 @@ export default function AddToCollectionModal({
                                 <input
                                     type="text"
                                     value={newListName}
-                                    onChange={(e) => setNewListName(e.target.value)}
+                                    onChange={(e) =>
+                                        setNewListName(e.target.value)
+                                    }
                                     placeholder="Ny liste…"
                                     className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-200"
                                     onKeyDown={(e) => {
@@ -193,7 +222,9 @@ export default function AddToCollectionModal({
                                 <button
                                     type="button"
                                     onClick={() => void handleCreateList()}
-                                    disabled={!uid || creating || !newListName.trim()}
+                                    disabled={
+                                        !uid || creating || !newListName.trim()
+                                    }
                                     className="rounded-full bg-slate-100 px-4 py-2 font-semibold text-slate-800 hover:bg-slate-200 disabled:opacity-50 sm:self-start"
                                 >
                                     {creating ? 'Lager…' : 'Lag'}
@@ -201,7 +232,9 @@ export default function AddToCollectionModal({
                             </div>
                             <textarea
                                 value={newListDescription}
-                                onChange={(e) => setNewListDescription(e.target.value)}
+                                onChange={(e) =>
+                                    setNewListDescription(e.target.value)
+                                }
                                 placeholder="Beskrivelse (valgfritt)…"
                                 className="mt-2 min-h-[72px] w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
                                 disabled={!uid || creating}
@@ -212,7 +245,9 @@ export default function AddToCollectionModal({
                                     <input
                                         type="checkbox"
                                         checked={newListIsPublic}
-                                        onChange={(e) => setNewListIsPublic(e.target.checked)}
+                                        onChange={(e) =>
+                                            setNewListIsPublic(e.target.checked)
+                                        }
                                         disabled={!uid || creating}
                                         className="peer sr-only"
                                     />
@@ -225,7 +260,8 @@ export default function AddToCollectionModal({
                                     type="button"
                                     onClick={() => {
                                         setCoverFile(null);
-                                        if (coverPreview.startsWith('blob:')) URL.revokeObjectURL(coverPreview);
+                                        if (coverPreview.startsWith('blob:'))
+                                            URL.revokeObjectURL(coverPreview);
                                         setCoverPreview('');
                                     }}
                                     className="mt-2 text-xs font-medium text-slate-600 hover:text-slate-900"
@@ -236,21 +272,38 @@ export default function AddToCollectionModal({
                         </div>
                     </div>
 
-                    {createError ? <p className="mb-4 text-sm text-red-600">{createError}</p> : null}
+                    {createError ? (
+                        <p className="mb-4 text-sm text-red-600">
+                            {createError}
+                        </p>
+                    ) : null}
 
                     {collections.length === 0 ? (
-                        <p className="text-sm text-slate-600">Du har ingen lister ennå.</p>
+                        <p className="text-sm text-slate-600">
+                            Du har ingen lister ennå.
+                        </p>
                     ) : (
                         <ul className="max-h-[min(42vh,320px)] space-y-3 overflow-y-auto pr-1 sm:pr-2">
                             {collections.map((c) => {
                                 const inputId = `collection-${c.id}`;
 
                                 return (
-                                    <li key={c.id} className="flex items-center gap-3">
+                                    <li
+                                        key={c.id}
+                                        className="flex items-center gap-3"
+                                    >
                                         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                                            {c.coverImage?.trim() || collectionSummaries[c.id]?.previewImage ? (
+                                            {c.coverImage?.trim() ||
+                                            collectionSummaries[c.id]
+                                                ?.previewImage ? (
                                                 <img
-                                                    src={c.coverImage?.trim() || collectionSummaries[c.id]?.previewImage || ''}
+                                                    src={
+                                                        c.coverImage?.trim() ||
+                                                        collectionSummaries[
+                                                            c.id
+                                                        ]?.previewImage ||
+                                                        ''
+                                                    }
                                                     alt={c.name}
                                                     className="h-full w-full object-cover"
                                                 />
@@ -268,7 +321,9 @@ export default function AddToCollectionModal({
                                                 type="checkbox"
                                                 className="peer relative h-5 w-5 cursor-pointer appearance-none rounded border border-slate-300 shadow transition-all before:absolute before:left-2/4 before:top-2/4 before:block before:h-12 before:w-12 before:-translate-x-2/4 before:-translate-y-2/4 before:rounded-full before:bg-slate-300 before:opacity-0 before:transition-opacity hover:shadow-md hover:before:opacity-10 checked:border-slate-600 checked:bg-slate-700 checked:before:bg-slate-300"
                                                 checked={!!checkedMap[c.id]}
-                                                onChange={() => handleToggle(c.id)}
+                                                onChange={() =>
+                                                    handleToggle(c.id)
+                                                }
                                                 disabled={!uid}
                                             />
 
@@ -291,10 +346,16 @@ export default function AddToCollectionModal({
                                         </label>
 
                                         <div className="min-w-0 flex-1">
-                                            <span className="block truncate text-slate-700">{c.name}</span>
+                                            <span className="block truncate text-slate-700">
+                                                {c.name}
+                                            </span>
                                             <span className="block text-xs text-slate-500">
-                                                {collectionSummaries[c.id]?.recipeCount ?? 0}{' '}
-                                                {(collectionSummaries[c.id]?.recipeCount ?? 0) === 1 ? 'oppskrift' : 'oppskrifter'}
+                                                {collectionSummaries[c.id]
+                                                    ?.recipeCount ?? 0}{' '}
+                                                {(collectionSummaries[c.id]
+                                                    ?.recipeCount ?? 0) === 1
+                                                    ? 'oppskrift'
+                                                    : 'oppskrifter'}
                                             </span>
                                         </div>
                                     </li>
@@ -303,7 +364,10 @@ export default function AddToCollectionModal({
                         </ul>
                     )}
 
-                    <button className="mt-5 w-full rounded-full confirm-button py-2.5" onClick={closeWithAnim}>
+                    <button
+                        className="mt-5 w-full rounded-full confirm-button py-2.5"
+                        onClick={closeWithAnim}
+                    >
                         Ferdig
                     </button>
                 </div>

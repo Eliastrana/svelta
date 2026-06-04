@@ -8,7 +8,6 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // -------- Types (no any) --------
 
-
 type Imported = {
     title?: string;
     description?: string;
@@ -55,7 +54,8 @@ const getArray = (obj: JsonObject, key: string): JsonArray | undefined => {
 
 const toStringArray = (v: JsonValue | undefined): string[] => {
     if (typeof v === 'string') return [v];
-    if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string');
+    if (Array.isArray(v))
+        return v.filter((x): x is string => typeof x === 'string');
     return [];
 };
 
@@ -70,7 +70,8 @@ function isSafeHttpUrl(raw: string): string | null {
             host === '127.0.0.1' ||
             host === '0.0.0.0' ||
             host.endsWith('.local')
-        ) return null;
+        )
+            return null;
 
         return u.toString();
     } catch {
@@ -180,7 +181,7 @@ function trySplitIngredient(line: string): { amount?: string; name: string } {
     if (!s) return { name: '' };
 
     const m = s.match(
-        /^(\d+(?:[.,]\d+)?(?:\/\d+)?\s*(?:[a-zA-ZæøåÆØÅ]+\.?)?(?:\s*\([^)]+\))?)\s+(.+)$/,
+        /^(\d+(?:[.,]\d+)?(?:\/\d+)?\s*(?:[a-zA-ZæøåÆØÅ]+\.?)?(?:\s*\([^)]+\))?)\s+(.+)$/
     );
     if (!m) return { name: s };
 
@@ -208,7 +209,8 @@ async function fetchHtml(url: string): Promise<string> {
         if (!res.ok) throw new Error(`Fetch feilet (${res.status})`);
 
         const ct = res.headers.get('content-type') || '';
-        if (!ct.includes('text/html')) throw new Error('URL må peke til en HTML-side.');
+        if (!ct.includes('text/html'))
+            throw new Error('URL må peke til en HTML-side.');
 
         return await res.text();
     } finally {
@@ -246,10 +248,16 @@ function htmlToPlainText(html: string): string {
     const main =
         $('main').text().trim() ||
         $('article').text().trim() ||
-        $('[itemprop="recipeInstructions"], [class*="instruction"], [class*="directions"]').text().trim() ||
+        $(
+            '[itemprop="recipeInstructions"], [class*="instruction"], [class*="directions"]'
+        )
+            .text()
+            .trim() ||
         $('body').text().trim();
 
-    const text = [h1 || '', title || '', main || ''].filter(Boolean).join('\n\n');
+    const text = [h1 || '', title || '', main || '']
+        .filter(Boolean)
+        .join('\n\n');
     return text.replace(/\s+\n/g, '\n').slice(0, 12000);
 }
 
@@ -261,34 +269,44 @@ function coerceImportedFromUnknown(u: unknown): Imported {
     const temperature = typeof u.temperature === 'string' ? u.temperature : '';
     const cookingTime = typeof u.cookingTime === 'string' ? u.cookingTime : '';
     const portions = typeof u.portions === 'string' ? u.portions : '';
-    const coverImageUrl = typeof u.coverImageUrl === 'string' ? u.coverImageUrl : '';
+    const coverImageUrl =
+        typeof u.coverImageUrl === 'string' ? u.coverImageUrl : '';
 
     type IngredientDetailed = { name: string; amount?: string };
 
-    const ingredientsDetailed: IngredientDetailed[] = Array.isArray(u.ingredientsDetailed)
+    const ingredientsDetailed: IngredientDetailed[] = Array.isArray(
+        u.ingredientsDetailed
+    )
         ? u.ingredientsDetailed.flatMap((item): IngredientDetailed[] => {
-            if (!isObject(item)) return [];
+              if (!isObject(item)) return [];
 
-            const name = typeof item.name === 'string' ? item.name.trim() : '';
-            const amount = typeof item.amount === 'string' ? item.amount.trim() : '';
+              const name =
+                  typeof item.name === 'string' ? item.name.trim() : '';
+              const amount =
+                  typeof item.amount === 'string' ? item.amount.trim() : '';
 
-            if (!name) return [];
+              if (!name) return [];
 
-            return [amount ? { name, amount } : { name }];
-        })
+              return [amount ? { name, amount } : { name }];
+          })
         : [];
-
 
     const cookingSteps: Imported['cookingSteps'] = Array.isArray(u.cookingSteps)
         ? u.cookingSteps
-            .map((item) => {
-                if (!isObject(item)) return null;
-                const t = typeof item.title === 'string' ? item.title.trim() : '';
-                const d = typeof item.description === 'string' ? item.description.trim() : '';
-                if (!d) return null;
-                return { title: t || 'Steg', description: d };
-            })
-            .filter((x): x is { title: string; description: string } => x !== null)
+              .map((item) => {
+                  if (!isObject(item)) return null;
+                  const t =
+                      typeof item.title === 'string' ? item.title.trim() : '';
+                  const d =
+                      typeof item.description === 'string'
+                          ? item.description.trim()
+                          : '';
+                  if (!d) return null;
+                  return { title: t || 'Steg', description: d };
+              })
+              .filter(
+                  (x): x is { title: string; description: string } => x !== null
+              )
         : [];
 
     return {
@@ -357,11 +375,17 @@ Regler:
 export async function POST(req: Request) {
     try {
         const bodyUnknown: unknown = await req.json();
-        const url = isObject(bodyUnknown) && typeof bodyUnknown.url === 'string' ? bodyUnknown.url : '';
+        const url =
+            isObject(bodyUnknown) && typeof bodyUnknown.url === 'string'
+                ? bodyUnknown.url
+                : '';
         const safeUrl = isSafeHttpUrl(url.trim());
 
         if (!safeUrl) {
-            return NextResponse.json({ error: 'Ugyldig eller usikker URL.' }, { status: 400 });
+            return NextResponse.json(
+                { error: 'Ugyldig eller usikker URL.' },
+                { status: 400 }
+            );
         }
 
         const html = await fetchHtml(safeUrl);
@@ -396,7 +420,9 @@ export async function POST(req: Request) {
 
             const yieldVal = recipe['recipeYield'];
             const yieldStrings = toStringArray(yieldVal);
-            const portions = yieldStrings[0] ?? (typeof yieldVal === 'number' ? String(yieldVal) : '');
+            const portions =
+                yieldStrings[0] ??
+                (typeof yieldVal === 'number' ? String(yieldVal) : '');
 
             const coverImageUrl = normalizeImage(recipe['image']) ?? '';
 
@@ -426,6 +452,9 @@ export async function POST(req: Request) {
         return NextResponse.json(llm);
     } catch (e) {
         console.error('import-recipe error', e);
-        return NextResponse.json({ error: 'Feil ved import av oppskrift.' }, { status: 500 });
+        return NextResponse.json(
+            { error: 'Feil ved import av oppskrift.' },
+            { status: 500 }
+        );
     }
 }

@@ -18,7 +18,9 @@ export function useCreateCollection() {
             isPublic?: boolean;
         }) => createCollection(uid, name, coverImage, description, isPublic),
         onSuccess: (_res, vars) => {
-            queryClient.invalidateQueries({ queryKey: ['collections', vars.uid] });
+            queryClient.invalidateQueries({
+                queryKey: ['collections', vars.uid],
+            });
         },
     });
 }

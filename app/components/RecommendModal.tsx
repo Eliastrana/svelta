@@ -2,12 +2,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter }               from 'next/navigation';
-import { useQuery }                from '@tanstack/react-query';
-import { useAuthUser }             from '@/hooks/useAuthUser';
-import { useUserFollowing }        from '@/hooks/useUserFollowing';
-import { fetchFollowedRecipes }    from '@/helpers/fetchFollowedRecipies';
-import { Recipe }                  from '@/app/types/Recipe';
+import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { useAuthUser } from '@/hooks/useAuthUser';
+import { useUserFollowing } from '@/hooks/useUserFollowing';
+import { fetchFollowedRecipes } from '@/helpers/fetchFollowedRecipies';
+import { Recipe } from '@/app/types/Recipe';
 import AppModal from '@/app/components/AppModal';
 
 interface Props {
@@ -15,18 +15,18 @@ interface Props {
 }
 
 export default function RecommendModal({ onClose }: Props) {
-    const router    = useRouter();
-    const user      = useAuthUser();
+    const router = useRouter();
+    const user = useAuthUser();
     const following = useUserFollowing(user?.uid ?? '');
-    const [prompt, setPrompt]   = useState('');
-    const [error, setError]     = useState<string | null>(null);
-    const [busy, setBusy]       = useState(false);
+    const [prompt, setPrompt] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [busy, setBusy] = useState(false);
 
     // Fetch recipes only from followed users
     const { data: recipes = [], isLoading } = useQuery<Recipe[]>({
         queryKey: ['followedRecipes', following],
-        queryFn:  () => fetchFollowedRecipes(following),
-        enabled:  !!user?.uid && following.length > 0,
+        queryFn: () => fetchFollowedRecipes(following),
+        enabled: !!user?.uid && following.length > 0,
         placeholderData: () => [],
     });
 
@@ -37,16 +37,16 @@ export default function RecommendModal({ onClose }: Props) {
 
         try {
             // Send only id/title/description to LLM
-            const minimal = recipes.map(r => ({
-                id:          r.id,
-                title:       r.title,
+            const minimal = recipes.map((r) => ({
+                id: r.id,
+                title: r.title,
                 description: r.description,
             }));
 
             const res = await fetch('/api/recommend', {
-                method:  'POST',
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify({ prompt, recipes: minimal }),
+                body: JSON.stringify({ prompt, recipes: minimal }),
             });
             const data = await res.json();
             if (!res.ok) {
@@ -67,50 +67,57 @@ export default function RecommendModal({ onClose }: Props) {
     return (
         <AppModal onClose={onClose}>
             {({ closeWithAnim }) => (
-            <div className="relative p-4">
-                <button
-                    onClick={closeWithAnim}
-                    className="absolute top-3 right-3 text-slate-500 hover:text-slate-700"
-                >
-                    ✕
-                </button>
+                <div className="relative p-4">
+                    <button
+                        onClick={closeWithAnim}
+                        className="absolute top-3 right-3 text-slate-500 hover:text-slate-700"
+                    >
+                        ✕
+                    </button>
 
-                <h2 className="text-2xl font-semibold mb-2 text-slate-900">Spør CorpCoreKokken!</h2>
-                <p className="mb-2 text-slate-600">Se så uproposjonal han er!</p>
-
-                <img
-                    className="mt-2 mb-2"
-                    src="/corpcore.gif"
-                    alt="CorpCoreKokken"
-                />
-
-                {isLoading ? (
-                    <p className="text-slate-600">Laster oppskrifter du følger…</p>
-                ) : recipes.length === 0 ? (
-                    <p className="text-slate-600">
-                        Du følger ingen kokker—legg til noen for å få anbefalinger!
+                    <h2 className="text-2xl font-semibold mb-2 text-slate-900">
+                        Spør CorpCoreKokken!
+                    </h2>
+                    <p className="mb-2 text-slate-600">
+                        Se så uproposjonal han er!
                     </p>
-                ) : (
-                    <form onSubmit={handleSubmit}>
-                        <textarea
-                            value={prompt}
-                            onChange={e => setPrompt(e.target.value)}
-                            placeholder="Eksempel: Noe som både har brownie og cookie i seg"
-                            className="w-full p-2 border border-slate-200 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                            rows={3}
-                        />
-                        <button
-                            type="submit"
-                            disabled={busy || !prompt.trim()}
-                            className="w-full bg-color py-2 rounded-full disabled:opacity-50"
-                        >
-                            {busy ? 'Tenker…' : 'Finn oppskrift'}
-                        </button>
-                    </form>
-                )}
 
-                {error && <p className="text-red-600 mt-3">{error}</p>}
-            </div>
+                    <img
+                        className="mt-2 mb-2"
+                        src="/corpcore.gif"
+                        alt="CorpCoreKokken"
+                    />
+
+                    {isLoading ? (
+                        <p className="text-slate-600">
+                            Laster oppskrifter du følger…
+                        </p>
+                    ) : recipes.length === 0 ? (
+                        <p className="text-slate-600">
+                            Du følger ingen kokker—legg til noen for å få
+                            anbefalinger!
+                        </p>
+                    ) : (
+                        <form onSubmit={handleSubmit}>
+                            <textarea
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                placeholder="Eksempel: Noe som både har brownie og cookie i seg"
+                                className="w-full p-2 border border-slate-200 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                rows={3}
+                            />
+                            <button
+                                type="submit"
+                                disabled={busy || !prompt.trim()}
+                                className="w-full bg-color py-2 rounded-full disabled:opacity-50"
+                            >
+                                {busy ? 'Tenker…' : 'Finn oppskrift'}
+                            </button>
+                        </form>
+                    )}
+
+                    {error && <p className="text-red-600 mt-3">{error}</p>}
+                </div>
             )}
         </AppModal>
     );

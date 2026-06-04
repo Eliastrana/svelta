@@ -14,7 +14,9 @@ type RecipeDoc = {
 
 const SITE_URL = 'https://www.svelta.no';
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+    params,
+}: PageProps): Promise<Metadata> {
     const { id: recipeId } = await params;
 
     const snap = await adminDb.collection('recipes').doc(recipeId).get();
@@ -31,7 +33,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const data = snap.data() as RecipeDoc;
 
     const title = (data.title?.trim() || 'Oppskrift').slice(0, 80);
-    const description = (data.description?.trim() || 'Se oppskriften på Svelta.').slice(0, 160);
+    const description = (
+        data.description?.trim() || 'Se oppskriften på Svelta.'
+    ).slice(0, 160);
 
     const imageUrl = data.coverImage?.trim() || `${SITE_URL}/og-default.jpg`;
     const url = `${SITE_URL}/recipe/${recipeId}`;

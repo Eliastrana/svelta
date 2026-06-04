@@ -75,7 +75,10 @@ const PublicGallery: React.FC<{
             <div className="relative left-1/2 mt-8 w-screen -translate-x-1/2 overflow-hidden px-4 md:px-8 lg:px-12">
                 <div className="flex gap-4">
                     {Array.from({ length: 4 }).map((_, index) => (
-                        <div key={`gallery-sk-${index}`} className="gallery-card shrink-0 animate-pulse">
+                        <div
+                            key={`gallery-sk-${index}`}
+                            className="gallery-card shrink-0 animate-pulse"
+                        >
                             <div className="aspect-[4/5] rounded-[24px] bg-slate-100" />
                             <div className="mt-3 h-5 w-3/4 rounded-full bg-slate-100" />
                             <div className="mt-2 h-4 w-1/2 rounded-full bg-slate-100" />
@@ -148,14 +151,15 @@ const PublicGallery: React.FC<{
             <style jsx>{`
                 .gallery-mask {
                     overflow: hidden;
-
                 }
 
                 .gallery-track {
                     display: flex;
                     width: max-content;
                     gap: 1rem;
-                    animation: ${shouldReduceMotion ? 'none' : 'publicGalleryScroll 42s linear infinite'};
+                    animation: ${shouldReduceMotion
+                        ? 'none'
+                        : 'publicGalleryScroll 42s linear infinite'};
                 }
 
                 .gallery-track:hover {
@@ -189,7 +193,9 @@ const PublicGallery: React.FC<{
 
                     .gallery-track {
                         gap: 0.75rem;
-                        animation-duration: ${shouldReduceMotion ? '0s' : '34s'};
+                        animation-duration: ${shouldReduceMotion
+                            ? '0s'
+                            : '34s'};
                     }
                 }
             `}</style>
@@ -244,7 +250,7 @@ const Home: React.FC = () => {
                       show: { opacity: 1, y: 0, filter: 'blur(0px)' },
                   }
                 : landingHeroVariants,
-        [shouldReduceMotion],
+        [shouldReduceMotion]
     );
     const heroItemVariants = React.useMemo(
         () =>
@@ -254,12 +260,14 @@ const Home: React.FC = () => {
                       show: { opacity: 1, y: 0, filter: 'blur(0px)' },
                   }
                 : landingHeroItemVariants,
-        [shouldReduceMotion],
+        [shouldReduceMotion]
     );
 
     const [activeFeed, setActiveFeed] = React.useState<Feed>('popular');
     const [search, setSearch] = React.useState('');
-    const [viewerProfile, setViewerProfile] = React.useState<UserDoc | null>(null);
+    const [viewerProfile, setViewerProfile] = React.useState<UserDoc | null>(
+        null
+    );
     const [showOnboarding, setShowOnboarding] = React.useState(false);
     const [onboardingResolved, setOnboardingResolved] = React.useState(false);
 
@@ -297,10 +305,14 @@ const Home: React.FC = () => {
     const followsNobody = isLoggedIn && following.length === 0;
     const followsSomebody = isLoggedIn && following.length > 0;
 
-    const { data: followedRecipes = [], isLoading: loadingFollowed } = useQuery<Recipe[], Error>({
+    const { data: followedRecipes = [], isLoading: loadingFollowed } = useQuery<
+        Recipe[],
+        Error
+    >({
         queryKey: ['followedRecipes', following],
         queryFn: () => fetchFollowedRecipes(following),
-        enabled: isLoggedIn && activeFeed === 'following' && following.length > 0,
+        enabled:
+            isLoggedIn && activeFeed === 'following' && following.length > 0,
         placeholderData: (prev) => prev ?? [],
     });
 
@@ -313,7 +325,6 @@ const Home: React.FC = () => {
         isError: popularIsError,
         error: popularErr,
     } = useInfiniteQuery({
-
         queryKey: ['popularRecipesInfinite', PAGE_SIZE],
         enabled: activeFeed === 'popular',
         initialPageParam: null as QueryDocumentSnapshot | null,
@@ -325,10 +336,9 @@ const Home: React.FC = () => {
         getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     });
 
-
     const popularRecipes: Recipe[] = React.useMemo(
         () => popularData?.pages.flatMap((p) => p.items) ?? [],
-        [popularData],
+        [popularData]
     );
 
     const loadMoreRef = React.useRef<HTMLDivElement | null>(null);
@@ -346,7 +356,7 @@ const Home: React.FC = () => {
                     fetchNextPopular();
                 }
             },
-            { rootMargin: '600px' },
+            { rootMargin: '600px' }
         );
 
         obs.observe(el);
@@ -358,7 +368,6 @@ const Home: React.FC = () => {
             ? (followedRecipes as SearchableRecipe[])
             : (popularRecipes as SearchableRecipe[]);
 
-
     const q = React.useMemo(() => normalize(search), [search]);
 
     const recipes: SearchableRecipe[] = React.useMemo(() => {
@@ -368,10 +377,14 @@ const Home: React.FC = () => {
             const title = normalize(r.title ?? '');
             const desc = normalize(r.description ?? '');
 
-            const ingLegacy = Array.isArray(r.ingredients) ? r.ingredients.join(' ') : '';
+            const ingLegacy = Array.isArray(r.ingredients)
+                ? r.ingredients.join(' ')
+                : '';
 
             const ingDetailed = Array.isArray(r.ingredientsDetailed)
-                ? r.ingredientsDetailed.map((i) => `${i.amount ?? ''} ${i.name ?? ''}`).join(' ')
+                ? r.ingredientsDetailed
+                      .map((i) => `${i.amount ?? ''} ${i.name ?? ''}`)
+                      .join(' ')
                 : '';
 
             const tags = Array.isArray(r.tags) ? r.tags.join(' ') : '';
@@ -382,7 +395,8 @@ const Home: React.FC = () => {
 
     const showPopularSkeleton = activeFeed === 'popular' && loadingPopular;
     const showFollowingCTA = activeFeed === 'following' && followsNobody;
-    const showFollowingSkeleton = activeFeed === 'following' && followsSomebody && loadingFollowed;
+    const showFollowingSkeleton =
+        activeFeed === 'following' && followsSomebody && loadingFollowed;
     const showSkeletonGrid = showPopularSkeleton || showFollowingSkeleton;
 
     const uniqueUserIds = React.useMemo(() => {
@@ -399,7 +413,9 @@ const Home: React.FC = () => {
     });
 
     const shouldBlockHome = Boolean(user && !onboardingResolved);
-    const shouldShowOnboarding = Boolean(user && showOnboarding && viewerProfile);
+    const shouldShowOnboarding = Boolean(
+        user && showOnboarding && viewerProfile
+    );
     const showPublicLanding = !isLoggedIn;
 
     if (shouldBlockHome) {
@@ -422,10 +438,16 @@ const Home: React.FC = () => {
                 initialBio={viewerProfile.bio || ''}
                 initialFavoriteFood={viewerProfile.favoriteFood || ''}
                 initialPhotoURL={viewerProfile.photoURL || user.photoURL || ''}
-                initialBackgroundPhotoURL={viewerProfile.backgroundPhotoURL || ''}
-                initialProfileThemeId={viewerProfile.profileThemeId || DEFAULT_PROFILE_THEME_ID}
+                initialBackgroundPhotoURL={
+                    viewerProfile.backgroundPhotoURL || ''
+                }
+                initialProfileThemeId={
+                    viewerProfile.profileThemeId || DEFAULT_PROFILE_THEME_ID
+                }
                 initialProfileFontId={viewerProfile.profileFontId || 'urbanist'}
-                initialIsProfilePrivate={Boolean(viewerProfile.isProfilePrivate)}
+                initialIsProfilePrivate={Boolean(
+                    viewerProfile.isProfilePrivate
+                )}
                 onComplete={(next) => {
                     setViewerProfile((prev) => ({
                         ...(prev ?? {}),
@@ -441,10 +463,16 @@ const Home: React.FC = () => {
     return (
         <div className="p-4 md:max-w-5xl lg:w-2/3 md:mx-auto md:mb-24">
             <div className="mb-3">
-                {!showPublicLanding && (activeFeed === 'popular' || (activeFeed === 'following' && following.length > 0)) ? (
+                {!showPublicLanding &&
+                (activeFeed === 'popular' ||
+                    (activeFeed === 'following' && following.length > 0)) ? (
                     <MostActiveCreators
-                        mode={activeFeed === 'following' ? 'following' : 'popular'}
-                        followingIds={activeFeed === 'following' ? following : []}
+                        mode={
+                            activeFeed === 'following' ? 'following' : 'popular'
+                        }
+                        followingIds={
+                            activeFeed === 'following' ? following : []
+                        }
                         viewerUid={user?.uid ?? ''}
                         storyWindowHours={24 * 30}
                     />
@@ -479,7 +507,8 @@ const Home: React.FC = () => {
                                 className="text-center text-4xl font-semibold tracking-tight text-slate-900 sm:text-left sm:text-5xl"
                                 variants={heroItemVariants}
                             >
-                                Oppskrifter, kokebøker og matglede samlet på ett sosialt medium
+                                Oppskrifter, kokebøker og matglede samlet på ett
+                                sosialt medium
                             </motion.h1>
                         </motion.div>
 
@@ -487,8 +516,9 @@ const Home: React.FC = () => {
                             className="mx-auto mt-4 text-center text-base leading-relaxed text-slate-600 sm:text-left sm:text-lg"
                             variants={heroItemVariants}
                         >
-                            Svelta er en sosial oppskriftsapp der du kan dele egne retter, oppdage nye favoritter,
-                            følge andre kokker og lagre oppskrifter i egne kokebøker.
+                            Svelta er en sosial oppskriftsapp der du kan dele
+                            egne retter, oppdage nye favoritter, følge andre
+                            kokker og lagre oppskrifter i egne kokebøker.
                         </motion.p>
 
                         <motion.div
@@ -499,8 +529,14 @@ const Home: React.FC = () => {
                                 type="button"
                                 onClick={() => router.push('/login')}
                                 className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-6 py-3 font-semibold text-white transition hover:opacity-95 active:scale-[0.99]"
-                                whileHover={shouldReduceMotion ? undefined : { y: -1 }}
-                                whileTap={shouldReduceMotion ? undefined : { scale: 0.99 }}
+                                whileHover={
+                                    shouldReduceMotion ? undefined : { y: -1 }
+                                }
+                                whileTap={
+                                    shouldReduceMotion
+                                        ? undefined
+                                        : { scale: 0.99 }
+                                }
                             >
                                 Bli med!
                             </motion.button>
@@ -510,16 +546,17 @@ const Home: React.FC = () => {
                     <PublicGallery
                         recipes={popularRecipes}
                         loading={loadingPopular}
-                        onRecipeClick={(recipeId) => router.push(`/recipe/${recipeId}`)}
+                        onRecipeClick={(recipeId) =>
+                            router.push(`/recipe/${recipeId}`)
+                        }
                     />
                 </motion.section>
             ) : (
-
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div className="relative w-full md:flex-1">
-        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
-            search
-        </span>
+                        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                            search
+                        </span>
 
                         <input
                             value={search}
@@ -535,23 +572,30 @@ const Home: React.FC = () => {
                                 className="absolute right-3 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full hover:bg-slate-100"
                                 aria-label="Tøm søk"
                             >
-                                <span className="material-symbols-outlined text-slate-600">close</span>
+                                <span className="material-symbols-outlined text-slate-600">
+                                    close
+                                </span>
                             </button>
                         )}
                     </div>
 
                     <div className="relative inline-flex w-full rounded-full border border-slate-200 bg-slate-50 p-1 md:w-72 md:shrink-0">
-
-
                         <div
                             className="absolute top-0 left-0 h-full w-1/2 rounded-full bg-white shadow-sm transition-transform duration-300"
-                            style={{ transform: activeFeed === 'popular' ? 'translateX(100%)' : undefined }}
+                            style={{
+                                transform:
+                                    activeFeed === 'popular'
+                                        ? 'translateX(100%)'
+                                        : undefined,
+                            }}
                         />
 
                         <button
                             onClick={() => setActiveFeed('following')}
                             className={`relative w-1/2 py-1 text-sm font-medium focus:outline-none flex items-center justify-center ${
-                                activeFeed === 'following' ? 'text-slate-900' : 'text-slate-500'
+                                activeFeed === 'following'
+                                    ? 'text-slate-900'
+                                    : 'text-slate-500'
                             }`}
                             type="button"
                         >
@@ -561,7 +605,9 @@ const Home: React.FC = () => {
                         <button
                             onClick={() => setActiveFeed('popular')}
                             className={`relative w-1/2 py-1 text-sm font-medium focus:outline-none flex items-center justify-center ${
-                                activeFeed === 'popular' ? 'text-slate-900' : 'text-slate-500'
+                                activeFeed === 'popular'
+                                    ? 'text-slate-900'
+                                    : 'text-slate-500'
                             }`}
                             type="button"
                         >
@@ -573,14 +619,14 @@ const Home: React.FC = () => {
 
             {showPublicLanding ? (
                 <div className="mt-10">
-                    <h2 className="text-2xl font-semibold text-slate-900 md:text-3xl">Populære oppskrifter på Svelta</h2>
+                    <h2 className="text-2xl font-semibold text-slate-900 md:text-3xl">
+                        Populære oppskrifter på Svelta
+                    </h2>
                     <p className="mt-2 text-sm text-slate-600 md:text-base">
                         Utforsk offentlige oppskrifter fra våre flinke kokker!
                     </p>
                 </div>
             ) : null}
-
-            
 
             {!showPublicLanding ? (
                 <>
@@ -612,7 +658,9 @@ const Home: React.FC = () => {
                         </div>
 
                         {q && !showSkeletonGrid && (
-                            <p className="mt-2 text-sm text-slate-600">Viser {recipes.length} treff</p>
+                            <p className="mt-2 text-sm text-slate-600">
+                                Viser {recipes.length} treff
+                            </p>
                         )}
                     </div>
                 </>
@@ -628,7 +676,8 @@ const Home: React.FC = () => {
 
             {activeFeed === 'popular' && popularIsError && (
                 <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                    Klarte ikke å hente populære oppskrifter: {String(popularErr?.message ?? popularErr)}
+                    Klarte ikke å hente populære oppskrifter:{' '}
+                    {String(popularErr?.message ?? popularErr)}
                 </div>
             )}
 
@@ -652,18 +701,26 @@ const Home: React.FC = () => {
                     </div>
                 ) : recipes.length === 0 ? (
                     <div className="mt-6">
-                        <p className="text-slate-600">Ingen tilgjengelige oppskrifter.</p>
+                        <p className="text-slate-600">
+                            Ingen tilgjengelige oppskrifter.
+                        </p>
                     </div>
                 ) : (
                     <div className="">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {recipes.map((recipe) => (
-                                <RecipeCard key={recipe.id} recipe={recipe} creator={usersMap[recipe.userId]} />
+                                <RecipeCard
+                                    key={recipe.id}
+                                    recipe={recipe}
+                                    creator={usersMap[recipe.userId]}
+                                />
                             ))}
                         </div>
 
                         {/* Auto-pagination sentinel (popular) */}
-                        {activeFeed === 'popular' && hasNextPopular && <div ref={loadMoreRef} className="h-10" />}
+                        {activeFeed === 'popular' && hasNextPopular && (
+                            <div ref={loadMoreRef} className="h-10" />
+                        )}
 
                         {/* Bottom-loading skeletons (popular) */}
                         {activeFeed === 'popular' && fetchingNextPopular && (
@@ -673,13 +730,11 @@ const Home: React.FC = () => {
                                 ))}
                             </div>
                         )}
-
                     </div>
                 )}
             </div>
 
             {!showPublicLanding ? (
-
                 <div className="text-xl text-center flex flex-col items-center justify-center mt-20 mb-10 ">
                     Vet du fortsatt ikke hva du vil ha?
                     <button
@@ -687,20 +742,15 @@ const Home: React.FC = () => {
                         onClick={() => router.push('/?recommend=1')}
                         className="mt-4 inline-flex items-center gap-2 rounded-full px-5 py-2 brown-button transition"
                     >
-                        <span className="material-symbols-outlined">skillet</span>
+                        <span className="material-symbols-outlined">
+                            skillet
+                        </span>
                         Spør kokken
                     </button>
                 </div>
-
             ) : (
-
-                <div>
-
-                </div>
-
+                <div></div>
             )}
-
-
         </div>
     );
 };

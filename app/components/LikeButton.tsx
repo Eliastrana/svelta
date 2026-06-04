@@ -30,9 +30,9 @@ interface LikedUser {
 }
 
 const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
-                                                                                  recipeId,
-                                                                                  onClose,
-                                                                              }) => {
+    recipeId,
+    onClose,
+}) => {
     const [likedUsers, setLikedUsers] = useState<LikedUser[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -43,7 +43,12 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
             setLoading(true);
 
             try {
-                const likesCollectionRef = collection(firestore, 'recipes', recipeId, 'likes');
+                const likesCollectionRef = collection(
+                    firestore,
+                    'recipes',
+                    recipeId,
+                    'likes'
+                );
                 const snap = await getDocs(likesCollectionRef);
 
                 const promises = snap.docs.map(async (docSnap) => {
@@ -200,11 +205,11 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
 };
 
 const LikeButton: React.FC<LikeButtonProps> = ({
-                                                   recipeId,
-                                                   onRequireLogin,
-                                                   className,
-                                                   variant = 'default',
-                                               }) => {
+    recipeId,
+    onRequireLogin,
+    className,
+    variant = 'default',
+}) => {
     const currentUser = useAuthUser();
 
     const [likeCount, setLikeCount] = useState(0);
@@ -222,7 +227,9 @@ const LikeButton: React.FC<LikeButtonProps> = ({
 
         const unsub = onSnapshot(recipeRef, (snap) => {
             const data = snap.data() as { likeCount?: number } | undefined;
-            setLikeCount(typeof data?.likeCount === 'number' ? data.likeCount : 0);
+            setLikeCount(
+                typeof data?.likeCount === 'number' ? data.likeCount : 0
+            );
         });
 
         return () => unsub();
@@ -234,7 +241,13 @@ const LikeButton: React.FC<LikeButtonProps> = ({
             return;
         }
 
-        const likeRef = doc(firestore, 'recipes', recipeId, 'likes', currentUser.uid);
+        const likeRef = doc(
+            firestore,
+            'recipes',
+            recipeId,
+            'likes',
+            currentUser.uid
+        );
         const unsub = onSnapshot(likeRef, (snap) => setHasLiked(snap.exists()));
 
         return () => unsub();
@@ -249,7 +262,13 @@ const LikeButton: React.FC<LikeButtonProps> = ({
         if (toggling) return;
 
         const recipeRef = doc(firestore, 'recipes', recipeId);
-        const likeRef = doc(firestore, 'recipes', recipeId, 'likes', currentUser.uid);
+        const likeRef = doc(
+            firestore,
+            'recipes',
+            recipeId,
+            'likes',
+            currentUser.uid
+        );
         const nextHasLiked = !hasLiked;
         const delta = nextHasLiked ? 1 : -1;
 
@@ -311,31 +330,35 @@ const LikeButton: React.FC<LikeButtonProps> = ({
                         ].join(' ')}
                         aria-label={likeLabel}
                     >
-                    <span
-                        className={[
-                            'relative mb-1 grid h-9 w-9 place-items-center rounded-full transition',
-                            hasLiked
-                                ? 'bg-[#12340d] text-white'
-                                : 'bg-[#e5e5d7] text-[#12340d] group-hover:bg-[#d8d7cb]',
-                        ].join(' ')}
-                    >
-                        <img
-                            src={hasLiked ? '/icons/chef_white.png' : '/icons/chef.png'}
-                            alt=""
-                            className="h-6 w-6"
-                            draggable={false}
-                        />
+                        <span
+                            className={[
+                                'relative mb-1 grid h-9 w-9 place-items-center rounded-full transition',
+                                hasLiked
+                                    ? 'bg-[#12340d] text-white'
+                                    : 'bg-[#e5e5d7] text-[#12340d] group-hover:bg-[#d8d7cb]',
+                            ].join(' ')}
+                        >
+                            <img
+                                src={
+                                    hasLiked
+                                        ? '/icons/chef_white.png'
+                                        : '/icons/chef.png'
+                                }
+                                alt=""
+                                className="h-6 w-6"
+                                draggable={false}
+                            />
 
-                        {likeCount > 0 && (
-                            <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-[#b9e77a] px-1 text-[10px] font-bold leading-none text-[#12340d] ring-2 ring-[#f2f1e8]">
-                                {likeCount > 99 ? '99+' : likeCount}
-                            </span>
-                        )}
-                    </span>
+                            {likeCount > 0 && (
+                                <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-[#b9e77a] px-1 text-[10px] font-bold leading-none text-[#12340d] ring-2 ring-[#f2f1e8]">
+                                    {likeCount > 99 ? '99+' : likeCount}
+                                </span>
+                            )}
+                        </span>
 
                         <span className="font-medium leading-tight">
-                        {hasLiked ? 'Likt' : 'Lik'}
-                    </span>
+                            {hasLiked ? 'Likt' : 'Lik'}
+                        </span>
                     </button>
 
                     {likeCount > 0 && (
@@ -359,14 +382,12 @@ const LikeButton: React.FC<LikeButtonProps> = ({
         );
     }
 
-
     return (
         <>
             <div
-                className={[
-                    'flex items-center gap-3',
-                    className ?? '',
-                ].join(' ')}
+                className={['flex items-center gap-3', className ?? ''].join(
+                    ' '
+                )}
             >
                 <button
                     type="button"
@@ -387,7 +408,11 @@ const LikeButton: React.FC<LikeButtonProps> = ({
                         ].join(' ')}
                     >
                         <img
-                            src={hasLiked ? '/icons/chef_white.png' : '/icons/chef.png'}
+                            src={
+                                hasLiked
+                                    ? '/icons/chef_white.png'
+                                    : '/icons/chef.png'
+                            }
                             alt=""
                             className="h-6 w-6"
                             draggable={false}

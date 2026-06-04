@@ -9,10 +9,14 @@ type EnsureUserOverrides = {
     photoURL?: string;
 };
 
-export async function ensureUserDocument(user: User, overrides?: EnsureUserOverrides) {
+export async function ensureUserDocument(
+    user: User,
+    overrides?: EnsureUserOverrides
+) {
     const userDocRef = doc(firestore, 'users', user.uid);
     const docSnap = await getDoc(userDocRef);
-    const preferredDisplayName = overrides?.displayName || user.displayName || 'Unnamed User';
+    const preferredDisplayName =
+        overrides?.displayName || user.displayName || 'Unnamed User';
     const preferredPhotoURL = overrides?.photoURL || user.photoURL || '';
 
     if (docSnap.exists()) {

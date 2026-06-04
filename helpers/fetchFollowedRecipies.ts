@@ -25,7 +25,7 @@ function toMillis(value: unknown): number {
 
 export async function fetchFollowedRecipes(
     followingIds: string[],
-    perChunkLimit = 20,
+    perChunkLimit = 20
 ): Promise<Recipe[]> {
     if (!followingIds.length) return [];
 
@@ -42,7 +42,7 @@ export async function fetchFollowedRecipes(
             collection(db, 'recipes'),
             where('userId', 'in', chunk),
             orderBy('createdAt', 'desc'),
-            limit(perChunkLimit),
+            limit(perChunkLimit)
         );
 
         const snap = await getDocs(q);

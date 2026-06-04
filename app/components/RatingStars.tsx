@@ -23,7 +23,11 @@ function StarIcon({ filled }: { filled: boolean }) {
     );
 }
 
-export default function RatingStars({ recipeId, className, variant = 'default' }: Props) {
+export default function RatingStars({
+    recipeId,
+    className,
+    variant = 'default',
+}: Props) {
     const router = useRouter();
     const user = useAuthUser();
     const uid = user?.uid;
@@ -121,7 +125,8 @@ export default function RatingStars({ recipeId, className, variant = 'default' }
                 <p className="text-sm text-[#496444]">
                     {ratingCount > 0 ? (
                         <>
-                            {avgText} <span className="text-[#8b9a80]">·</span> {ratingCount} vurderinger
+                            {avgText} <span className="text-[#8b9a80]">·</span>{' '}
+                            {ratingCount} vurderinger
                         </>
                     ) : (
                         'Ingen vurderinger enda'

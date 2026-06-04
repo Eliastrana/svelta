@@ -156,7 +156,10 @@ export default function LoginPage() {
                     return;
                 } catch (error) {
                     loginCompletedRef.current = false;
-                    console.error('Popup sign-in failed, falling back to redirect', error);
+                    console.error(
+                        'Popup sign-in failed, falling back to redirect',
+                        error
+                    );
                 }
             }
 
@@ -202,7 +205,11 @@ export default function LoginPage() {
 
             if (isSignup) {
                 loginCompletedRef.current = true;
-                const result = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
+                const result = await createUserWithEmailAndPassword(
+                    auth,
+                    trimmedEmail,
+                    password
+                );
                 await Promise.all([
                     updateProfile(result.user, { displayName: trimmedName }),
                     finishLogin(result.user, { displayName: trimmedName }),
@@ -211,17 +218,28 @@ export default function LoginPage() {
             }
 
             loginCompletedRef.current = true;
-            const result = await signInWithEmailAndPassword(auth, trimmedEmail, password);
+            const result = await signInWithEmailAndPassword(
+                auth,
+                trimmedEmail,
+                password
+            );
             await finishLogin(result.user);
         } catch (error) {
             console.error('Error during email auth', error);
             loginCompletedRef.current = false;
 
-            const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
+            const code =
+                typeof error === 'object' && error && 'code' in error
+                    ? String(error.code)
+                    : '';
 
             if (code.includes('auth/email-already-in-use')) {
                 setFormError('Denne e-posten er allerede i bruk.');
-            } else if (code.includes('auth/invalid-credential') || code.includes('auth/wrong-password') || code.includes('auth/user-not-found')) {
+            } else if (
+                code.includes('auth/invalid-credential') ||
+                code.includes('auth/wrong-password') ||
+                code.includes('auth/user-not-found')
+            ) {
                 setFormError('Ugyldig e-post eller passord.');
             } else if (code.includes('auth/invalid-email')) {
                 setFormError('E-postadressen er ugyldig.');
@@ -242,7 +260,9 @@ export default function LoginPage() {
                     <div>
                         <p className="text-2xl font-semibold">Svelta</p>
                         <p className="mt-1 text-sm text-neutral-500">
-                            {loading ? 'Gjør klar kontoen din…' : 'Logger deg inn…'}
+                            {loading
+                                ? 'Gjør klar kontoen din…'
+                                : 'Logger deg inn…'}
                         </p>
                     </div>
                 </div>
@@ -271,7 +291,9 @@ export default function LoginPage() {
                                     onClick={() => setMode('signin')}
                                     className={[
                                         'flex-1 rounded-full px-4 py-2.5 text-sm font-semibold transition',
-                                        mode === 'signin' ? 'bg-white text-[#201d17] shadow-sm' : 'text-[#6b665b]',
+                                        mode === 'signin'
+                                            ? 'bg-white text-[#201d17] shadow-sm'
+                                            : 'text-[#6b665b]',
                                     ].join(' ')}
                                 >
                                     Logg inn
@@ -281,26 +303,37 @@ export default function LoginPage() {
                                     onClick={() => setMode('signup')}
                                     className={[
                                         'flex-1 rounded-full px-4 py-2.5 text-sm font-semibold transition',
-                                        mode === 'signup' ? 'bg-white text-[#201d17] shadow-sm' : 'text-[#6b665b]',
+                                        mode === 'signup'
+                                            ? 'bg-white text-[#201d17] shadow-sm'
+                                            : 'text-[#6b665b]',
                                     ].join(' ')}
                                 >
                                     Opprett konto
                                 </button>
                             </div>
 
-                            <form onSubmit={handleCredentialsAuth} className="mt-6 space-y-4">
+                            <form
+                                onSubmit={handleCredentialsAuth}
+                                className="mt-6 space-y-4"
+                            >
                                 <div
                                     className={[
                                         'grid transition-all duration-300 ease-out',
-                                        isSignup ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+                                        isSignup
+                                            ? 'grid-rows-[1fr] opacity-100'
+                                            : 'grid-rows-[0fr] opacity-0',
                                     ].join(' ')}
                                 >
                                     <div className="overflow-hidden">
                                         <label className="mb-4 block">
-                                            <span className="mb-2 block text-sm font-medium text-[#2e2a23]">Navn</span>
+                                            <span className="mb-2 block text-sm font-medium text-[#2e2a23]">
+                                                Navn
+                                            </span>
                                             <input
                                                 value={name}
-                                                onChange={(e) => setName(e.target.value)}
+                                                onChange={(e) =>
+                                                    setName(e.target.value)
+                                                }
                                                 placeholder="Ditt navn"
                                                 className="w-full rounded-2xl border border-[#ddd6c8] bg-[#fbfaf5] px-4 py-3 text-[#201d17] outline-none transition placeholder:text-[#9a9385] focus:border-[#c8c0b1] focus:bg-white"
                                                 autoComplete="name"
@@ -310,11 +343,15 @@ export default function LoginPage() {
                                 </div>
 
                                 <label className="block">
-                                    <span className="mb-2 block text-sm font-medium text-[#2e2a23]">E-post</span>
+                                    <span className="mb-2 block text-sm font-medium text-[#2e2a23]">
+                                        E-post
+                                    </span>
                                     <input
                                         type="email"
                                         value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        onChange={(e) =>
+                                            setEmail(e.target.value)
+                                        }
                                         placeholder="navn@epost.no"
                                         className="w-full rounded-2xl border border-[#ddd6c8] bg-[#fbfaf5] px-4 py-3 text-[#201d17] outline-none transition placeholder:text-[#9a9385] focus:border-[#c8c0b1] focus:bg-white"
                                         autoComplete="email"
@@ -322,30 +359,50 @@ export default function LoginPage() {
                                 </label>
 
                                 <label className="block">
-                                    <span className="mb-2 block text-sm font-medium text-[#2e2a23]">Passord</span>
+                                    <span className="mb-2 block text-sm font-medium text-[#2e2a23]">
+                                        Passord
+                                    </span>
                                     <input
                                         type="password"
                                         value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        placeholder={isSignup ? 'Minst 6 tegn' : 'Passord'}
+                                        onChange={(e) =>
+                                            setPassword(e.target.value)
+                                        }
+                                        placeholder={
+                                            isSignup
+                                                ? 'Minst 6 tegn'
+                                                : 'Passord'
+                                        }
                                         className="w-full rounded-2xl border border-[#ddd6c8] bg-[#fbfaf5] px-4 py-3 text-[#201d17] outline-none transition placeholder:text-[#9a9385] focus:border-[#c8c0b1] focus:bg-white"
-                                        autoComplete={isSignup ? 'new-password' : 'current-password'}
+                                        autoComplete={
+                                            isSignup
+                                                ? 'new-password'
+                                                : 'current-password'
+                                        }
                                     />
                                 </label>
 
                                 <div
                                     className={[
                                         'grid transition-all duration-300 ease-out',
-                                        isSignup ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+                                        isSignup
+                                            ? 'grid-rows-[1fr] opacity-100'
+                                            : 'grid-rows-[0fr] opacity-0',
                                     ].join(' ')}
                                 >
                                     <div className="overflow-hidden">
                                         <label className="block">
-                                            <span className="mb-2 block text-sm font-medium text-[#2e2a23]">Gjenta passord</span>
+                                            <span className="mb-2 block text-sm font-medium text-[#2e2a23]">
+                                                Gjenta passord
+                                            </span>
                                             <input
                                                 type="password"
                                                 value={confirmPassword}
-                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                onChange={(e) =>
+                                                    setConfirmPassword(
+                                                        e.target.value
+                                                    )
+                                                }
                                                 placeholder="Gjenta passord"
                                                 className="w-full rounded-2xl border border-[#ddd6c8] bg-[#fbfaf5] px-4 py-3 text-[#201d17] outline-none transition placeholder:text-[#9a9385] focus:border-[#c8c0b1] focus:bg-white"
                                                 autoComplete="new-password"
@@ -381,16 +438,24 @@ export default function LoginPage() {
                                 disabled={loading || authResolving}
                                 className="flex w-full items-center justify-center gap-3 rounded-full border border-[#ddd6c8] bg-[#fbfaf5] px-6 py-3 font-semibold text-[#201d17] transition hover:border-[#cfc7b7] hover:bg-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                <Image src={"/google_logo.png"} alt={"Google logo"} width={24} height={24} />
-
+                                <Image
+                                    src={'/google_logo.png'}
+                                    alt={'Google logo'}
+                                    width={24}
+                                    height={24}
+                                />
                                 Fortsett med Google
                             </button>
 
                             <p className="mt-6 text-center text-sm text-[#7a7468]">
-                                {isSignup ? 'Har du allerede konto?' : 'Har du ikke konto ennå?'}{' '}
+                                {isSignup
+                                    ? 'Har du allerede konto?'
+                                    : 'Har du ikke konto ennå?'}{' '}
                                 <button
                                     type="button"
-                                    onClick={() => setMode(isSignup ? 'signin' : 'signup')}
+                                    onClick={() =>
+                                        setMode(isSignup ? 'signin' : 'signup')
+                                    }
                                     className="font-semibold text-[#201d17] underline underline-offset-4"
                                 >
                                     {isSignup ? 'Logg inn' : 'Opprett konto'}

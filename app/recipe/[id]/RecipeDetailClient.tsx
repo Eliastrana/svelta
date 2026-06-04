@@ -25,7 +25,11 @@ type RecipeForDetail = {
     title: string;
     description?: string;
     coverImage?: string;
-    cookingSteps: Array<{ title: string; description: string; imageUrl?: string }>;
+    cookingSteps: Array<{
+        title: string;
+        description: string;
+        imageUrl?: string;
+    }>;
     temperature?: string;
     cookingTime?: string;
     portions?: string;
@@ -74,7 +78,10 @@ const RecipeDetailSkeleton: React.FC = () => {
 
                     <div className="grid grid-cols-3 gap-2">
                         {Array.from({ length: 3 }).map((_, i) => (
-                            <div key={i} className="h-[86px] rounded-xl bg-[#f2f1e8]" />
+                            <div
+                                key={i}
+                                className="h-[86px] rounded-xl bg-[#f2f1e8]"
+                            />
                         ))}
                     </div>
 
@@ -82,7 +89,10 @@ const RecipeDetailSkeleton: React.FC = () => {
                         <div className="h-8 w-44 rounded-xl bg-slate-200" />
                         <div className="mt-8 space-y-3">
                             {Array.from({ length: 6 }).map((_, i) => (
-                                <div key={i} className="h-5 w-52 rounded bg-slate-200" />
+                                <div
+                                    key={i}
+                                    className="h-5 w-52 rounded bg-slate-200"
+                                />
                             ))}
                         </div>
                     </div>
@@ -115,7 +125,9 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
     const currentUid = auth.currentUser?.uid ?? '';
     const viewerFollowing = useUserFollowing(currentUid);
     const isLoggedIn = Boolean(currentUid);
-    const isOwner = Boolean(recipe && currentUid && recipe.userId === currentUid);
+    const isOwner = Boolean(
+        recipe && currentUid && recipe.userId === currentUid
+    );
 
     const goLogin = useCallback(() => {
         const next = window.location.pathname + window.location.search;
@@ -131,19 +143,23 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
 
             fn();
         },
-        [isLoggedIn, goLogin],
+        [isLoggedIn, goLogin]
     );
 
     const ingredientsToRender: IngredientDetailed[] = useMemo(() => {
         if (!recipe) return [];
 
-        return recipe.ingredientsDetailed && recipe.ingredientsDetailed.length > 0
+        return recipe.ingredientsDetailed &&
+            recipe.ingredientsDetailed.length > 0
             ? recipe.ingredientsDetailed
-                .map((i) => ({ name: i.name.trim(), amount: i.amount.trim() }))
-                .filter((i) => i.name.length > 0)
+                  .map((i) => ({
+                      name: i.name.trim(),
+                      amount: i.amount.trim(),
+                  }))
+                  .filter((i) => i.name.length > 0)
             : (recipe.ingredients ?? [])
-                .map((s) => ({ name: String(s).trim(), amount: '' }))
-                .filter((i) => i.name.length > 0);
+                  .map((s) => ({ name: String(s).trim(), amount: '' }))
+                  .filter((i) => i.name.length > 0);
     }, [recipe]);
 
     useEffect(() => {
@@ -159,7 +175,9 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
         }
 
         try {
-            const savedValue = window.localStorage.getItem(`recipe-step-checks:${id}`);
+            const savedValue = window.localStorage.getItem(
+                `recipe-step-checks:${id}`
+            );
             if (!savedValue) {
                 setCheckedSteps(fallback);
                 return;
@@ -171,7 +189,9 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                 return;
             }
 
-            const normalized = recipe.cookingSteps.map((_, index) => Boolean(parsed[index]));
+            const normalized = recipe.cookingSteps.map((_, index) =>
+                Boolean(parsed[index])
+            );
             setCheckedSteps(normalized);
         } catch (error) {
             console.debug('Could not read recipe step checks:', error);
@@ -183,7 +203,10 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
         if (!recipe || typeof window === 'undefined') return;
 
         try {
-            window.localStorage.setItem(`recipe-step-checks:${id}`, JSON.stringify(checkedSteps));
+            window.localStorage.setItem(
+                `recipe-step-checks:${id}`,
+                JSON.stringify(checkedSteps)
+            );
         } catch (error) {
             console.debug('Could not store recipe step checks:', error);
         }
@@ -196,7 +219,9 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
         setWakeLockSupported(Boolean(wakeLockApi?.request));
 
         try {
-            const savedPreference = window.localStorage.getItem('recipe-wake-lock-enabled');
+            const savedPreference = window.localStorage.getItem(
+                'recipe-wake-lock-enabled'
+            );
             setWakeLockEnabled(savedPreference === 'true');
         } catch (error) {
             console.debug('Could not read wake lock preference:', error);
@@ -207,7 +232,10 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
         if (typeof window === 'undefined') return;
 
         try {
-            window.localStorage.setItem('recipe-wake-lock-enabled', String(wakeLockEnabled));
+            window.localStorage.setItem(
+                'recipe-wake-lock-enabled',
+                String(wakeLockEnabled)
+            );
         } catch (error) {
             console.debug('Could not store wake lock preference:', error);
         }
@@ -262,7 +290,10 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
 
         return () => {
             mounted = false;
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            document.removeEventListener(
+                'visibilitychange',
+                handleVisibilityChange
+            );
             void releaseWakeLock();
         };
     }, [wakeLockEnabled, wakeLockSupported]);
@@ -280,9 +311,13 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
             <div className="min-h-screen bg-[#fbfaf4] px-4 py-10 text-[#12340d]">
                 <div className="mx-auto max-w-xl rounded-2xl bg-[#f2f1e8] p-6 text-center shadow-sm">
                     <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-[#e5e5d7]">
-                        <span className="material-symbols-outlined text-[28px]">lock</span>
+                        <span className="material-symbols-outlined text-[28px]">
+                            lock
+                        </span>
                     </div>
-                    <h1 className="text-2xl font-bold">Denne oppskriften er privat</h1>
+                    <h1 className="text-2xl font-bold">
+                        Denne oppskriften er privat
+                    </h1>
                     <p className="mt-3 text-sm leading-relaxed text-[#496444]">
                         Bare folk som følger kokken kan se denne oppskriften.
                     </p>
@@ -298,7 +333,9 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                         ) : null}
                         <button
                             type="button"
-                            onClick={() => router.push(`/user/${recipe.userId}`)}
+                            onClick={() =>
+                                router.push(`/user/${recipe.userId}`)
+                            }
                             className="rounded-full bg-[#e5e5d7] px-5 py-2.5 font-semibold text-[#12340d] transition hover:bg-[#d8d7cb]"
                         >
                             Gå til profil
@@ -328,7 +365,11 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
     };
 
     const toggleStep = (index: number) => {
-        setCheckedSteps((prev) => prev.map((value, currentIndex) => (currentIndex === index ? !value : value)));
+        setCheckedSteps((prev) =>
+            prev.map((value, currentIndex) =>
+                currentIndex === index ? !value : value
+            )
+        );
     };
 
     const resetCheckedSteps = () => {
@@ -342,7 +383,8 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                 <div className="min-w-0 space-y-3 lg:sticky lg:top-4 lg:self-start lg:h-fit">
                     {/* Intro card */}
                     <section className="min-w-0 overflow-hidden rounded-xl bg-[#f2f1e8] p-6 md:p-8">
-                        {Array.isArray(recipe.tags) && recipe.tags.length > 0 ? (
+                        {Array.isArray(recipe.tags) &&
+                        recipe.tags.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                                 {recipe.tags.map((t) => (
                                     <span
@@ -357,7 +399,10 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
 
                         {/* Cleaner rating */}
                         <div className="mt-8">
-                            <RatingStars recipeId={recipe.id} variant="compact" />
+                            <RatingStars
+                                recipeId={recipe.id}
+                                variant="compact"
+                            />
                         </div>
 
                         <h1 className="mt-7 text-5xl font-bold leading-none tracking-tight text-[#12340d] [overflow-wrap:anywhere] md:text-[52px]">
@@ -391,28 +436,30 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                         )}
                     </section>
 
-                        {/* Mobile image */}
-                        {recipe.coverImage && (
-                            <section className="lg:hidden">
-                                <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#f2f1e8]">
-                                    <Image
-                                        src={recipe.coverImage}
-                                        alt={`${recipe.title} cover`}
-                                        fill
-                                        className="object-cover"
-                                        priority
-                                        sizes="100vw"
-                                        quality={75}
-                                    />
-                                </div>
-                            </section>
-                        )}
+                    {/* Mobile image */}
+                    {recipe.coverImage && (
+                        <section className="lg:hidden">
+                            <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#f2f1e8]">
+                                <Image
+                                    src={recipe.coverImage}
+                                    alt={`${recipe.title} cover`}
+                                    fill
+                                    className="object-cover"
+                                    priority
+                                    sizes="100vw"
+                                    quality={75}
+                                />
+                            </div>
+                        </section>
+                    )}
 
-                        {/* Creator / Like / Save cards */}
-                        <section className="grid grid-cols-3 gap-2">
+                    {/* Creator / Like / Save cards */}
+                    <section className="grid grid-cols-3 gap-2">
                         <button
                             type="button"
-                            onClick={() => router.push(`/user/${recipe.userId}`)}
+                            onClick={() =>
+                                router.push(`/user/${recipe.userId}`)
+                            }
                             className="flex h-[86px] flex-col items-center justify-center rounded-xl bg-[#f2f1e8] px-2 text-center text-xs transition hover:bg-[#e8e7dc]"
                         >
                             <div className="mb-1 h-8 w-8 overflow-hidden rounded-full bg-[#deded0]">
@@ -443,17 +490,21 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                 recipeId={recipe.id}
                                 variant="compact"
                                 onRequireLogin={() => {
-                                    const next = window.location.pathname + window.location.search;
-                                    router.push(`/login?next=${encodeURIComponent(next)}`);
+                                    const next =
+                                        window.location.pathname +
+                                        window.location.search;
+                                    router.push(
+                                        `/login?next=${encodeURIComponent(next)}`
+                                    );
                                 }}
                             />
                         </div>
 
-
-
                         <button
                             type="button"
-                            onClick={() => requireAuth(() => setShowAddModal(true))}
+                            onClick={() =>
+                                requireAuth(() => setShowAddModal(true))
+                            }
                             className="flex h-[86px] flex-col items-center justify-center rounded-xl bg-[#f2f1e8] text-xs transition hover:bg-[#e8e7dc]"
                         >
                             <span className="material-symbols-outlined mb-1 text-[28px]">
@@ -461,35 +512,39 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                             </span>
                             Lagre
                         </button>
-                        </section>
+                    </section>
 
-                        <section className="rounded-xl bg-[#f2f1e8] px-5 py-4">
-                            <label className="flex items-center justify-between gap-4">
-                                <div>
-                                    <p className="text-sm font-semibold text-[#12340d]">Hold skjermen våken</p>
-                                    <p className="mt-1 text-xs text-[#496444]">
-                                        {wakeLockSupported
-                                            ? 'Skjermen holdes på mens du følger oppskriften.'
-                                            : 'Ikke støttet i denne nettleseren.'}
-                                    </p>
-                                </div>
+                    <section className="rounded-xl bg-[#f2f1e8] px-5 py-4">
+                        <label className="flex items-center justify-between gap-4">
+                            <div>
+                                <p className="text-sm font-semibold text-[#12340d]">
+                                    Hold skjermen våken
+                                </p>
+                                <p className="mt-1 text-xs text-[#496444]">
+                                    {wakeLockSupported
+                                        ? 'Skjermen holdes på mens du følger oppskriften.'
+                                        : 'Ikke støttet i denne nettleseren.'}
+                                </p>
+                            </div>
 
-                                <span className="relative inline-flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        checked={wakeLockEnabled}
-                                        onChange={(e) => setWakeLockEnabled(e.target.checked)}
-                                        className="peer sr-only"
-                                        disabled={!wakeLockSupported}
-                                    />
-                                    <span className="h-7 w-12 rounded-full bg-slate-300 transition-colors duration-200 peer-checked:bg-[#12340d] peer-disabled:opacity-50" />
-                                    <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 peer-checked:translate-x-5 peer-disabled:opacity-80" />
-                                </span>
-                            </label>
-                        </section>
+                            <span className="relative inline-flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={wakeLockEnabled}
+                                    onChange={(e) =>
+                                        setWakeLockEnabled(e.target.checked)
+                                    }
+                                    className="peer sr-only"
+                                    disabled={!wakeLockSupported}
+                                />
+                                <span className="h-7 w-12 rounded-full bg-slate-300 transition-colors duration-200 peer-checked:bg-[#12340d] peer-disabled:opacity-50" />
+                                <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 peer-checked:translate-x-5 peer-disabled:opacity-80" />
+                            </span>
+                        </label>
+                    </section>
 
-                        {/* Ingredients card */}
-                        <section className="min-w-0 overflow-hidden rounded-xl bg-[#f2f1e8] p-6 md:p-8">
+                    {/* Ingredients card */}
+                    <section className="min-w-0 overflow-hidden rounded-xl bg-[#f2f1e8] p-6 md:p-8">
                         <h2 className="text-3xl font-bold tracking-tight">
                             Ingredienser
                         </h2>
@@ -499,14 +554,19 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                         {ingredientsToRender.length > 0 ? (
                             <ul className="space-y-3 text-base leading-relaxed">
                                 {ingredientsToRender.map((ing, idx) => (
-                                    <li key={`ing-${idx}`} className="flex min-w-0 gap-2">
+                                    <li
+                                        key={`ing-${idx}`}
+                                        className="flex min-w-0 gap-2"
+                                    >
                                         {ing.amount ? (
                                             <span className="shrink-0 font-medium">
                                                 {ing.amount}
                                             </span>
                                         ) : null}
 
-                                        <span className="min-w-0 [overflow-wrap:anywhere]">{ing.name}</span>
+                                        <span className="min-w-0 [overflow-wrap:anywhere]">
+                                            {ing.name}
+                                        </span>
                                     </li>
                                 ))}
                             </ul>
@@ -515,7 +575,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                 Ingen ingredienser lagt til.
                             </p>
                         )}
-                        </section>
+                    </section>
                 </div>
 
                 {/* RIGHT COLUMN */}
@@ -554,7 +614,9 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                     onClick={resetCheckedSteps}
                                     className="inline-flex items-center gap-2 self-start rounded-full bg-[#e5e5d7] px-4 py-2 text-sm font-semibold text-[#12340d] transition hover:bg-[#d8d7cb] active:scale-[0.99]"
                                 >
-                                    <span className="material-symbols-outlined text-[18px]">restart_alt</span>
+                                    <span className="material-symbols-outlined text-[18px]">
+                                        restart_alt
+                                    </span>
                                     Nullstill
                                 </button>
                             ) : null}
@@ -566,7 +628,9 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                     key={`step-${i}`}
                                     className={[
                                         'border-t border-[#d8d7cb] pt-5 transition-opacity',
-                                        checkedSteps[i] ? 'opacity-70' : 'opacity-100',
+                                        checkedSteps[i]
+                                            ? 'opacity-70'
+                                            : 'opacity-100',
                                     ].join(' ')}
                                 >
                                     <div className="flex items-start gap-3">
@@ -579,17 +643,27 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                                     ? 'border-[#12340d] bg-[#12340d] text-white'
                                                     : 'border-[#c7c6b8] bg-[#fbfaf4] text-[#496444] hover:border-[#12340d]',
                                             ].join(' ')}
-                                            aria-label={checkedSteps[i] ? `Marker steg ${i + 1} som ikke fullført` : `Marker steg ${i + 1} som fullført`}
+                                            aria-label={
+                                                checkedSteps[i]
+                                                    ? `Marker steg ${i + 1} som ikke fullført`
+                                                    : `Marker steg ${i + 1} som fullført`
+                                            }
                                             aria-pressed={checkedSteps[i]}
                                         >
-                                            {checkedSteps[i] ? <span className="material-symbols-outlined text-[16px]">check</span> : null}
+                                            {checkedSteps[i] ? (
+                                                <span className="material-symbols-outlined text-[16px]">
+                                                    check
+                                                </span>
+                                            ) : null}
                                         </button>
 
                                         <div className="min-w-0 flex-1">
                                             <h3
                                                 className={[
                                                     'text-xl font-bold [overflow-wrap:anywhere]',
-                                                    checkedSteps[i] ? 'line-through decoration-2' : '',
+                                                    checkedSteps[i]
+                                                        ? 'line-through decoration-2'
+                                                        : '',
                                                 ].join(' ')}
                                             >
                                                 {i + 1}. {step.title}
@@ -623,7 +697,9 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                         <section className="flex flex-wrap gap-2 rounded-xl bg-[#f2f1e8] p-5">
                             <button
                                 type="button"
-                                onClick={() => router.push(`/recipe/edit/${recipe.id}`)}
+                                onClick={() =>
+                                    router.push(`/recipe/edit/${recipe.id}`)
+                                }
                                 className="rounded-full border border-[#12340d] px-4 py-2 text-sm hover:bg-[#12340d] hover:text-white"
                             >
                                 Rediger
@@ -645,7 +721,9 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                             <CommentSection recipeId={recipe.id} />
                         ) : (
                             <div>
-                                <p>Logg inn for å lese og skrive kommentarer.</p>
+                                <p>
+                                    Logg inn for å lese og skrive kommentarer.
+                                </p>
 
                                 <button
                                     type="button"

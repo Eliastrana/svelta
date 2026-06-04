@@ -9,7 +9,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Recipe } from '@/app/types/Recipe';
 import { RecipeDetail } from '@/app/types/RecipeDetail';
 import { fetchRecipeById } from '@/helpers/fetchRecipeById';
-import { DEFAULT_PROFILE_THEME_ID, ProfileTheme } from '@/helpers/profileAppearance';
+import {
+    DEFAULT_PROFILE_THEME_ID,
+    ProfileTheme,
+} from '@/helpers/profileAppearance';
 import { normalizeRecipeVisibility } from '@/helpers/recipeVisibility';
 
 import dayjs from 'dayjs';
@@ -61,14 +64,14 @@ const RecipeCardSkeleton: React.FC = () => {
 };
 
 const RecipeCardComponent: React.FC<RecipeCardProps> = ({
-                                                            recipe,
-                                                            creator,
-                                                            isOwner = false,
-                                                            onDelete,
-                                                            theme,
-                                                            locked = false,
-                                                            onLockedClick,
-                                                        }) => {
+    recipe,
+    creator,
+    isOwner = false,
+    onDelete,
+    theme,
+    locked = false,
+    onLockedClick,
+}) => {
     const router = useRouter();
     const qc = useQueryClient();
 
@@ -103,10 +106,13 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
         };
 
         window.addEventListener('pointerdown', handlePointerDown);
-        return () => window.removeEventListener('pointerdown', handlePointerDown);
+        return () =>
+            window.removeEventListener('pointerdown', handlePointerDown);
     }, [ownerMenuOpen]);
 
-    const createdAtToDate = (createdAt?: Timestamp | Date | number): Date | null => {
+    const createdAtToDate = (
+        createdAt?: Timestamp | Date | number
+    ): Date | null => {
         if (!createdAt) return null;
         if (createdAt instanceof Timestamp) return createdAt.toDate();
         if (createdAt instanceof Date) return createdAt;
@@ -172,8 +178,10 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
 
     const createdAtDate = createdAtToDate(recipe.createdAt);
 
-    const ratingSum = typeof recipe.ratingSum === 'number' ? recipe.ratingSum : 0;
-    const ratingCount = typeof recipe.ratingCount === 'number' ? recipe.ratingCount : 0;
+    const ratingSum =
+        typeof recipe.ratingSum === 'number' ? recipe.ratingSum : 0;
+    const ratingCount =
+        typeof recipe.ratingCount === 'number' ? recipe.ratingCount : 0;
     const avg = ratingCount > 0 ? ratingSum / ratingCount : 0;
     const avgText = avg.toFixed(1).replace('.', ',');
     const visibility = normalizeRecipeVisibility(recipe.visibility);
@@ -213,10 +221,17 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
             onTouchStart={prefetchRecipe}
             role="button"
             tabIndex={0}
-            aria-label={locked ? `${recipe.title} er privat` : `Åpne oppskriften ${recipe.title}`}
+            aria-label={
+                locked
+                    ? `${recipe.title} er privat`
+                    : `Åpne oppskriften ${recipe.title}`
+            }
         >
             {/* Image */}
-            <div className="relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-xl" style={{ backgroundColor: imageFallbackBackground }}>
+            <div
+                className="relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-xl"
+                style={{ backgroundColor: imageFallbackBackground }}
+            >
                 {recipe.coverImage ? (
                     <Image
                         src={recipe.coverImage}
@@ -230,7 +245,10 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                         ].join(' ')}
                     />
                 ) : (
-                    <div className="grid h-full w-full place-items-center" style={{ color: cardMutedText }}>
+                    <div
+                        className="grid h-full w-full place-items-center"
+                        style={{ color: cardMutedText }}
+                    >
                         <span className="material-symbols-outlined text-5xl">
                             restaurant
                         </span>
@@ -245,7 +263,9 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                                 className="grid h-40 w-40 place-items-center "
                                 style={{ color: '#fff8' }}
                             >
-                                <span className="material-symbols-outlined !text-[40px]">lock</span>
+                                <span className="material-symbols-outlined !text-[40px]">
+                                    lock
+                                </span>
                             </div>
                         </div>
                     </>
@@ -256,16 +276,27 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                     {visibility === 'private' && !locked ? (
                         <div
                             className="inline-flex items-center justify-center rounded-full px-2 py-1 text-xs font-bold shadow-sm backdrop-blur"
-                            style={{ backgroundColor: overlayChipBackground, color: chipText }}
+                            style={{
+                                backgroundColor: overlayChipBackground,
+                                color: chipText,
+                            }}
                             aria-label="Privat oppskrift"
                             title="Privat oppskrift"
                         >
-                            <span className="material-symbols-outlined text-[10px]">lock</span>
+                            <span className="material-symbols-outlined text-[10px]">
+                                lock
+                            </span>
                         </div>
                     ) : null}
 
                     {ratingCount > 0 ? (
-                        <div className="inline-flex items-center gap-1 rounded-full px-2 text-xs font-bold shadow-sm backdrop-blur" style={{ backgroundColor: overlayChipBackground, color: chipText }}>
+                        <div
+                            className="inline-flex items-center gap-1 rounded-full px-2 text-xs font-bold shadow-sm backdrop-blur"
+                            style={{
+                                backgroundColor: overlayChipBackground,
+                                color: chipText,
+                            }}
+                        >
                             <span className="material-symbols-outlined text-[16px]">
                                 grade
                             </span>
@@ -274,7 +305,13 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                     ) : null}
 
                     {displayLikes > 0 ? (
-                        <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm backdrop-blur" style={{ backgroundColor: overlayChipBackground, color: chipText }}>
+                        <div
+                            className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm backdrop-blur"
+                            style={{
+                                backgroundColor: overlayChipBackground,
+                                color: chipText,
+                            }}
+                        >
                             <img
                                 src="/icons/chef.png"
                                 alt=""
@@ -315,7 +352,10 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                 </h1>
 
                 {recipe.description ? (
-                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed md:text-base" style={{ color: cardMutedText }}>
+                    <p
+                        className="mt-2 line-clamp-2 text-sm leading-relaxed md:text-base"
+                        style={{ color: cardMutedText }}
+                    >
                         {recipe.description}
                     </p>
                 ) : null}
@@ -329,7 +369,13 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                     className="flex min-w-0 items-center gap-2 text-left transition hover:opacity-80"
                     aria-label={`Gå til profilen til ${userName}`}
                 >
-                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full" style={{ backgroundColor: imageFallbackBackground, borderColor: `${theme?.main ?? '#d8d7cb'}33` }}>
+                    <div
+                        className="h-10 w-10 shrink-0 overflow-hidden rounded-full"
+                        style={{
+                            backgroundColor: imageFallbackBackground,
+                            borderColor: `${theme?.main ?? '#d8d7cb'}33`,
+                        }}
+                    >
                         {userPhoto ? (
                             <Image
                                 src={userPhoto}
@@ -339,18 +385,27 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                                 className="h-full w-full object-cover"
                             />
                         ) : (
-                            <div className="grid h-full w-full place-items-center" style={{ color: cardMutedText }}>
+                            <div
+                                className="grid h-full w-full place-items-center"
+                                style={{ color: cardMutedText }}
+                            >
                                 🧑‍🍳
                             </div>
                         )}
                     </div>
 
                     <div className="min-w-0">
-                        <p className="truncate text-sm font-bold" style={{ color: cardText }}>
+                        <p
+                            className="truncate text-sm font-bold"
+                            style={{ color: cardText }}
+                        >
                             {userName}
                         </p>
 
-                        <p className="truncate text-xs" style={{ color: cardSubtleText }}>
+                        <p
+                            className="truncate text-xs"
+                            style={{ color: cardSubtleText }}
+                        >
                             {createdAtDate
                                 ? dayjs(createdAtDate).fromNow()
                                 : 'Akkurat nå'}
@@ -361,7 +416,13 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                 {/* Bottom stats */}
                 <div className="flex shrink-0 items-center gap-2 text-sm">
                     {displayComments > 0 ? (
-                        <div className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-medium" style={{ backgroundColor: chipBackground, color: chipText }}>
+                        <div
+                            className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-medium"
+                            style={{
+                                backgroundColor: chipBackground,
+                                color: chipText,
+                            }}
+                        >
                             <span className="material-symbols-outlined text-[17px]">
                                 mode_comment
                             </span>
@@ -370,7 +431,13 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                     ) : null}
 
                     {recipe.cookingTime ? (
-                        <div className="hidden items-center gap-1 rounded-full px-2.5 py-1 font-medium sm:inline-flex" style={{ backgroundColor: chipBackground, color: chipText }}>
+                        <div
+                            className="hidden items-center gap-1 rounded-full px-2.5 py-1 font-medium sm:inline-flex"
+                            style={{
+                                backgroundColor: chipBackground,
+                                color: chipText,
+                            }}
+                        >
                             <span className="material-symbols-outlined text-[17px]">
                                 schedule
                             </span>
@@ -382,7 +449,10 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
 
             {/* Owner controls */}
             {isOwner && (
-                <div ref={ownerMenuRef} className="absolute top-5 left-5 z-20 flex items-start gap-2">
+                <div
+                    ref={ownerMenuRef}
+                    className="absolute top-5 left-5 z-20 flex items-start gap-2"
+                >
                     <button
                         type="button"
                         onClick={(e) => {
@@ -390,7 +460,10 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                             setOwnerMenuOpen((prev) => !prev);
                         }}
                         className="grid h-9 w-9 shrink-0 place-items-center rounded-full shadow-sm backdrop-blur transition"
-                        style={{ backgroundColor: ownerButtonBackground, color: chipText }}
+                        style={{
+                            backgroundColor: ownerButtonBackground,
+                            color: chipText,
+                        }}
                         title="Flere valg"
                         aria-label="Flere valg"
                         aria-expanded={ownerMenuOpen}
@@ -412,7 +485,10 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                             type="button"
                             onClick={handleEdit}
                             className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition"
-                            style={{ backgroundColor: ownerMenuEditBackground, color: chipText }}
+                            style={{
+                                backgroundColor: ownerMenuEditBackground,
+                                color: chipText,
+                            }}
                             title="Rediger oppskrift"
                             aria-label="Rediger oppskrift"
                         >

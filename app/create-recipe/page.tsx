@@ -40,7 +40,6 @@ type StepWithId = CookingStep & {
 type Ingredient = { name: string; amount: string };
 type IngredientWithId = Ingredient & { id: string };
 
-
 const makeId = (prefix: 'step' | 'ing'): string => {
     const base =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -50,7 +49,8 @@ const makeId = (prefix: 'step' | 'ing'): string => {
 };
 
 const getStoredStepImage = (step: Partial<StepWithId>): string => {
-    if (step.imagePreview && !step.imagePreview.startsWith('blob:')) return step.imagePreview;
+    if (step.imagePreview && !step.imagePreview.startsWith('blob:'))
+        return step.imagePreview;
     return step.imageUrl?.trim() || '';
 };
 
@@ -61,14 +61,29 @@ const revokeBlobUrl = (url?: string | null) => {
 function SortableStepCard(props: {
     step: StepWithId;
     index: number;
-    onChange: (id: string, field: 'title' | 'description', value: string) => void;
-    onImageChange: (id: string, event: React.ChangeEvent<HTMLInputElement>) => void;
+    onChange: (
+        id: string,
+        field: 'title' | 'description',
+        value: string
+    ) => void;
+    onImageChange: (
+        id: string,
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => void;
     onRemoveImage: (id: string) => void;
     onRemove: (id: string) => void;
 }) {
-    const { step, index, onChange, onImageChange, onRemoveImage, onRemove } = props;
+    const { step, index, onChange, onImageChange, onRemoveImage, onRemove } =
+        props;
 
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
         id: step.id,
         data: { type: 'step' as const },
     });
@@ -94,33 +109,45 @@ function SortableStepCard(props: {
                             {...attributes}
                             {...listeners}
                         >
-                            <span className="material-symbols-outlined text-slate-600">drag_indicator</span>
+                            <span className="material-symbols-outlined text-slate-600">
+                                drag_indicator
+                            </span>
                         </button>
 
-                        <label className="block text-sm font-semibold text-slate-900">Steg {index + 1} – tittel</label>
+                        <label className="block text-sm font-semibold text-slate-900">
+                            Steg {index + 1} – tittel
+                        </label>
                     </div>
 
                     <input
                         type="text"
                         placeholder="f.eks. Forvarm ovnen"
                         value={step.title}
-                        onChange={(e) => onChange(step.id, 'title', e.target.value)}
+                        onChange={(e) =>
+                            onChange(step.id, 'title', e.target.value)
+                        }
                         className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                         required
                     />
 
-                    <label className="block text-sm font-semibold text-slate-900 mt-3 mb-2">Beskrivelse</label>
+                    <label className="block text-sm font-semibold text-slate-900 mt-3 mb-2">
+                        Beskrivelse
+                    </label>
                     <textarea
                         placeholder="Hva gjør man her?"
                         value={step.description}
-                        onChange={(e) => onChange(step.id, 'description', e.target.value)}
+                        onChange={(e) =>
+                            onChange(step.id, 'description', e.target.value)
+                        }
                         className="w-full min-h-[90px] p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                         required
                     />
 
                     <div className="mt-3">
                         <div className="mb-2 flex items-center justify-between gap-2">
-                            <label className="block text-sm font-semibold text-slate-900">Stegbilde</label>
+                            <label className="block text-sm font-semibold text-slate-900">
+                                Stegbilde
+                            </label>
                             {step.imagePreview || step.imageUrl ? (
                                 <button
                                     type="button"
@@ -133,13 +160,19 @@ function SortableStepCard(props: {
                         </div>
 
                         <label className="flex h-28 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 transition hover:bg-slate-50">
-                            <span className="material-symbols-outlined text-slate-700">photo_camera</span>
-                            <p className="mt-2 text-sm text-slate-600">Legg til bilde for dette steget</p>
+                            <span className="material-symbols-outlined text-slate-700">
+                                photo_camera
+                            </span>
+                            <p className="mt-2 text-sm text-slate-600">
+                                Legg til bilde for dette steget
+                            </p>
                             <input
                                 type="file"
                                 accept="image/*"
                                 className="hidden"
-                                onChange={(event) => onImageChange(step.id, event)}
+                                onChange={(event) =>
+                                    onImageChange(step.id, event)
+                                }
                             />
                         </label>
 
@@ -161,7 +194,9 @@ function SortableStepCard(props: {
                     className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition"
                     aria-label="Slett steg"
                 >
-                    <span className="material-symbols-outlined text-slate-600">delete</span>
+                    <span className="material-symbols-outlined text-slate-600">
+                        delete
+                    </span>
                 </button>
             </div>
         </div>
@@ -177,15 +212,25 @@ function SortableIngredientCard(props: {
     const { item, index, onChange, onRemove } = props;
     const nameInputRef = useRef<HTMLInputElement | null>(null);
     const [showAutoIndicator, setShowAutoIndicator] = useState(false);
-    const indicatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const indicatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+        null
+    );
 
     useEffect(() => {
         return () => {
-            if (indicatorTimeoutRef.current) clearTimeout(indicatorTimeoutRef.current);
+            if (indicatorTimeoutRef.current)
+                clearTimeout(indicatorTimeoutRef.current);
         };
     }, []);
 
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
         id: item.id,
         data: { type: 'ingredient' as const },
     });
@@ -209,11 +254,15 @@ function SortableIngredientCard(props: {
                     {...attributes}
                     {...listeners}
                 >
-                    <span className="material-symbols-outlined text-slate-600">drag_indicator</span>
+                    <span className="material-symbols-outlined text-slate-600">
+                        drag_indicator
+                    </span>
                 </button>
 
                 <div className="flex-1">
-                    <label className="mb-2 block text-sm font-semibold text-slate-900">Ingrediens {index + 1}</label>
+                    <label className="mb-2 block text-sm font-semibold text-slate-900">
+                        Ingrediens {index + 1}
+                    </label>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                         <div className="relative sm:col-span-1">
                             <input
@@ -221,23 +270,39 @@ function SortableIngredientCard(props: {
                                 placeholder="Mengde (f.eks. 2 ss / 150 g)"
                                 value={item.amount}
                                 onChange={(e) => {
-                                    const parsed = normalizeIngredientAmountInput(e.target.value);
-                                    onChange(item.id, 'amount', parsed.formatted);
+                                    const parsed =
+                                        normalizeIngredientAmountInput(
+                                            e.target.value
+                                        );
+                                    onChange(
+                                        item.id,
+                                        'amount',
+                                        parsed.formatted
+                                    );
                                     if (parsed.isCompleteAmount) {
-                                        if (indicatorTimeoutRef.current) clearTimeout(indicatorTimeoutRef.current);
+                                        if (indicatorTimeoutRef.current)
+                                            clearTimeout(
+                                                indicatorTimeoutRef.current
+                                            );
                                         setShowAutoIndicator(true);
-                                        indicatorTimeoutRef.current = setTimeout(() => {
-                                            setShowAutoIndicator(false);
-                                            indicatorTimeoutRef.current = null;
-                                        }, 1800);
-                                        requestAnimationFrame(() => nameInputRef.current?.focus());
+                                        indicatorTimeoutRef.current =
+                                            setTimeout(() => {
+                                                setShowAutoIndicator(false);
+                                                indicatorTimeoutRef.current =
+                                                    null;
+                                            }, 1800);
+                                        requestAnimationFrame(() =>
+                                            nameInputRef.current?.focus()
+                                        );
                                     }
                                 }}
                                 className="w-full rounded-2xl border border-slate-200 p-3 pr-20 focus:outline-none focus:ring-2 focus:ring-slate-200"
                             />
                             {showAutoIndicator ? (
                                 <span className="pointer-events-none absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 rounded-full bg-[#eaf6e5] px-2 py-1 text-[11px] font-semibold text-[#365d2c]">
-                                    <span className="material-symbols-outlined text-[14px]">check</span>
+                                    <span className="material-symbols-outlined text-[14px]">
+                                        check
+                                    </span>
                                     Auto
                                 </span>
                             ) : null}
@@ -247,7 +312,9 @@ function SortableIngredientCard(props: {
                             type="text"
                             placeholder="Ingrediens (f.eks. sukker)"
                             value={item.name}
-                            onChange={(e) => onChange(item.id, 'name', e.target.value)}
+                            onChange={(e) =>
+                                onChange(item.id, 'name', e.target.value)
+                            }
                             className="w-full rounded-2xl border border-slate-200 p-3 focus:outline-none focus:ring-2 focus:ring-slate-200 sm:col-span-2"
                         />
                     </div>
@@ -259,7 +326,9 @@ function SortableIngredientCard(props: {
                     className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100 transition"
                     aria-label="Slett ingrediens"
                 >
-                    <span className="material-symbols-outlined text-slate-600">delete</span>
+                    <span className="material-symbols-outlined text-slate-600">
+                        delete
+                    </span>
                 </button>
             </div>
         </div>
@@ -276,12 +345,15 @@ const CreateRecipe = () => {
     const [cookingSteps, setCookingSteps] = useState<StepWithId[]>([]);
 
     const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
-    const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+    const [coverImagePreview, setCoverImagePreview] = useState<string | null>(
+        null
+    );
 
     const [ingredients, setIngredients] = useState<IngredientWithId[]>([]);
     const [newIngredientName, setNewIngredientName] = useState('');
     const [newIngredientAmount, setNewIngredientAmount] = useState('');
-    const [showIngredientAmountIndicator, setShowIngredientAmountIndicator] = useState(false);
+    const [showIngredientAmountIndicator, setShowIngredientAmountIndicator] =
+        useState(false);
 
     const [temperature, setTemperature] = useState('');
     const [cookingTime, setCookingTime] = useState('');
@@ -293,7 +365,9 @@ const CreateRecipe = () => {
     const cookingStepsRef = useRef<StepWithId[]>([]);
     const newIngredientAmountRef = useRef<HTMLInputElement | null>(null);
     const newIngredientNameRef = useRef<HTMLInputElement | null>(null);
-    const ingredientHintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const ingredientHintTimeoutRef = useRef<ReturnType<
+        typeof setTimeout
+    > | null>(null);
 
     const router = useRouter();
 
@@ -326,9 +400,14 @@ const CreateRecipe = () => {
                 body: JSON.stringify({ url }),
             });
 
-            const data = (await res.json()) as ImportRecipeResponse & { error?: string };
+            const data = (await res.json()) as ImportRecipeResponse & {
+                error?: string;
+            };
 
-            if (!res.ok) throw new Error(data.error || 'Kunne ikke importere oppskrift.');
+            if (!res.ok)
+                throw new Error(
+                    data.error || 'Kunne ikke importere oppskrift.'
+                );
 
             // Prefyll felter (jeg overskriver her – enklest og mest forutsigbart)
             if (data.title) setTitle(data.title);
@@ -346,7 +425,7 @@ const CreateRecipe = () => {
                             name: (i.name ?? '').trim(),
                             amount: (i.amount ?? '').trim(),
                         }))
-                        .filter((i) => i.name.length > 0),
+                        .filter((i) => i.name.length > 0)
                 );
             }
 
@@ -361,7 +440,7 @@ const CreateRecipe = () => {
                             imagePreview: s.imageUrl?.trim() || '',
                             imageFile: null,
                         }))
-                        .filter((s) => s.description.length > 0),
+                        .filter((s) => s.description.length > 0)
                 );
             }
 
@@ -372,18 +451,22 @@ const CreateRecipe = () => {
             }
         } catch (e) {
             console.error(e);
-            setImportError(e instanceof Error ? e.message : 'Kunne ikke importere oppskrift.');
+            setImportError(
+                e instanceof Error
+                    ? e.message
+                    : 'Kunne ikke importere oppskrift.'
+            );
         } finally {
             setImporting(false);
         }
     };
 
-
     // ✅ success modal state
     const [createdRecipeId, setCreatedRecipeId] = useState<string>('');
 
     const showIngredientHint = (visible: boolean) => {
-        if (ingredientHintTimeoutRef.current) clearTimeout(ingredientHintTimeoutRef.current);
+        if (ingredientHintTimeoutRef.current)
+            clearTimeout(ingredientHintTimeoutRef.current);
         setShowIngredientAmountIndicator(visible);
         if (!visible) return;
         ingredientHintTimeoutRef.current = setTimeout(() => {
@@ -430,7 +513,10 @@ const CreateRecipe = () => {
         const loadedSteps = formData.cookingSteps || [];
         setCookingSteps(
             loadedSteps.map((s) => {
-                const step = 'id' in s ? (s as StepWithId) : { ...(s as CookingStep), id: makeId('step') };
+                const step =
+                    'id' in s
+                        ? (s as StepWithId)
+                        : { ...(s as CookingStep), id: makeId('step') };
                 const storedImage = getStoredStepImage(step);
                 return {
                     ...step,
@@ -438,15 +524,23 @@ const CreateRecipe = () => {
                     imagePreview: storedImage || null,
                     imageFile: null,
                 };
-            }),
+            })
         );
 
         const detailed = formData.ingredientsDetailed || [];
         if (detailed.length > 0) {
-            setIngredients(detailed.map((i) => ('id' in i ? (i as IngredientWithId) : { ...(i as Ingredient), id: makeId('ing') })));
+            setIngredients(
+                detailed.map((i) =>
+                    'id' in i
+                        ? (i as IngredientWithId)
+                        : { ...(i as Ingredient), id: makeId('ing') }
+                )
+            );
         } else {
             const old = formData.ingredients || [];
-            setIngredients(old.map((name) => ({ id: makeId('ing'), name, amount: '' })));
+            setIngredients(
+                old.map((name) => ({ id: makeId('ing'), name, amount: '' }))
+            );
         }
 
         setNewIngredientName(formData.newIngredientName || '');
@@ -470,7 +564,9 @@ const CreateRecipe = () => {
                 imagePreview: getStoredStepImage(step) || null,
             })),
             ingredients: ingredients
-                .map((i) => `${(i.amount || '').trim()} ${(i.name || '').trim()}`.trim())
+                .map((i) =>
+                    `${(i.amount || '').trim()} ${(i.name || '').trim()}`.trim()
+                )
                 .filter(Boolean),
             ingredientsDetailed: ingredients,
             newIngredientName,
@@ -503,12 +599,25 @@ const CreateRecipe = () => {
     const handleAddStep = () => {
         setCookingSteps((prev) => [
             ...prev,
-            { id: makeId('step'), title: '', description: '', imageUrl: '', imagePreview: null, imageFile: null },
+            {
+                id: makeId('step'),
+                title: '',
+                description: '',
+                imageUrl: '',
+                imagePreview: null,
+                imageFile: null,
+            },
         ]);
     };
 
-    const handleStepChange = (id: string, field: 'title' | 'description', value: string) => {
-        setCookingSteps((prev) => prev.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
+    const handleStepChange = (
+        id: string,
+        field: 'title' | 'description',
+        value: string
+    ) => {
+        setCookingSteps((prev) =>
+            prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
+        );
     };
 
     const handleRemoveStep = (id: string) => {
@@ -519,7 +628,10 @@ const CreateRecipe = () => {
         });
     };
 
-    const handleStepImageChange = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleStepImageChange = (
+        id: string,
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => {
         const file = e.target.files?.[0];
         e.target.value = '';
         if (!file) return;
@@ -533,7 +645,7 @@ const CreateRecipe = () => {
                     imageFile: file,
                     imagePreview: URL.createObjectURL(file),
                 };
-            }),
+            })
         );
     };
 
@@ -548,24 +660,34 @@ const CreateRecipe = () => {
                     imagePreview: null,
                     imageUrl: '',
                 };
-            }),
+            })
         );
     };
 
     const handleAddIngredient = () => {
         const name = newIngredientName.trim();
-        const amount = normalizeIngredientAmountInput(newIngredientAmount).formatted;
+        const amount =
+            normalizeIngredientAmountInput(newIngredientAmount).formatted;
         if (!name) return;
 
-        setIngredients((prev) => [...prev, { id: makeId('ing'), name, amount }]);
+        setIngredients((prev) => [
+            ...prev,
+            { id: makeId('ing'), name, amount },
+        ]);
         setNewIngredientName('');
         setNewIngredientAmount('');
         showIngredientHint(false);
         requestAnimationFrame(() => newIngredientAmountRef.current?.focus());
     };
 
-    const handleIngredientChange = (id: string, field: 'name' | 'amount', value: string) => {
-        setIngredients((prev) => prev.map((i) => (i.id === id ? { ...i, [field]: value } : i)));
+    const handleIngredientChange = (
+        id: string,
+        field: 'name' | 'amount',
+        value: string
+    ) => {
+        setIngredients((prev) =>
+            prev.map((i) => (i.id === id ? { ...i, [field]: value } : i))
+        );
     };
 
     const handleRemoveIngredient = (id: string) => {
@@ -592,23 +714,34 @@ const CreateRecipe = () => {
 
     useEffect(() => {
         return () => {
-            if (ingredientHintTimeoutRef.current) clearTimeout(ingredientHintTimeoutRef.current);
+            if (ingredientHintTimeoutRef.current)
+                clearTimeout(ingredientHintTimeoutRef.current);
             revokeBlobUrl(coverImagePreviewRef.current);
-            cookingStepsRef.current.forEach((step) => revokeBlobUrl(step.imagePreview));
+            cookingStepsRef.current.forEach((step) =>
+                revokeBlobUrl(step.imagePreview)
+            );
         };
     }, []);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
     );
 
     const onDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
-        const activeType = active.data.current?.type as 'step' | 'ingredient' | undefined;
-        const overType = over.data.current?.type as 'step' | 'ingredient' | undefined;
+        const activeType = active.data.current?.type as
+            | 'step'
+            | 'ingredient'
+            | undefined;
+        const overType = over.data.current?.type as
+            | 'step'
+            | 'ingredient'
+            | undefined;
         if (!activeType || !overType || activeType !== overType) return;
 
         if (activeType === 'step') {
@@ -639,7 +772,9 @@ const CreateRecipe = () => {
         const t = value.trim();
         if (!t) return;
         setTags((prev) => {
-            const exists = prev.some((x) => x.toLowerCase() === t.toLowerCase());
+            const exists = prev.some(
+                (x) => x.toLowerCase() === t.toLowerCase()
+            );
             if (exists) return prev;
             return [...prev, t].slice(0, 12);
         });
@@ -675,7 +810,10 @@ const CreateRecipe = () => {
                 body: JSON.stringify(payload),
             });
 
-            const data = (await res.json()) as { tags?: string[]; error?: string };
+            const data = (await res.json()) as {
+                tags?: string[];
+                error?: string;
+            };
 
             if (!res.ok) {
                 throw new Error(data.error || 'Kunne ikke generere tags.');
@@ -691,7 +829,6 @@ const CreateRecipe = () => {
             setGeneratingTags(false);
         }
     };
-
 
     const trimmedTitle = useMemo(() => title.trim(), [title]);
 
@@ -709,7 +846,10 @@ const CreateRecipe = () => {
         try {
             let coverImageUrl = '';
             if (coverImageFile) {
-                const imageRef = ref(storage, `recipe-covers/${user.uid}-${Date.now()}-${coverImageFile.name}`);
+                const imageRef = ref(
+                    storage,
+                    `recipe-covers/${user.uid}-${Date.now()}-${coverImageFile.name}`
+                );
                 const snapshot = await uploadBytes(imageRef, coverImageFile);
                 coverImageUrl = await getDownloadURL(snapshot.ref);
             }
@@ -721,9 +861,12 @@ const CreateRecipe = () => {
                     if (s.imageFile) {
                         const imageRef = ref(
                             storage,
-                            `recipe-steps/${user.uid}/${Date.now()}-${index}-${s.imageFile.name}`,
+                            `recipe-steps/${user.uid}/${Date.now()}-${index}-${s.imageFile.name}`
                         );
-                        const snapshot = await uploadBytes(imageRef, s.imageFile);
+                        const snapshot = await uploadBytes(
+                            imageRef,
+                            s.imageFile
+                        );
                         imageUrl = await getDownloadURL(snapshot.ref);
                     }
 
@@ -732,7 +875,7 @@ const CreateRecipe = () => {
                         description: s.description,
                         imageUrl: imageUrl || '',
                     };
-                }),
+                })
             );
 
             const ingredientsDetailedForDb: Ingredient[] = ingredients
@@ -803,7 +946,9 @@ const CreateRecipe = () => {
                         disabled={publishing}
                         className={[
                             'h-10 px-4 rounded-full brown-button text-sm font-semibold shadow-sm transition',
-                            publishing ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95 active:scale-[0.99]',
+                            publishing
+                                ? 'opacity-70 cursor-not-allowed'
+                                : 'hover:opacity-95 active:scale-[0.99]',
                         ].join(' ')}
                     >
                         <span className="inline-flex items-center gap-2">
@@ -818,12 +963,17 @@ const CreateRecipe = () => {
                     </button>
                 </div>
 
-                <form id="create-recipe-form" onSubmit={handleSubmit} className="space-y-4">
-
+                <form
+                    id="create-recipe-form"
+                    onSubmit={handleSubmit}
+                    className="space-y-4"
+                >
                     {/* Import from URL */}
                     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                         <div className="flex items-center justify-between gap-2 mb-2">
-                            <h2 className="text-base font-semibold text-slate-900">Importer fra URL</h2>
+                            <h2 className="text-base font-semibold text-slate-900">
+                                Importer fra URL
+                            </h2>
                         </div>
 
                         <div className="flex gap-2">
@@ -839,25 +989,32 @@ const CreateRecipe = () => {
                                 disabled={importing || !importUrl.trim()}
                                 className={[
                                     'px-4 rounded-full font-semibold transition brown-button',
-                                    importing || !importUrl.trim() ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95 active:scale-[0.99]',
+                                    importing || !importUrl.trim()
+                                        ? 'opacity-70 cursor-not-allowed'
+                                        : 'hover:opacity-95 active:scale-[0.99]',
                                 ].join(' ')}
                             >
-      <span className="inline-flex items-center gap-2">
-        {importing ? (
-            <span className="inline-block h-4 w-4 rounded-full border-2 border-white/60 border-t-white animate-spin" />
-        ) : null}
-          {importing ? 'Importerer…' : 'Importer'}
-      </span>
+                                <span className="inline-flex items-center gap-2">
+                                    {importing ? (
+                                        <span className="inline-block h-4 w-4 rounded-full border-2 border-white/60 border-t-white animate-spin" />
+                                    ) : null}
+                                    {importing ? 'Importerer…' : 'Importer'}
+                                </span>
                             </button>
                         </div>
 
-                        {importError ? <p className="mt-2 text-sm text-red-600">{importError}</p> : null}
+                        {importError ? (
+                            <p className="mt-2 text-sm text-red-600">
+                                {importError}
+                            </p>
+                        ) : null}
                     </div>
-
 
                     {/* Basic info */}
                     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
-                        <label className="block text-sm font-semibold text-slate-900 mb-2">Tittel</label>
+                        <label className="block text-sm font-semibold text-slate-900 mb-2">
+                            Tittel
+                        </label>
                         <input
                             type="text"
                             placeholder="f.eks. Verdens beste lasagne"
@@ -867,7 +1024,9 @@ const CreateRecipe = () => {
                             required
                         />
 
-                        <label className="block text-sm font-semibold text-slate-900 mt-4 mb-2">Beskrivelse</label>
+                        <label className="block text-sm font-semibold text-slate-900 mt-4 mb-2">
+                            Beskrivelse
+                        </label>
                         <textarea
                             placeholder="Kort og fristende…"
                             value={description}
@@ -878,16 +1037,25 @@ const CreateRecipe = () => {
 
                         <label className="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700">
                             <div>
-                                <p className="font-semibold text-slate-900">Privat oppskrift</p>
+                                <p className="font-semibold text-slate-900">
+                                    Privat oppskrift
+                                </p>
                                 <p className="mt-1 text-xs text-slate-600">
-                                    Bare folk som følger deg kan se den. Offentlige oppskrifter vises til alle.
+                                    Bare folk som følger deg kan se den.
+                                    Offentlige oppskrifter vises til alle.
                                 </p>
                             </div>
                             <span className="relative inline-flex items-center">
                                 <input
                                     type="checkbox"
                                     checked={visibility === 'private'}
-                                    onChange={(e) => setVisibility(e.target.checked ? 'private' : 'public')}
+                                    onChange={(e) =>
+                                        setVisibility(
+                                            e.target.checked
+                                                ? 'private'
+                                                : 'public'
+                                        )
+                                    }
                                     className="peer sr-only"
                                 />
                                 <span className="h-7 w-12 rounded-full bg-slate-300 transition-colors duration-200 peer-checked:bg-[var(--accent)]" />
@@ -899,12 +1067,16 @@ const CreateRecipe = () => {
                     {/* Cover image */}
                     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                         <div className="flex items-center justify-between mb-2">
-                            <h2 className="text-base font-semibold text-slate-900">Forsidebilde</h2>
+                            <h2 className="text-base font-semibold text-slate-900">
+                                Forsidebilde
+                            </h2>
                             {coverImagePreview && (
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        revokeBlobUrl(coverImagePreviewRef.current);
+                                        revokeBlobUrl(
+                                            coverImagePreviewRef.current
+                                        );
                                         setCoverImageFile(null);
                                         setCoverImagePreview(null);
                                     }}
@@ -916,47 +1088,80 @@ const CreateRecipe = () => {
                         </div>
 
                         <label className="flex flex-col items-center justify-center w-full h-36 border border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 transition">
-                            <span className="material-symbols-outlined text-slate-700">upload</span>
-                            <p className="mt-2 text-sm text-slate-600">Klikk eller dra og slipp bildet ditt her</p>
-                            <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                            <span className="material-symbols-outlined text-slate-700">
+                                upload
+                            </span>
+                            <p className="mt-2 text-sm text-slate-600">
+                                Klikk eller dra og slipp bildet ditt her
+                            </p>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleImageChange}
+                            />
                         </label>
 
                         {coverImagePreview && (
                             <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-                                <img src={coverImagePreview} alt="Image Preview" className="w-full max-h-72 object-cover" />
+                                <img
+                                    src={coverImagePreview}
+                                    alt="Image Preview"
+                                    className="w-full max-h-72 object-cover"
+                                />
                             </div>
                         )}
                     </div>
 
                     {/* Ingredients + meta */}
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={onDragEnd}
+                    >
                         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                             <div className="flex items-center justify-between mb-3">
-                                <h2 className="text-base font-semibold text-slate-900">Ingredienser</h2>
+                                <h2 className="text-base font-semibold text-slate-900">
+                                    Ingredienser
+                                </h2>
                             </div>
 
                             {ingredients.length > 0 ? (
-                                <SortableContext items={ingredients.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                                <SortableContext
+                                    items={ingredients.map((i) => i.id)}
+                                    strategy={verticalListSortingStrategy}
+                                >
                                     <div className="mt-4 space-y-2">
                                         {ingredients.map((item, index) => (
                                             <SortableIngredientCard
                                                 key={item.id}
                                                 item={item}
                                                 index={index}
-                                                onChange={handleIngredientChange}
-                                                onRemove={handleRemoveIngredient}
+                                                onChange={
+                                                    handleIngredientChange
+                                                }
+                                                onRemove={
+                                                    handleRemoveIngredient
+                                                }
                                             />
                                         ))}
                                     </div>
                                 </SortableContext>
                             ) : (
-                                <p className="mt-4 text-slate-600">Ingrediensene dukker opp her. Legg dem til én etter én, og dra for å sortere.</p>
+                                <p className="mt-4 text-slate-600">
+                                    Ingrediensene dukker opp her. Legg dem til
+                                    én etter én, og dra for å sortere.
+                                </p>
                             )}
 
                             <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 p-3">
                                 <div className="mb-2 flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-slate-700">playlist_add</span>
-                                    <h3 className="text-sm font-semibold text-slate-900">Legg til neste ingrediens</h3>
+                                    <span className="material-symbols-outlined text-slate-700">
+                                        playlist_add
+                                    </span>
+                                    <h3 className="text-sm font-semibold text-slate-900">
+                                        Legg til neste ingrediens
+                                    </h3>
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -967,11 +1172,18 @@ const CreateRecipe = () => {
                                             placeholder="Mengde (f.eks. 2ss, 1dl, 200g)"
                                             value={newIngredientAmount}
                                             onChange={(e) => {
-                                                const parsed = normalizeIngredientAmountInput(e.target.value);
-                                                setNewIngredientAmount(parsed.formatted);
+                                                const parsed =
+                                                    normalizeIngredientAmountInput(
+                                                        e.target.value
+                                                    );
+                                                setNewIngredientAmount(
+                                                    parsed.formatted
+                                                );
                                                 if (parsed.isCompleteAmount) {
                                                     showIngredientHint(true);
-                                                    requestAnimationFrame(() => newIngredientNameRef.current?.focus());
+                                                    requestAnimationFrame(() =>
+                                                        newIngredientNameRef.current?.focus()
+                                                    );
                                                 }
                                             }}
                                             className="w-full rounded-2xl border border-slate-200 p-3 pr-20 focus:outline-none focus:ring-2 focus:ring-slate-200"
@@ -984,7 +1196,9 @@ const CreateRecipe = () => {
                                         />
                                         {showIngredientAmountIndicator ? (
                                             <span className="pointer-events-none absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 rounded-full bg-[#eaf6e5] px-2 py-1 text-[11px] font-semibold text-[#365d2c]">
-                                                <span className="material-symbols-outlined text-[14px]">check</span>
+                                                <span className="material-symbols-outlined text-[14px]">
+                                                    check
+                                                </span>
                                                 Auto
                                             </span>
                                         ) : null}
@@ -994,7 +1208,9 @@ const CreateRecipe = () => {
                                         type="text"
                                         placeholder="Ingrediens (f.eks. sukker)"
                                         value={newIngredientName}
-                                        onChange={(e) => setNewIngredientName(e.target.value)}
+                                        onChange={(e) =>
+                                            setNewIngredientName(e.target.value)
+                                        }
                                         className="w-full rounded-2xl border border-slate-200 p-3 focus:outline-none focus:ring-2 focus:ring-slate-200 sm:col-span-2"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
@@ -1011,41 +1227,55 @@ const CreateRecipe = () => {
                                     className="mt-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 font-semibold text-slate-800 transition hover:bg-slate-200 disabled:opacity-50"
                                     disabled={!newIngredientName.trim()}
                                 >
-                                    <span className="material-symbols-outlined text-base">add</span>
+                                    <span className="material-symbols-outlined text-base">
+                                        add
+                                    </span>
                                     Legg til ingrediens
                                 </button>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-900 mb-2">Temperatur</label>
+                                    <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                        Temperatur
+                                    </label>
                                     <input
                                         type="text"
                                         placeholder="f.eks. 200°C"
                                         value={temperature}
-                                        onChange={(e) => setTemperature(e.target.value)}
+                                        onChange={(e) =>
+                                            setTemperature(e.target.value)
+                                        }
                                         className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-900 mb-2">Koketid</label>
+                                    <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                        Koketid
+                                    </label>
                                     <input
                                         type="text"
                                         placeholder="f.eks. 45 minutter"
                                         value={cookingTime}
-                                        onChange={(e) => setCookingTime(e.target.value)}
+                                        onChange={(e) =>
+                                            setCookingTime(e.target.value)
+                                        }
                                         className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-900 mb-2">Porsjoner</label>
+                                    <label className="block text-sm font-semibold text-slate-900 mb-2">
+                                        Porsjoner
+                                    </label>
                                     <input
                                         type="text"
                                         placeholder="f.eks. 4"
                                         value={portions}
-                                        onChange={(e) => setPortions(e.target.value)}
+                                        onChange={(e) =>
+                                            setPortions(e.target.value)
+                                        }
                                         className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                                     />
                                 </div>
@@ -1055,10 +1285,15 @@ const CreateRecipe = () => {
                         {/* Steps */}
                         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                             <div className="flex items-center justify-between mb-3">
-                                <h2 className="text-base font-semibold text-slate-900">Steg</h2>
+                                <h2 className="text-base font-semibold text-slate-900">
+                                    Steg
+                                </h2>
                             </div>
 
-                            <SortableContext items={cookingSteps.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                            <SortableContext
+                                items={cookingSteps.map((s) => s.id)}
+                                strategy={verticalListSortingStrategy}
+                            >
                                 <div className="space-y-3">
                                     {cookingSteps.map((step, index) => (
                                         <SortableStepCard
@@ -1066,15 +1301,23 @@ const CreateRecipe = () => {
                                             step={step}
                                             index={index}
                                             onChange={handleStepChange}
-                                            onImageChange={handleStepImageChange}
-                                            onRemoveImage={handleRemoveStepImage}
+                                            onImageChange={
+                                                handleStepImageChange
+                                            }
+                                            onRemoveImage={
+                                                handleRemoveStepImage
+                                            }
                                             onRemove={handleRemoveStep}
                                         />
                                     ))}
 
                                     {cookingSteps.length === 0 && (
                                         <p className="text-slate-600">
-                                            Ingen steg ennå — trykk <span className="font-semibold">Legg til</span>.
+                                            Ingen steg ennå — trykk{' '}
+                                            <span className="font-semibold">
+                                                Legg til
+                                            </span>
+                                            .
                                         </p>
                                     )}
                                 </div>
@@ -1085,7 +1328,9 @@ const CreateRecipe = () => {
                                 onClick={handleAddStep}
                                 className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 text-slate-800 font-semibold hover:bg-slate-200 transition mt-2"
                             >
-                                <span className="material-symbols-outlined text-base">add</span>
+                                <span className="material-symbols-outlined text-base">
+                                    add
+                                </span>
                                 Legg til
                             </button>
                         </div>
@@ -1094,7 +1339,9 @@ const CreateRecipe = () => {
                     {/* Tags */}
                     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                         <div className="flex items-center justify-between gap-2 mb-3">
-                            <h2 className="text-base font-semibold text-slate-900">Tags</h2>
+                            <h2 className="text-base font-semibold text-slate-900">
+                                Tags
+                            </h2>
 
                             <button
                                 type="button"
@@ -1151,60 +1398,64 @@ const CreateRecipe = () => {
                                         title="Klikk for å fjerne"
                                     >
                                         #{t}
-                                        <span className="material-symbols-outlined text-[18px]">close</span>
+                                        <span className="material-symbols-outlined text-[18px]">
+                                            close
+                                        </span>
                                     </button>
                                 ))}
                             </div>
                         ) : (
-                            <p className="mt-3 text-sm text-slate-600">Ingen tags ennå.</p>
+                            <p className="mt-3 text-sm text-slate-600">
+                                Ingen tags ennå.
+                            </p>
                         )}
                     </div>
 
-
                     <div className="justify-end flex">
-                    <button
-                        type="submit"
-                        form="create-recipe-form"
-                        disabled={publishing}
-                        className={[
-                            'h-10 px-4 rounded-full brown-button text-sm font-semibold shadow-sm transition',
-                            publishing ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95 active:scale-[0.99]',
-                        ].join(' ')}
-                    >
-                        <span className="inline-flex items-center gap-2">
-                            {publishing ? (
-                                <span
-                                    className="inline-block h-4 w-4 rounded-full border-2 border-white/60 border-t-white animate-spin"
-                                    aria-hidden="true"
-                                />
-                            ) : null}
-                            {publishing ? 'Publiserer…' : 'Publiser'}
-                        </span>
-                    </button>
+                        <button
+                            type="submit"
+                            form="create-recipe-form"
+                            disabled={publishing}
+                            className={[
+                                'h-10 px-4 rounded-full brown-button text-sm font-semibold shadow-sm transition',
+                                publishing
+                                    ? 'opacity-70 cursor-not-allowed'
+                                    : 'hover:opacity-95 active:scale-[0.99]',
+                            ].join(' ')}
+                        >
+                            <span className="inline-flex items-center gap-2">
+                                {publishing ? (
+                                    <span
+                                        className="inline-block h-4 w-4 rounded-full border-2 border-white/60 border-t-white animate-spin"
+                                        aria-hidden="true"
+                                    />
+                                ) : null}
+                                {publishing ? 'Publiserer…' : 'Publiser'}
+                            </span>
+                        </button>
                     </div>
 
-
                     {/* Bottom publish */}
-    {/*                <div className="sm:hidden pt-2">*/}
-    {/*                    <button*/}
-    {/*                        type="submit"*/}
-    {/*                        disabled={publishing}*/}
-    {/*                        className={[*/}
-    {/*                            'w-full rounded-full py-3 font-semibold shadow-lg brown-button transition',*/}
-    {/*                            publishing ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95 active:scale-[0.99]',*/}
-    {/*                        ].join(' ')}*/}
-    {/*                    >*/}
-    {/*<span className="inline-flex items-center justify-center gap-2">*/}
-    {/*    {publishing ? (*/}
-    {/*        <span*/}
-    {/*            className="inline-block h-5 w-5 rounded-full border-2 border-white/60 border-t-white animate-spin"*/}
-    {/*            aria-hidden="true"*/}
-    {/*        />*/}
-    {/*    ) : null}*/}
-    {/*    {publishing ? 'Publiserer…' : 'Publiser'}*/}
-    {/*</span>*/}
-    {/*                    </button>*/}
-    {/*                </div>*/}
+                    {/*                <div className="sm:hidden pt-2">*/}
+                    {/*                    <button*/}
+                    {/*                        type="submit"*/}
+                    {/*                        disabled={publishing}*/}
+                    {/*                        className={[*/}
+                    {/*                            'w-full rounded-full py-3 font-semibold shadow-lg brown-button transition',*/}
+                    {/*                            publishing ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95 active:scale-[0.99]',*/}
+                    {/*                        ].join(' ')}*/}
+                    {/*                    >*/}
+                    {/*<span className="inline-flex items-center justify-center gap-2">*/}
+                    {/*    {publishing ? (*/}
+                    {/*        <span*/}
+                    {/*            className="inline-block h-5 w-5 rounded-full border-2 border-white/60 border-t-white animate-spin"*/}
+                    {/*            aria-hidden="true"*/}
+                    {/*        />*/}
+                    {/*    ) : null}*/}
+                    {/*    {publishing ? 'Publiserer…' : 'Publiser'}*/}
+                    {/*</span>*/}
+                    {/*                    </button>*/}
+                    {/*                </div>*/}
                 </form>
             </div>
         </div>

@@ -3,7 +3,7 @@ import {
     query,
     where,
     getDocs,
-    documentId,            // ← modular helper
+    documentId, // ← modular helper
 } from 'firebase/firestore';
 import { firestore } from '@/firebase';
 import { UserDoc } from '@/hooks/useUserData';
@@ -13,23 +13,26 @@ import { UserDoc } from '@/hooks/useUserData';
  * Firestore allows up to 30 IDs per `in` filter, so we chunk if needed.
  */
 export const fetchManyUsers = async (
-    uids: string[],
+    uids: string[]
 ): Promise<Record<string, UserDoc>> => {
     if (!uids.length) return {};
 
-    const CHUNK = 30;                                        // Firestore limit
+    const CHUNK = 30; // Firestore limit
     const chunks = Array.from(
         { length: Math.ceil(uids.length / CHUNK) },
-        (_, i) => uids.slice(i * CHUNK, i * CHUNK + CHUNK),
+        (_, i) => uids.slice(i * CHUNK, i * CHUNK + CHUNK)
     );
 
     const out: Record<string, UserDoc> = {};
-    const fetchChunk = async (collectionName: 'publicUsers' | 'users', ids: string[]) => {
+    const fetchChunk = async (
+        collectionName: 'publicUsers' | 'users',
+        ids: string[]
+    ) => {
         const snap = await getDocs(
             query(
                 collection(firestore, collectionName),
-                where(documentId(), 'in', ids),
-            ),
+                where(documentId(), 'in', ids)
+            )
         );
 
         snap.forEach((d) => (out[d.id] = d.data() as UserDoc));
@@ -48,7 +51,7 @@ export const fetchManyUsers = async (
                     // In that case we keep whatever was available in publicUsers.
                 }
             }
-        }),
+        })
     );
 
     return out;

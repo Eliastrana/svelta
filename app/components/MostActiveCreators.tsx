@@ -2,7 +2,14 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
+import {
+    collection,
+    getDocs,
+    limit,
+    orderBy,
+    query,
+    where,
+} from 'firebase/firestore';
 import Image from 'next/image';
 
 import { firestore } from '@/firebase';
@@ -11,9 +18,17 @@ import { UserDoc } from '@/hooks/useUserData';
 import CreatorStoriesModal from '@/app/components/CreatorStoriesModal';
 import { normalizeRecipeVisibility } from '@/helpers/recipeVisibility';
 
-type StoryCreator = { uid: string; recipeCount: number; latestCreatedAtMs: number };
+type StoryCreator = {
+    uid: string;
+    recipeCount: number;
+    latestCreatedAtMs: number;
+};
 type FeedMode = 'popular' | 'following';
-type RecipeMinimal = { userId: string; createdAt?: unknown; visibility?: string };
+type RecipeMinimal = {
+    userId: string;
+    createdAt?: unknown;
+    visibility?: string;
+};
 
 type MostActiveCreatorsProps = {
     mode?: FeedMode;
@@ -25,7 +40,12 @@ type MostActiveCreatorsProps = {
 const SEEN_STORIES_STORAGE_KEY = 'seenStoryCreators';
 
 function toMillis(value: unknown): number {
-    if (value && typeof value === 'object' && 'toMillis' in value && typeof (value as { toMillis: () => number }).toMillis === 'function') {
+    if (
+        value &&
+        typeof value === 'object' &&
+        'toMillis' in value &&
+        typeof (value as { toMillis: () => number }).toMillis === 'function'
+    ) {
         return (value as { toMillis: () => number }).toMillis();
     }
     if (value instanceof Date) return value.getTime();
@@ -55,7 +75,11 @@ async function fetchStoryCreators(opts?: {
         recipes.forEach((recipe) => {
             const createdAtMs = toMillis(recipe.createdAt);
             if (createdAtMs < cutoffMs) return;
-            if (!includePrivate && normalizeRecipeVisibility(recipe.visibility) !== 'public') return;
+            if (
+                !includePrivate &&
+                normalizeRecipeVisibility(recipe.visibility) !== 'public'
+            )
+                return;
 
             const uid = (recipe.userId || '').trim();
             if (!uid) return;
@@ -65,7 +89,10 @@ async function fetchStoryCreators(opts?: {
                 storyCreators.set(uid, {
                     uid,
                     recipeCount: existing.recipeCount + 1,
-                    latestCreatedAtMs: Math.max(existing.latestCreatedAtMs, createdAtMs),
+                    latestCreatedAtMs: Math.max(
+                        existing.latestCreatedAtMs,
+                        createdAtMs
+                    ),
                 });
                 return;
             }
@@ -82,9 +109,10 @@ async function fetchStoryCreators(opts?: {
         const followingIds = Array.from(
             new Set(
                 [...(opts?.followingIds ?? []), opts?.viewerUid].filter(
-                    (value): value is string => typeof value === 'string' && value.trim().length > 0,
-                ),
-            ),
+                    (value): value is string =>
+                        typeof value === 'string' && value.trim().length > 0
+                )
+            )
         );
         if (followingIds.length === 0) return [];
 
@@ -100,27 +128,51 @@ async function fetchStoryCreators(opts?: {
                         collection(firestore, 'recipes'),
                         where('userId', 'in', chunk),
                         orderBy('createdAt', 'desc'),
-                        limit(Math.max(10, Math.ceil(scanLimit / Math.max(1, chunks.length)))),
-                    ),
-                ),
-            ),
+                        limit(
+                            Math.max(
+                                10,
+                                Math.ceil(
+                                    scanLimit / Math.max(1, chunks.length)
+                                )
+                            )
+                        )
+                    )
+                )
+            )
         );
 
         snapshots.forEach((snap) => {
-            accumulate(snap.docs.map((d) => d.data() as RecipeMinimal), true);
+            accumulate(
+                snap.docs.map((d) => d.data() as RecipeMinimal),
+                true
+            );
         });
     } else {
         const recipesRef = collection(firestore, 'recipes');
-        const q = query(recipesRef, orderBy('createdAt', 'desc'), limit(scanLimit));
+        const q = query(
+            recipesRef,
+            orderBy('createdAt', 'desc'),
+            limit(scanLimit)
+        );
         const snap = await getDocs(q);
-        accumulate(snap.docs.map((d) => d.data() as RecipeMinimal), false);
+        accumulate(
+            snap.docs.map((d) => d.data() as RecipeMinimal),
+            false
+        );
     }
 
-    return Array.from(storyCreators.values())
-        .sort((a, b) => b.latestCreatedAtMs - a.latestCreatedAtMs);
+    return Array.from(storyCreators.values()).sort(
+        (a, b) => b.latestCreatedAtMs - a.latestCreatedAtMs
+    );
 }
 
-function StoryAvatar(props: { src?: string; name: string; animateKey?: number; isSeen?: boolean; isOwn?: boolean }) {
+function StoryAvatar(props: {
+    src?: string;
+    name: string;
+    animateKey?: number;
+    isSeen?: boolean;
+    isOwn?: boolean;
+}) {
     const { src, name, animateKey, isSeen = false, isOwn = false } = props;
 
     return (
@@ -139,7 +191,13 @@ function StoryAvatar(props: { src?: string; name: string; animateKey?: number; i
                 <div className="h-full w-full overflow-hidden rounded-full bg-slate-100">
                     {src ? (
                         <div className="relative h-full w-full">
-                            <Image src={src} alt={name} fill sizes="96px" className="object-cover" />
+                            <Image
+                                src={src}
+                                alt={name}
+                                fill
+                                sizes="96px"
+                                className="object-cover"
+                            />
                         </div>
                     ) : (
                         <div className="grid h-full w-full place-items-center text-3xl text-slate-500">
@@ -164,30 +222,30 @@ function StoryAvatar(props: { src?: string; name: string; animateKey?: number; i
 
                 .storyRingFresh {
                     background: conic-gradient(
-                            from 180deg,
-                            rgba(155, 212, 92, 0.35),
-                            rgba(185, 231, 122, 0.98),
-                            rgba(155, 212, 92, 0.55),
-                            rgba(185, 231, 122, 0.92),
-                            rgba(155, 212, 92, 0.35)
+                        from 180deg,
+                        rgba(155, 212, 92, 0.35),
+                        rgba(185, 231, 122, 0.98),
+                        rgba(155, 212, 92, 0.55),
+                        rgba(185, 231, 122, 0.92),
+                        rgba(155, 212, 92, 0.35)
                     );
                 }
 
                 .storyRingSeen {
                     background: conic-gradient(
-                            from 180deg,
-                            rgba(180, 185, 192, 0.45),
-                            rgba(203, 208, 215, 0.96),
-                            rgba(170, 176, 184, 0.58),
-                            rgba(205, 210, 217, 0.94),
-                            rgba(180, 185, 192, 0.45)
+                        from 180deg,
+                        rgba(180, 185, 192, 0.45),
+                        rgba(203, 208, 215, 0.96),
+                        rgba(170, 176, 184, 0.58),
+                        rgba(205, 210, 217, 0.94),
+                        rgba(180, 185, 192, 0.45)
                     );
                 }
 
                 .storyRingIntro {
                     animation:
-                            ringSpinOnce 1100ms ease-out 1,
-                            ringPop 520ms ease-out 1;
+                        ringSpinOnce 1100ms ease-out 1,
+                        ringPop 520ms ease-out 1;
                     will-change: transform, opacity;
                 }
 
@@ -229,8 +287,13 @@ export default function MostActiveCreators({
     viewerUid,
     storyWindowHours = 24 * 30,
 }: MostActiveCreatorsProps) {
-    const uniqueFollowingIds = React.useMemo(() => Array.from(new Set(followingIds.filter(Boolean))), [followingIds]);
-    const [seenCreators, setSeenCreators] = React.useState<Record<string, number>>({});
+    const uniqueFollowingIds = React.useMemo(
+        () => Array.from(new Set(followingIds.filter(Boolean))),
+        [followingIds]
+    );
+    const [seenCreators, setSeenCreators] = React.useState<
+        Record<string, number>
+    >({});
 
     React.useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -246,7 +309,10 @@ export default function MostActiveCreators({
         }
     }, []);
 
-    const { data: topCreators = [], isLoading } = useQuery<StoryCreator[], Error>({
+    const { data: topCreators = [], isLoading } = useQuery<
+        StoryCreator[],
+        Error
+    >({
         queryKey: ['storyCreators', mode, storyWindowHours, uniqueFollowingIds],
         queryFn: () =>
             fetchStoryCreators({
@@ -264,14 +330,25 @@ export default function MostActiveCreators({
 
     const topCreatorsWithOwnFirst = React.useMemo(() => {
         if (!viewerUid) return topCreators;
-        const ownCreator = topCreators.find((creator) => creator.uid === viewerUid);
+        const ownCreator = topCreators.find(
+            (creator) => creator.uid === viewerUid
+        );
         if (!ownCreator) return topCreators;
-        return [ownCreator, ...topCreators.filter((creator) => creator.uid !== viewerUid)];
+        return [
+            ownCreator,
+            ...topCreators.filter((creator) => creator.uid !== viewerUid),
+        ];
     }, [topCreators, viewerUid]);
 
-    const orderedCreatorIds = React.useMemo(() => topCreatorsWithOwnFirst.map((creator) => creator.uid), [topCreatorsWithOwnFirst]);
+    const orderedCreatorIds = React.useMemo(
+        () => topCreatorsWithOwnFirst.map((creator) => creator.uid),
+        [topCreatorsWithOwnFirst]
+    );
 
-    const { data: usersMap = {}, isLoading: usersLoading } = useQuery<Record<string, UserDoc>, Error>({
+    const { data: usersMap = {}, isLoading: usersLoading } = useQuery<
+        Record<string, UserDoc>,
+        Error
+    >({
         queryKey: ['topCreatorsUsersMap', orderedCreatorIds],
         queryFn: () => fetchManyUsers(orderedCreatorIds),
         enabled: orderedCreatorIds.length > 0,
@@ -281,7 +358,8 @@ export default function MostActiveCreators({
     });
 
     const [storiesOpen, setStoriesOpen] = React.useState(false);
-    const [initialCreatorUid, setInitialCreatorUid] = React.useState<string>('');
+    const [initialCreatorUid, setInitialCreatorUid] =
+        React.useState<string>('');
 
     const creators = React.useMemo(
         () =>
@@ -290,13 +368,18 @@ export default function MostActiveCreators({
                 name: usersMap[creator.uid]?.name,
                 photoURL: usersMap[creator.uid]?.photoURL,
             })),
-        [topCreatorsWithOwnFirst, usersMap],
+        [topCreatorsWithOwnFirst, usersMap]
     );
 
     const latestCreatedAtByUid = React.useMemo(
         () =>
-            Object.fromEntries(topCreatorsWithOwnFirst.map((creator) => [creator.uid, creator.latestCreatedAtMs])),
-        [topCreatorsWithOwnFirst],
+            Object.fromEntries(
+                topCreatorsWithOwnFirst.map((creator) => [
+                    creator.uid,
+                    creator.latestCreatedAtMs,
+                ])
+            ),
+        [topCreatorsWithOwnFirst]
     );
 
     const markCreatorSeen = React.useCallback(
@@ -308,12 +391,15 @@ export default function MostActiveCreators({
                 if ((prev[uid] ?? 0) >= latestCreatedAtMs) return prev;
                 const next = { ...prev, [uid]: latestCreatedAtMs };
                 if (typeof window !== 'undefined') {
-                    window.localStorage.setItem(SEEN_STORIES_STORAGE_KEY, JSON.stringify(next));
+                    window.localStorage.setItem(
+                        SEEN_STORIES_STORAGE_KEY,
+                        JSON.stringify(next)
+                    );
                 }
                 return next;
             });
         },
-        [latestCreatedAtByUid],
+        [latestCreatedAtByUid]
     );
 
     const [ringAnimKey, setRingAnimKey] = React.useState(0);
@@ -353,9 +439,13 @@ export default function MostActiveCreators({
                             const u = usersMap[uid];
                             const name = u?.name ?? 'Ukjent';
                             const photoURL = u?.photoURL ?? '';
-                            const latestCreatedAtMs = latestCreatedAtByUid[uid] ?? 0;
-                            const isSeen = (seenCreators[uid] ?? 0) >= latestCreatedAtMs;
-                            const isOwn = Boolean(viewerUid && uid === viewerUid);
+                            const latestCreatedAtMs =
+                                latestCreatedAtByUid[uid] ?? 0;
+                            const isSeen =
+                                (seenCreators[uid] ?? 0) >= latestCreatedAtMs;
+                            const isOwn = Boolean(
+                                viewerUid && uid === viewerUid
+                            );
 
                             return (
                                 <button

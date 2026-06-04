@@ -50,7 +50,8 @@ export default function AppModal({
         const t = window.setTimeout(() => setOpen(true), 10);
         return () => {
             window.clearTimeout(t);
-            if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+            if (closeTimerRef.current)
+                window.clearTimeout(closeTimerRef.current);
         };
     }, []);
 
@@ -74,14 +75,20 @@ export default function AppModal({
         return () => window.removeEventListener('keydown', onKeyDown);
     }, [closeOnEscape, closeWithAnim]);
 
-    const panelBase = useDefaultPanelStyle ? DEFAULT_PANEL : 'transition-all duration-200 ease-out';
+    const panelBase = useDefaultPanelStyle
+        ? DEFAULT_PANEL
+        : 'transition-all duration-200 ease-out';
     const panelState = open ? panelOpenClassName : panelClosedClassName;
 
     if (!mounted) return null;
 
     return createPortal(
         <div
-            className={[DEFAULT_OVERLAY, open ? 'opacity-100' : 'opacity-0', overlayClassName].join(' ')}
+            className={[
+                DEFAULT_OVERLAY,
+                open ? 'opacity-100' : 'opacity-0',
+                overlayClassName,
+            ].join(' ')}
             onClick={closeOnOverlayClick ? closeWithAnim : undefined}
             aria-hidden="true"
         >
@@ -96,6 +103,6 @@ export default function AppModal({
                     : children}
             </div>
         </div>,
-        document.body,
+        document.body
     );
 }

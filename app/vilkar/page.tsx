@@ -106,13 +106,13 @@ export default function TermsPage() {
         <main className="min-h-screen pb-24">
             <div className="mx-auto max-w-4xl px-4 py-8">
                 <div className="">
-
                     <h1 className="mt-3 text-3xl font-bold tracking-tight md:text-5xl">
                         Vilkår og betingelser
                     </h1>
                     <p className="mt-4 max-w-3xl text-sm leading-relaxed text-[#496444] md:text-base">
-                        Denne siden beskriver hovedvilkårene for bruk av Svelta. Teksten er skrevet
-                        for å være forståelig og gjenspeile hvordan appen fungerer i dag.
+                        Denne siden beskriver hovedvilkårene for bruk av Svelta.
+                        Teksten er skrevet for å være forståelig og gjenspeile
+                        hvordan appen fungerer i dag.
                     </p>
                     <p className="mt-3 text-sm font-medium text-[#496444]">
                         Sist oppdatert: {updatedAt}
@@ -121,11 +121,10 @@ export default function TermsPage() {
 
                 <div className="mt-6 space-y-4">
                     {sections.map((section) => (
-                        <section
-                            key={section.title}
-                            className=" py-5  md:py-6"
-                        >
-                            <h2 className="text-xl font-semibold text-slate-900">{section.title}</h2>
+                        <section key={section.title} className=" py-5  md:py-6">
+                            <h2 className="text-xl font-semibold text-slate-900">
+                                {section.title}
+                            </h2>
                             <div className="mt-3 space-y-3 text-sm leading-relaxed text-slate-600 md:text-base">
                                 {section.body.map((paragraph) => (
                                     <p key={paragraph}>{paragraph}</p>
@@ -137,8 +136,8 @@ export default function TermsPage() {
 
                 <div className="mt-6 rounded-xl border border-[#d9dfcf] bg-[#fbfaf4] p-5 text-sm leading-relaxed text-slate-600 shadow-sm">
                     <p>
-                        For bakgrunn om rett til sletting og klare vilkår for digitale tjenester, har
-                        vi lagt vekt på veiledning fra{' '}
+                        For bakgrunn om rett til sletting og klare vilkår for
+                        digitale tjenester, har vi lagt vekt på veiledning fra{' '}
                         <a
                             href="https://www.datatilsynet.no/rettigheter-og-plikter/den-registrertes-rettigheter/rett-til-sletting/"
                             target="_blank"
@@ -159,8 +158,9 @@ export default function TermsPage() {
                         .
                     </p>
                     <p className="mt-3">
-                        Hvis du trenger en juridisk gjennomgang til publisering, bør disse vilkårene
-                        vurderes av jurist før de brukes som endelig avtaletekst.
+                        Hvis du trenger en juridisk gjennomgang til publisering,
+                        bør disse vilkårene vurderes av jurist før de brukes som
+                        endelig avtaletekst.
                     </p>
                 </div>
 

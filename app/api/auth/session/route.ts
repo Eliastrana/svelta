@@ -5,7 +5,10 @@ export async function POST(request: Request) {
         const { token } = (await request.json()) as { token?: string };
 
         if (!token || typeof token !== 'string') {
-            return NextResponse.json({ error: 'Token mangler.' }, { status: 400 });
+            return NextResponse.json(
+                { error: 'Token mangler.' },
+                { status: 400 }
+            );
         }
 
         const response = NextResponse.json({ ok: true });
@@ -24,6 +27,9 @@ export async function POST(request: Request) {
 
         return response;
     } catch {
-        return NextResponse.json({ error: 'Kunne ikke opprette innlogging.' }, { status: 500 });
+        return NextResponse.json(
+            { error: 'Kunne ikke opprette innlogging.' },
+            { status: 500 }
+        );
     }
 }
