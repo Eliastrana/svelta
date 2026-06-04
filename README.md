@@ -1,6 +1,10 @@
-# Cooked
+# Svelta
 
-Cooked er en sosial oppskrifts-app der du kan lage, dele og oppdage matoppskrifter. Du kan følge venner, samle oppskrifter i egne samlinger, like og vurdere andres oppskrifter – og bruke AI til å importere oppskrifter fra nettet, foreslå tagger og anbefale hva du bør lage.
+![Skjermbilde av Svelta](public/forside.png)
+
+
+
+Svelta er en sosial oppskrifts-app der du kan lage, dele og oppdage matoppskrifter. Du kan følge venner, samle oppskrifter i egne samlinger, like og vurdere andres oppskrifter.
 
 Appen er bygget med [Next.js](https://nextjs.org) (App Router) og bruker [Firebase](https://firebase.google.com) til autentisering, database (Firestore), fillagring og bakgrunnsjobber (Cloud Functions). AI-funksjonene drives av [OpenAI](https://openai.com).
 
