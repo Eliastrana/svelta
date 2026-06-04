@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 import RecipeCard from '@/app/components/RecipeCard';
 import MostActiveCreators from '@/app/components/MostActiveCreators';
@@ -68,6 +68,8 @@ const PublicGallery: React.FC<{
     loading: boolean;
     onRecipeClick: (recipeId: string) => void;
 }> = ({ recipes, loading, onRecipeClick }) => {
+    const shouldReduceMotion = useReducedMotion();
+
     if (loading && recipes.length === 0) {
         return (
             <div className="relative left-1/2 mt-8 w-screen -translate-x-1/2 overflow-hidden px-4 md:px-8 lg:px-12">
@@ -153,7 +155,7 @@ const PublicGallery: React.FC<{
                     display: flex;
                     width: max-content;
                     gap: 1rem;
-                    animation: publicGalleryScroll 42s linear infinite;
+                    animation: ${shouldReduceMotion ? 'none' : 'publicGalleryScroll 42s linear infinite'};
                 }
 
                 .gallery-track:hover {
@@ -187,7 +189,7 @@ const PublicGallery: React.FC<{
 
                     .gallery-track {
                         gap: 0.75rem;
-                        animation-duration: 34s;
+                        animation-duration: ${shouldReduceMotion ? '0s' : '34s'};
                     }
                 }
             `}</style>
@@ -233,6 +235,27 @@ const landingHeroItemVariants = {
 const Home: React.FC = () => {
     const router = useRouter();
     const user = useAuthUser();
+    const shouldReduceMotion = useReducedMotion();
+    const heroVariants = React.useMemo(
+        () =>
+            shouldReduceMotion
+                ? {
+                      hidden: { opacity: 1, y: 0, filter: 'blur(0px)' },
+                      show: { opacity: 1, y: 0, filter: 'blur(0px)' },
+                  }
+                : landingHeroVariants,
+        [shouldReduceMotion],
+    );
+    const heroItemVariants = React.useMemo(
+        () =>
+            shouldReduceMotion
+                ? {
+                      hidden: { opacity: 1, y: 0, filter: 'blur(0px)' },
+                      show: { opacity: 1, y: 0, filter: 'blur(0px)' },
+                  }
+                : landingHeroItemVariants,
+        [shouldReduceMotion],
+    );
 
     const [activeFeed, setActiveFeed] = React.useState<Feed>('popular');
     const [search, setSearch] = React.useState('');
@@ -431,18 +454,18 @@ const Home: React.FC = () => {
             {showPublicLanding ? (
                 <motion.section
                     className="py-8 pt-20 md:pt-40"
-                    variants={landingHeroVariants}
+                    variants={heroVariants}
                     initial="hidden"
                     animate="show"
                 >
                     <div className="max-w-5xl sm:mx-auto">
                         <motion.div
                             className="flex flex-col items-center gap-4 sm:flex-row sm:items-stretch"
-                            variants={landingHeroItemVariants}
+                            variants={heroItemVariants}
                         >
                             <motion.div
                                 className="relative h-20 w-20 shrink-0 sm:h-auto"
-                                variants={landingHeroItemVariants}
+                                variants={heroItemVariants}
                             >
                                 <Image
                                     src="/brod.png"
@@ -454,7 +477,7 @@ const Home: React.FC = () => {
 
                             <motion.h1
                                 className="text-center text-4xl font-semibold tracking-tight text-slate-900 sm:text-left sm:text-5xl"
-                                variants={landingHeroItemVariants}
+                                variants={heroItemVariants}
                             >
                                 Oppskrifter, kokebøker og matglede samlet på ett sosialt medium
                             </motion.h1>
@@ -462,7 +485,7 @@ const Home: React.FC = () => {
 
                         <motion.p
                             className="mx-auto mt-4 text-center text-base leading-relaxed text-slate-600 sm:text-left sm:text-lg"
-                            variants={landingHeroItemVariants}
+                            variants={heroItemVariants}
                         >
                             Svelta er en sosial oppskriftsapp der du kan dele egne retter, oppdage nye favoritter,
                             følge andre kokker og lagre oppskrifter i egne kokebøker.
@@ -470,14 +493,14 @@ const Home: React.FC = () => {
 
                         <motion.div
                             className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:items-start"
-                            variants={landingHeroItemVariants}
+                            variants={heroItemVariants}
                         >
                             <motion.button
                                 type="button"
                                 onClick={() => router.push('/login')}
                                 className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-6 py-3 font-semibold text-white transition hover:opacity-95 active:scale-[0.99]"
-                                whileHover={{ y: -1 }}
-                                whileTap={{ scale: 0.99 }}
+                                whileHover={shouldReduceMotion ? undefined : { y: -1 }}
+                                whileTap={shouldReduceMotion ? undefined : { scale: 0.99 }}
                             >
                                 Bli med!
                             </motion.button>

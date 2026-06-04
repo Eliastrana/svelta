@@ -55,9 +55,11 @@ async function persistSession(token: string) {
     }
 }
 
-async function finishLogin(user: User) {
-    await ensureUserDocument(user);
-    const token = await user.getIdToken(true);
+async function finishLogin(user: User, overrides?: { displayName?: string }) {
+    const [, token] = await Promise.all([
+        ensureUserDocument(user, overrides),
+        user.getIdToken(true),
+    ]);
     await persistSession(token);
     window.location.replace(getSafeNextPath());
 }
@@ -201,8 +203,10 @@ export default function LoginPage() {
             if (isSignup) {
                 loginCompletedRef.current = true;
                 const result = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
-                await updateProfile(result.user, { displayName: trimmedName });
-                await finishLogin(result.user);
+                await Promise.all([
+                    updateProfile(result.user, { displayName: trimmedName }),
+                    finishLogin(result.user, { displayName: trimmedName }),
+                ]);
                 return;
             }
 

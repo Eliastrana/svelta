@@ -218,15 +218,15 @@ export async function deleteUserAccountAndActivityWithOptions(
         await batcher.delete(collectionDoc.ref);
     }
 
-    const followerDocsSnap = await getDocs(
-        query(collection(firestore, 'users'), where('following', 'array-contains', uid)),
-    );
-    const outgoingRequestDocsSnap = await getDocs(
-        query(collection(firestore, 'users'), where('incomingFollowRequests', 'array-contains', uid)),
-    );
-    const incomingRequestDocsSnap = await getDocs(
-        query(collection(firestore, 'users'), where('outgoingFollowRequests', 'array-contains', uid)),
-    );
+    const [followerDocsSnap, outgoingRequestDocsSnap, incomingRequestDocsSnap] = await Promise.all([
+        getDocs(query(collection(firestore, 'users'), where('following', 'array-contains', uid))),
+        getDocs(
+            query(collection(firestore, 'users'), where('incomingFollowRequests', 'array-contains', uid)),
+        ),
+        getDocs(
+            query(collection(firestore, 'users'), where('outgoingFollowRequests', 'array-contains', uid)),
+        ),
+    ]);
 
     await batcher.flush();
 
@@ -248,7 +248,9 @@ export async function deleteUserAccountAndActivityWithOptions(
         });
     }
 
-    await deleteDoc(doc(firestore, 'publicUsers', uid));
-    await deleteDoc(doc(firestore, 'users', uid));
+    await Promise.all([
+        deleteDoc(doc(firestore, 'publicUsers', uid)),
+        deleteDoc(doc(firestore, 'users', uid)),
+    ]);
     await deleteUser(currentUser);
 }

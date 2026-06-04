@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 
 interface DrawingCanvasProps {
     onChange?: (svgString: string) => void;
@@ -8,44 +8,56 @@ interface DrawingCanvasProps {
 const DrawingCanvas = ({ onChange }: DrawingCanvasProps) => {
     const [paths, setPaths] = useState<string[]>([]);
     const [currentPath, setCurrentPath] = useState<string>('');
-    const svgRef = useRef<SVGSVGElement>(null);
+
+    const emitSvgChange = (nextPaths: string[], nextCurrentPath = '') => {
+        if (!onChange) return;
+
+        const pathMarkup = [...nextPaths, nextCurrentPath]
+            .filter(Boolean)
+            .map(
+                (d) =>
+                    `<path d="${d}" stroke="black" fill="none" stroke-width="10"></path>`,
+            )
+            .join('');
+
+        onChange(
+            `<svg class="w-full h-full absolute top-0 left-0" xmlns="http://www.w3.org/2000/svg">${pathMarkup}</svg>`,
+        );
+    };
 
     const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
         const point = getRelativePoint(e);
         const newPath = `M ${point.x} ${point.y}`;
         setCurrentPath(newPath);
+        emitSvgChange(paths, newPath);
     };
 
     const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
         if (e.buttons !== 1) return; // Only draw if pointer is pressed
         const point = getRelativePoint(e);
-        setCurrentPath((prev) => prev + ` L ${point.x} ${point.y}`);
+        setCurrentPath((prev) => {
+            const nextPath = prev + ` L ${point.x} ${point.y}`;
+            emitSvgChange(paths, nextPath);
+            return nextPath;
+        });
     };
 
     const handlePointerUp = () => {
         if (currentPath) {
-            setPaths((prev) => [...prev, currentPath]);
+            const nextPaths = [...paths, currentPath];
+            setPaths(nextPaths);
             setCurrentPath('');
+            emitSvgChange(nextPaths);
         }
     };
 
     const getRelativePoint = (e: React.PointerEvent<SVGSVGElement>) => {
-        const svg = svgRef.current;
-        if (!svg) return { x: 0, y: 0 };
-        const rect = svg.getBoundingClientRect();
+        const rect = e.currentTarget.getBoundingClientRect();
         return {
             x: e.clientX - rect.left,
             y: e.clientY - rect.top,
         };
     };
-
-    useEffect(() => {
-        if (svgRef.current) {
-            const svgString = svgRef.current.outerHTML;
-            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            onChange && onChange(svgString);
-        }
-    }, [paths, currentPath, onChange]);
 
     return (
         <div
@@ -53,7 +65,6 @@ const DrawingCanvas = ({ onChange }: DrawingCanvasProps) => {
             style={{ touchAction: 'none' }}
         >
             <svg
-                ref={svgRef}
                 className="w-full h-full absolute top-0 left-0"
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}

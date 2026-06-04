@@ -4,15 +4,22 @@ import { firestore } from '@/firebase';
 import { DEFAULT_PROFILE_THEME_ID } from '@/helpers/profileAppearance';
 import { syncPublicUserProfile } from '@/helpers/publicUserProfile';
 
-export async function ensureUserDocument(user: User) {
+type EnsureUserOverrides = {
+    displayName?: string;
+    photoURL?: string;
+};
+
+export async function ensureUserDocument(user: User, overrides?: EnsureUserOverrides) {
     const userDocRef = doc(firestore, 'users', user.uid);
     const docSnap = await getDoc(userDocRef);
+    const preferredDisplayName = overrides?.displayName || user.displayName || 'Unnamed User';
+    const preferredPhotoURL = overrides?.photoURL || user.photoURL || '';
 
     if (docSnap.exists()) {
         const existingData = docSnap.data();
         await syncPublicUserProfile(user.uid, {
-            name: existingData.name || user.displayName || 'Unnamed User',
-            photoURL: existingData.photoURL || user.photoURL || '',
+            name: existingData.name || preferredDisplayName,
+            photoURL: existingData.photoURL || preferredPhotoURL,
             favoriteFood: existingData.favoriteFood || '',
         });
 
@@ -23,14 +30,14 @@ export async function ensureUserDocument(user: User) {
     }
 
     const data = {
-        name: user.displayName || 'Unnamed User',
+        name: preferredDisplayName,
         following: [],
         followingCount: 0,
         followerCount: 0,
         incomingFollowRequests: [],
         outgoingFollowRequests: [],
         isProfilePrivate: false,
-        photoURL: user.photoURL || '',
+        photoURL: preferredPhotoURL,
         backgroundPhotoURL: '',
         bio: '',
         favoriteFood: '',

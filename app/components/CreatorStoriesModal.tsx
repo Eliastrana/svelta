@@ -205,6 +205,10 @@ const CreatorStoriesModal: React.FC<Props> = ({
             return;
         }
 
+        const nextUid = creators[nextIdx]?.uid;
+        if (nextUid) {
+            onCreatorViewed?.(nextUid);
+        }
         setCreatorIndex(nextIdx);
         setRecipeIndex(0);
     };
@@ -222,6 +226,9 @@ const CreatorStoriesModal: React.FC<Props> = ({
 
         const prevUid = creators[prevIdx]?.uid ?? '';
         const prevList = recipesByUid[prevUid] ?? [];
+        if (prevUid) {
+            onCreatorViewed?.(prevUid);
+        }
         setCreatorIndex(prevIdx);
         setRecipeIndex(Math.max(prevList.length - 1, 0));
     };
@@ -313,9 +320,6 @@ const CreatorStoriesModal: React.FC<Props> = ({
 
         const list = recipesByUid[currentUid];
         if (!list) return; // not loaded yet
-        if (list.length > 0) {
-            onCreatorViewed?.(currentUid);
-        }
         if (list.length > 0) return;
 
         const nextIdx = creatorIndex + 1;
@@ -325,7 +329,7 @@ const CreatorStoriesModal: React.FC<Props> = ({
             setRecipeIndex(0);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, creatorIndex, currentUid, recipesByUid, loadingUid, onCreatorViewed]);
+    }, [open, creatorIndex, currentUid, recipesByUid, loadingUid]);
 
     if (!open) return null;
 

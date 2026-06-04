@@ -362,6 +362,7 @@ export default function MostActiveCreators({
                                     key={uid}
                                     type="button"
                                     onClick={() => {
+                                        markCreatorSeen(uid);
                                         setInitialCreatorUid(uid);
                                         setStoriesOpen(true);
                                     }}

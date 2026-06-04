@@ -387,9 +387,11 @@ export const backfillDerivedData = onRequest(async (req, res) => {
     return;
   }
 
-  await rebuildFollowerCounts();
-  await rebuildPublicPopularRecipesMirror();
-  await recomputeTopActiveCreatorsDoc();
+  await Promise.all([
+    rebuildFollowerCounts(),
+    rebuildPublicPopularRecipesMirror(),
+    recomputeTopActiveCreatorsDoc(),
+  ]);
 
   res.status(200).json({ok: true});
 });
