@@ -115,3 +115,32 @@ Mappen `functions/` inneholder bakgrunnslogikk som kjører i Firebase:
 ## Distribusjon
 
 Appen er laget for å distribueres på [Vercel](https://vercel.com), med Cloud Functions og database i Firebase. Husk å sette alle miljøvariablene i Vercel-prosjektet.
+
+## Versjonering
+
+Prosjektet bruker [semantisk versjonering](https://semver.org/lang/no/) (f.eks. `1.4.2`) og automatiseres med [release-please](https://github.com/googleapis/release-please). Versjonsnummeret regnes ut automatisk fra commit-meldingene, så commits **må** følge [Conventional Commits](https://www.conventionalcommits.org/):
+
+| Commit-prefiks                                    | Effekt på versjon         | Eksempel                               |
+| ------------------------------------------------- | ------------------------- | -------------------------------------- |
+| `fix:`                                            | Patch (1.4.2 → 1.4.**3**) | `fix: rett feil i import av oppskrift`  |
+| `feat:`                                            | Minor (1.4.2 → 1.**5**.0) | `feat: legg til deling av samlinger`    |
+| `feat!:` / `fix!:`                                | Major (1.4.2 → **2**.0.0) | `feat!: ny datamodell for oppskrifter`  |
+| `chore:`, `docs:`, `refactor:`, `style:`, `test:` | Ingen ny utgivelse        | `docs: oppdater README`                |
+
+> Et utropstegn (`!`) eller en `BREAKING CHANGE:`-linje i commit-meldingen utløser en major-økning.
+
+### Slik fungerer utgivelser
+
+1. Push commits til `main` med Conventional Commits-meldinger.
+2. En GitHub Action ([release-please](.github/workflows/release-please.yml)) åpner – og holder oppdatert – en **release-PR** som bumper versjonen i `package.json` og oppdaterer `CHANGELOG.md`.
+3. Når du merger release-PR-en, lager release-please automatisk en git-tag (`v1.5.0`) og en tilhørende **GitHub Release**.
+
+Gjeldende basisversjon er `1.0.0` (se `.release-please-manifest.json`).
+
+### Engangsoppsett på GitHub
+
+For at automatikken skal kunne åpne PR-er må du i repo-innstillingene velge
+**Settings → Actions → General → Workflow permissions**:
+
+- Slå på **Read and write permissions**
+- Huk av **Allow GitHub Actions to create and approve pull requests**
