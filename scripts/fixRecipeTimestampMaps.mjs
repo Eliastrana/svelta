@@ -1,4 +1,9 @@
-import { getApps, initializeApp, applicationDefault, cert } from 'firebase-admin/app';
+import {
+    getApps,
+    initializeApp,
+    applicationDefault,
+    cert,
+} from 'firebase-admin/app';
 import { getFirestore, FieldPath, Timestamp } from 'firebase-admin/firestore';
 
 function getAdminApp() {
@@ -12,7 +17,10 @@ function getAdminApp() {
             credential: cert({
                 projectId: parsed.project_id,
                 clientEmail: parsed.client_email,
-                privateKey: String(parsed.private_key || '').replace(/\\n/g, '\n'),
+                privateKey: String(parsed.private_key || '').replace(
+                    /\\n/g,
+                    '\n'
+                ),
             }),
         });
     }
@@ -38,13 +46,19 @@ function isTimestampMap(value) {
 }
 
 function toTimestamp(value) {
-    return Timestamp.fromMillis((value.seconds * 1000) + Math.floor((value.nanoseconds ?? value._nanoseconds) / 1_000_000));
+    return Timestamp.fromMillis(
+        value.seconds * 1000 +
+            Math.floor((value.nanoseconds ?? value._nanoseconds) / 1_000_000)
+    );
 }
 
 async function main() {
     const { dryRun } = parseArgs(process.argv);
     const db = getFirestore(getAdminApp());
-    const recipesSnap = await db.collection('recipes').orderBy(FieldPath.documentId()).get();
+    const recipesSnap = await db
+        .collection('recipes')
+        .orderBy(FieldPath.documentId())
+        .get();
 
     if (recipesSnap.empty) {
         console.log('No recipes found.');
@@ -52,7 +66,11 @@ async function main() {
     }
 
     console.log(`Found ${recipesSnap.size} recipes.`);
-    console.log(dryRun ? 'Running in dry-run mode. No writes will be made.' : 'Repairing malformed timestamp maps...');
+    console.log(
+        dryRun
+            ? 'Running in dry-run mode. No writes will be made.'
+            : 'Repairing malformed timestamp maps...'
+    );
 
     let batch = db.batch();
     let opCount = 0;
@@ -91,7 +109,9 @@ async function main() {
     }
 
     await flush();
-    console.log(`Done. ${dryRun ? 'Would repair' : 'Repaired'} ${fixed} recipe documents.`);
+    console.log(
+        `Done. ${dryRun ? 'Would repair' : 'Repaired'} ${fixed} recipe documents.`
+    );
 }
 
 main().catch((error) => {

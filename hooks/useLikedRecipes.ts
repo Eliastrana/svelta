@@ -72,10 +72,22 @@ export function useUserLikedRecipes(userId: string): RecipeWithCreator[] {
                     const recipeData = recipeSnap.data() as RecipeDocData;
 
                     // ✅ safe numeric defaults (no any)
-                    const likeCount = typeof recipeData.likeCount === 'number' ? recipeData.likeCount : 0;
-                    const commentCount = typeof recipeData.commentCount === 'number' ? recipeData.commentCount : 0;
-                    const ratingSum = typeof recipeData.ratingSum === 'number' ? recipeData.ratingSum : 0;
-                    const ratingCount = typeof recipeData.ratingCount === 'number' ? recipeData.ratingCount : 0;
+                    const likeCount =
+                        typeof recipeData.likeCount === 'number'
+                            ? recipeData.likeCount
+                            : 0;
+                    const commentCount =
+                        typeof recipeData.commentCount === 'number'
+                            ? recipeData.commentCount
+                            : 0;
+                    const ratingSum =
+                        typeof recipeData.ratingSum === 'number'
+                            ? recipeData.ratingSum
+                            : 0;
+                    const ratingCount =
+                        typeof recipeData.ratingCount === 'number'
+                            ? recipeData.ratingCount
+                            : 0;
 
                     return {
                         id: recipeId,
@@ -95,27 +107,45 @@ export function useUserLikedRecipes(userId: string): RecipeWithCreator[] {
                     new Set(
                         resolved
                             .map((recipe) => recipe.userId)
-                            .filter((value): value is string => Boolean(value)),
-                    ),
+                            .filter((value): value is string => Boolean(value))
+                    )
                 );
-                const creatorsMap = creatorIds.length > 0 ? await fetchManyUsers(creatorIds) : {};
+                const creatorsMap =
+                    creatorIds.length > 0
+                        ? await fetchManyUsers(creatorIds)
+                        : {};
 
                 resolved.forEach((recipe) => {
                     const creator = creatorsMap[recipe.userId];
                     if (creator) {
-                        recipe.creator = { name: creator.name, photoURL: creator.photoURL };
+                        recipe.creator = {
+                            name: creator.name,
+                            photoURL: creator.photoURL,
+                        };
                     }
                 });
 
                 // Optional: sort newest first if createdAt is Firestore Timestamp
                 resolved.sort((a, b) => {
                     const ta =
-                        typeof (a.createdAt as { toMillis?: () => number } | undefined)?.toMillis === 'function'
-                            ? (a.createdAt as { toMillis: () => number }).toMillis()
+                        typeof (
+                            a.createdAt as
+                                | { toMillis?: () => number }
+                                | undefined
+                        )?.toMillis === 'function'
+                            ? (
+                                  a.createdAt as { toMillis: () => number }
+                              ).toMillis()
                             : 0;
                     const tb =
-                        typeof (b.createdAt as { toMillis?: () => number } | undefined)?.toMillis === 'function'
-                            ? (b.createdAt as { toMillis: () => number }).toMillis()
+                        typeof (
+                            b.createdAt as
+                                | { toMillis?: () => number }
+                                | undefined
+                        )?.toMillis === 'function'
+                            ? (
+                                  b.createdAt as { toMillis: () => number }
+                              ).toMillis()
                             : 0;
                     return tb - ta;
                 });
@@ -123,7 +153,11 @@ export function useUserLikedRecipes(userId: string): RecipeWithCreator[] {
                 setLikedRecipes(resolved);
             },
             (err) => {
-                console.error('useUserLikedRecipes snapshot error:', (err as { code?: string }).code, err.message);
+                console.error(
+                    'useUserLikedRecipes snapshot error:',
+                    (err as { code?: string }).code,
+                    err.message
+                );
                 setLikedRecipes([]);
             }
         );

@@ -1,6 +1,12 @@
 'use client';
 
-import { deleteUser, EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup, User } from 'firebase/auth';
+import {
+    deleteUser,
+    EmailAuthProvider,
+    reauthenticateWithCredential,
+    reauthenticateWithPopup,
+    User,
+} from 'firebase/auth';
 import {
     arrayRemove,
     collection,
@@ -58,7 +64,7 @@ export async function deleteUserAccountAndActivity(currentUser: User) {
 
 export async function deleteUserAccountAndActivityWithOptions(
     currentUser: User,
-    options: { password?: string },
+    options: { password?: string }
 ) {
     const uid = currentUser.uid;
 
@@ -67,8 +73,12 @@ export async function deleteUserAccountAndActivityWithOptions(
         throw new Error('Du må være logget inn for å slette kontoen.');
     }
 
-    const hasGoogleProvider = currentUser.providerData.some((p) => p.providerId === 'google.com');
-    const hasPasswordProvider = currentUser.providerData.some((p) => p.providerId === 'password');
+    const hasGoogleProvider = currentUser.providerData.some(
+        (p) => p.providerId === 'google.com'
+    );
+    const hasPasswordProvider = currentUser.providerData.some(
+        (p) => p.providerId === 'password'
+    );
 
     if (hasPasswordProvider) {
         if (!currentUser.email) {
@@ -82,7 +92,7 @@ export async function deleteUserAccountAndActivityWithOptions(
 
         await reauthenticateWithCredential(
             currentUser,
-            EmailAuthProvider.credential(currentUser.email, password),
+            EmailAuthProvider.credential(currentUser.email, password)
         );
     } else if (hasGoogleProvider) {
         await reauthenticateWithPopup(currentUser, provider);
@@ -92,16 +102,22 @@ export async function deleteUserAccountAndActivityWithOptions(
 
     const allRecipesSnap = await getDocs(collection(firestore, 'recipes'));
     const allRecipeDocs = allRecipesSnap.docs;
-    const allRecipeIds = new Set(allRecipeDocs.map((recipeDoc) => recipeDoc.id));
+    const allRecipeIds = new Set(
+        allRecipeDocs.map((recipeDoc) => recipeDoc.id)
+    );
     const ownRecipeDocs = allRecipeDocs.filter((recipeDoc) => {
         const data = recipeDoc.data() as { userId?: string };
         return data.userId === uid;
     });
-    const ownRecipeIds = new Set(ownRecipeDocs.map((recipeDoc) => recipeDoc.id));
+    const ownRecipeIds = new Set(
+        ownRecipeDocs.map((recipeDoc) => recipeDoc.id)
+    );
 
     const batcher = createBatchCommitter();
 
-    const likesByUserSnap = await getDocs(query(collectionGroup(firestore, 'likes'), where('userId', '==', uid)));
+    const likesByUserSnap = await getDocs(
+        query(collectionGroup(firestore, 'likes'), where('userId', '==', uid))
+    );
     const likeDeltas = new Map<string, number>();
 
     for (const likeDoc of likesByUserSnap.docs) {
@@ -115,7 +131,10 @@ export async function deleteUserAccountAndActivityWithOptions(
     }
 
     const commentsByUserSnap = await getDocs(
-        query(collectionGroup(firestore, 'comments'), where('userId', '==', uid)),
+        query(
+            collectionGroup(firestore, 'comments'),
+            where('userId', '==', uid)
+        )
     );
     const commentDeltas = new Map<string, number>();
 
@@ -133,34 +152,53 @@ export async function deleteUserAccountAndActivityWithOptions(
 
     try {
         const ratingsByUserSnap = await getDocs(
-            query(collectionGroup(firestore, 'ratings'), where(documentId(), '==', uid)),
+            query(
+                collectionGroup(firestore, 'ratings'),
+                where(documentId(), '==', uid)
+            )
         );
 
         for (const ratingDoc of ratingsByUserSnap.docs) {
             const recipeId = ratingDoc.ref.parent.parent?.id;
-            const value = Number((ratingDoc.data() as { value?: number }).value ?? 0);
+            const value = Number(
+                (ratingDoc.data() as { value?: number }).value ?? 0
+            );
             if (recipeId && ownRecipeIds.has(recipeId)) continue;
 
             await batcher.delete(ratingDoc.ref);
 
             if (!recipeId || !allRecipeIds.has(recipeId)) continue;
             const prev = ratingDeltas.get(recipeId) ?? { count: 0, sum: 0 };
-            ratingDeltas.set(recipeId, { count: prev.count - 1, sum: prev.sum - value });
+            ratingDeltas.set(recipeId, {
+                count: prev.count - 1,
+                sum: prev.sum - value,
+            });
         }
     } catch {
         for (const recipeDoc of allRecipeDocs) {
             if (ownRecipeIds.has(recipeDoc.id)) continue;
 
-            const ratingRef = doc(firestore, 'recipes', recipeDoc.id, 'ratings', uid);
+            const ratingRef = doc(
+                firestore,
+                'recipes',
+                recipeDoc.id,
+                'ratings',
+                uid
+            );
             const ratingSnap = await getDoc(ratingRef);
             if (!ratingSnap.exists()) continue;
 
-            const value = Number((ratingSnap.data() as { value?: number }).value ?? 0);
+            const value = Number(
+                (ratingSnap.data() as { value?: number }).value ?? 0
+            );
 
             await batcher.delete(ratingRef);
 
             const prev = ratingDeltas.get(recipeDoc.id) ?? { count: 0, sum: 0 };
-            ratingDeltas.set(recipeDoc.id, { count: prev.count - 1, sum: prev.sum - value });
+            ratingDeltas.set(recipeDoc.id, {
+                count: prev.count - 1,
+                sum: prev.sum - value,
+            });
         }
     }
 
@@ -184,19 +222,35 @@ export async function deleteUserAccountAndActivityWithOptions(
     }
 
     for (const recipeDoc of ownRecipeDocs) {
-        const [likesSnap, commentsSnap, ratingsSnap, collectionRefsSnap] = await Promise.all([
-            getDocs(collection(firestore, 'recipes', recipeDoc.id, 'likes')),
-            getDocs(collection(firestore, 'recipes', recipeDoc.id, 'comments')),
-            getDocs(collection(firestore, 'recipes', recipeDoc.id, 'ratings')),
-            getDocs(
-                query(
-                    collectionGroup(firestore, 'recipes'),
-                    where('recipeRef', '==', doc(firestore, 'recipes', recipeDoc.id)),
+        const [likesSnap, commentsSnap, ratingsSnap, collectionRefsSnap] =
+            await Promise.all([
+                getDocs(
+                    collection(firestore, 'recipes', recipeDoc.id, 'likes')
                 ),
-            ),
-        ]);
+                getDocs(
+                    collection(firestore, 'recipes', recipeDoc.id, 'comments')
+                ),
+                getDocs(
+                    collection(firestore, 'recipes', recipeDoc.id, 'ratings')
+                ),
+                getDocs(
+                    query(
+                        collectionGroup(firestore, 'recipes'),
+                        where(
+                            'recipeRef',
+                            '==',
+                            doc(firestore, 'recipes', recipeDoc.id)
+                        )
+                    )
+                ),
+            ]);
 
-        for (const snap of [likesSnap, commentsSnap, ratingsSnap, collectionRefsSnap]) {
+        for (const snap of [
+            likesSnap,
+            commentsSnap,
+            ratingsSnap,
+            collectionRefsSnap,
+        ]) {
             for (const childDoc of snap.docs) {
                 await batcher.delete(childDoc.ref);
             }
@@ -205,10 +259,17 @@ export async function deleteUserAccountAndActivityWithOptions(
         await batcher.delete(recipeDoc.ref);
     }
 
-    const ownCollectionsSnap = await getDocs(collection(firestore, 'users', uid, 'collections'));
+    const ownCollectionsSnap = await getDocs(
+        collection(firestore, 'users', uid, 'collections')
+    );
     for (const collectionDoc of ownCollectionsSnap.docs) {
         const collectionRecipesSnap = await getDocs(
-            collection(firestore, 'collectionsRecipes', collectionDoc.id, 'recipes'),
+            collection(
+                firestore,
+                'collectionsRecipes',
+                collectionDoc.id,
+                'recipes'
+            )
         );
 
         for (const recipeRefDoc of collectionRecipesSnap.docs) {
@@ -218,15 +279,27 @@ export async function deleteUserAccountAndActivityWithOptions(
         await batcher.delete(collectionDoc.ref);
     }
 
-    const [followerDocsSnap, outgoingRequestDocsSnap, incomingRequestDocsSnap] = await Promise.all([
-        getDocs(query(collection(firestore, 'users'), where('following', 'array-contains', uid))),
-        getDocs(
-            query(collection(firestore, 'users'), where('incomingFollowRequests', 'array-contains', uid)),
-        ),
-        getDocs(
-            query(collection(firestore, 'users'), where('outgoingFollowRequests', 'array-contains', uid)),
-        ),
-    ]);
+    const [followerDocsSnap, outgoingRequestDocsSnap, incomingRequestDocsSnap] =
+        await Promise.all([
+            getDocs(
+                query(
+                    collection(firestore, 'users'),
+                    where('following', 'array-contains', uid)
+                )
+            ),
+            getDocs(
+                query(
+                    collection(firestore, 'users'),
+                    where('incomingFollowRequests', 'array-contains', uid)
+                )
+            ),
+            getDocs(
+                query(
+                    collection(firestore, 'users'),
+                    where('outgoingFollowRequests', 'array-contains', uid)
+                )
+            ),
+        ]);
 
     await batcher.flush();
 

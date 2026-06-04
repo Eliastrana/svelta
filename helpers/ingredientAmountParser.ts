@@ -41,7 +41,7 @@ const UNIT_PATTERN = Object.keys(UNIT_ALIASES)
 const NUMBER_PATTERN = String.raw`(?:\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:[.,]\d+)?)`;
 const AMOUNT_WITH_UNIT_REGEX = new RegExp(
     String.raw`^\s*(${NUMBER_PATTERN})(\s*)(${UNIT_PATTERN})\.?\s*$`,
-    'iu',
+    'iu'
 );
 
 export type ParsedIngredientAmount = {
@@ -51,7 +51,9 @@ export type ParsedIngredientAmount = {
     detectedUnit?: string;
 };
 
-export function normalizeIngredientAmountInput(rawValue: string): ParsedIngredientAmount {
+export function normalizeIngredientAmountInput(
+    rawValue: string
+): ParsedIngredientAmount {
     const collapsed = rawValue.replace(/\s+/g, ' ').trim();
     if (!collapsed) {
         return {
@@ -71,7 +73,8 @@ export function normalizeIngredientAmountInput(rawValue: string): ParsedIngredie
     }
 
     const [, amountPart, spacing, unitPart] = match;
-    const normalizedUnit = UNIT_ALIASES[unitPart.toLowerCase()] ?? unitPart.toLowerCase();
+    const normalizedUnit =
+        UNIT_ALIASES[unitPart.toLowerCase()] ?? unitPart.toLowerCase();
     const formatted = `${amountPart.replace(/\s+/g, ' ')} ${normalizedUnit}`;
 
     return {

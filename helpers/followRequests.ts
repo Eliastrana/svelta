@@ -1,4 +1,11 @@
-import { arrayRemove, arrayUnion, doc, getDoc, increment, writeBatch } from 'firebase/firestore';
+import {
+    arrayRemove,
+    arrayUnion,
+    doc,
+    getDoc,
+    increment,
+    writeBatch,
+} from 'firebase/firestore';
 import { firestore } from '@/firebase';
 
 export type FollowableUserDoc = {
@@ -13,7 +20,11 @@ export type FollowableUserDoc = {
 };
 
 export type FollowState = 'self' | 'following' | 'requested' | 'not_following';
-export type FollowActionResult = 'followed' | 'unfollowed' | 'requested' | 'request_cancelled';
+export type FollowActionResult =
+    | 'followed'
+    | 'unfollowed'
+    | 'requested'
+    | 'request_cancelled';
 
 function includesId(list: string[] | undefined, id: string) {
     return Array.isArray(list) && list.includes(id);
@@ -23,7 +34,7 @@ export function getFollowState(
     currentUid: string,
     targetUid: string,
     currentUser?: FollowableUserDoc | null,
-    targetUser?: FollowableUserDoc | null,
+    targetUser?: FollowableUserDoc | null
 ): FollowState {
     if (!currentUid || currentUid === targetUid) return 'self';
     if (includesId(currentUser?.following, targetUid)) return 'following';
@@ -36,14 +47,20 @@ export function getFollowState(
     return 'not_following';
 }
 
-export async function toggleFollowAction(currentUid: string, targetUid: string): Promise<FollowActionResult> {
+export async function toggleFollowAction(
+    currentUid: string,
+    targetUid: string
+): Promise<FollowActionResult> {
     if (!currentUid || !targetUid || currentUid === targetUid) {
         throw new Error('Ugyldig følgehandling.');
     }
 
     const currentRef = doc(firestore, 'users', currentUid);
     const targetRef = doc(firestore, 'users', targetUid);
-    const [currentSnap, targetSnap] = await Promise.all([getDoc(currentRef), getDoc(targetRef)]);
+    const [currentSnap, targetSnap] = await Promise.all([
+        getDoc(currentRef),
+        getDoc(targetRef),
+    ]);
 
     if (!currentSnap.exists() || !targetSnap.exists()) {
         throw new Error('Fant ikke brukeren.');
@@ -109,7 +126,7 @@ export async function toggleFollowAction(currentUid: string, targetUid: string):
 export async function respondToFollowRequest(
     profileOwnerUid: string,
     requesterUid: string,
-    accept: boolean,
+    accept: boolean
 ) {
     if (!profileOwnerUid || !requesterUid || profileOwnerUid === requesterUid) {
         throw new Error('Ugyldig forespørsel.');

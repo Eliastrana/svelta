@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 :root {
-    --background: #FEFEF8;
+    --background: #fefef8;
     --foreground: #0f172a;
     --accent: #9bd45c;
     --accent-strong: #b9e77a;
@@ -11,8 +11,6 @@
 body {
     font-family: var(--font-urbanist), sans-serif;
 }
-
-
 
 .brown-button {
     background-color: var(--accent-strong);

@@ -1,5 +1,11 @@
 import 'server-only';
-import { getApps, initializeApp, cert, App, ServiceAccount } from 'firebase-admin/app';
+import {
+    getApps,
+    initializeApp,
+    cert,
+    App,
+    ServiceAccount,
+} from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 function getAdminApp(): App {

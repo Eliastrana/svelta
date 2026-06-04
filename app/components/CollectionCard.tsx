@@ -34,7 +34,9 @@ export default function CollectionCard({
                     />
                 ) : (
                     <div className="grid h-full w-full place-items-center bg-[var(--accent)] text-[#12340d]">
-                        <span className="material-symbols-outlined text-5xl">menu_book</span>
+                        <span className="material-symbols-outlined text-5xl">
+                            menu_book
+                        </span>
                     </div>
                 )}
 
@@ -42,7 +44,9 @@ export default function CollectionCard({
                     {visibilityLabel ? (
                         <div className="inline-flex items-center gap-1 rounded-full bg-[#fbfaf4]/95 px-2.5 py-1 text-xs font-bold text-[#12340d] shadow-sm backdrop-blur">
                             <span className="material-symbols-outlined text-[16px]">
-                                {visibilityLabel === 'Offentlig' ? 'public' : 'lock'}
+                                {visibilityLabel === 'Offentlig'
+                                    ? 'public'
+                                    : 'lock'}
                             </span>
                             {visibilityLabel}
                         </div>
@@ -63,11 +67,11 @@ export default function CollectionCard({
             </div>
 
             <div className="mt-4 flex items-end gap-3 px-1 justify-end">
-
-
                 <div className="flex shrink-0 items-center gap-2 text-sm ">
                     <div className="inline-flex items-center gap-1 rounded-full bg-[#e5e5d7] px-2.5 py-1 font-medium text-[#12340d]">
-                        <span className="material-symbols-outlined text-[17px]">menu_book</span>
+                        <span className="material-symbols-outlined text-[17px]">
+                            menu_book
+                        </span>
                         {recipeCount}
                     </div>
                 </div>

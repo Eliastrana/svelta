@@ -12,7 +12,10 @@ import UserProfileDisplay from '@/app/components/UserProfileDisplay';
 import UserSearchModal from '@/app/components/UserSearchModal';
 import RecommendModal from '@/app/components/RecommendModal';
 
-import { fetchCollections, createCollection } from '@/helpers/collectionHelpers';
+import {
+    fetchCollections,
+    createCollection,
+} from '@/helpers/collectionHelpers';
 import { useUserData } from '@/hooks/useUserData';
 
 interface CollectionDoc {
@@ -35,7 +38,8 @@ const Navbar: React.FC = () => {
     const uid = user?.uid ?? '';
     const userData = useUserData(uid);
     const queryClient = useQueryClient();
-    const incomingFollowRequestCount = userData?.incomingFollowRequests?.length ?? 0;
+    const incomingFollowRequestCount =
+        userData?.incomingFollowRequests?.length ?? 0;
 
     // ─────────────────────────────────────────────────────────────
     // Auth
@@ -153,12 +157,18 @@ const Navbar: React.FC = () => {
             active ? 'brown-button' : 'hover:bg-slate-100',
         ].join(' ');
 
-    const requestBadge = incomingFollowRequestCount > 99 ? '99+' : incomingFollowRequestCount;
+    const requestBadge =
+        incomingFollowRequestCount > 99 ? '99+' : incomingFollowRequestCount;
 
-    const renderNavIcon = (item: { key: string; active: boolean; icon: React.ReactNode }) => {
+    const renderNavIcon = (item: {
+        key: string;
+        active: boolean;
+        icon: React.ReactNode;
+    }) => {
         if (item.key === 'profile') return item.icon;
 
-        const showRequestBadge = item.key === 'friends' && incomingFollowRequestCount > 0;
+        const showRequestBadge =
+            item.key === 'friends' && incomingFollowRequestCount > 0;
 
         return (
             <span className="relative inline-grid place-items-center">
@@ -192,7 +202,11 @@ const Navbar: React.FC = () => {
             label: 'Lag oppskrift',
             active: isCreateActive,
             onClick: () => router.push('/create-recipe'),
-            icon: <span className="material-symbols-outlined bg-lime-100 p-3 rounded-full">add</span>,
+            icon: (
+                <span className="material-symbols-outlined bg-lime-100 p-3 rounded-full">
+                    add
+                </span>
+            ),
         },
         {
             key: 'collections',
@@ -231,7 +245,11 @@ const Navbar: React.FC = () => {
                             key={item.key}
                             type="button"
                             onClick={item.onClick}
-                            className={item.key === 'profile' ? 'flex-shrink-0' : iconBase}
+                            className={
+                                item.key === 'profile'
+                                    ? 'flex-shrink-0'
+                                    : iconBase
+                            }
                             aria-label={item.label}
                         >
                             {renderNavIcon(item)}
@@ -243,7 +261,9 @@ const Navbar: React.FC = () => {
                     className={[
                         'mx-auto flex md:hidden items-center overflow-hidden rounded-full border border-slate-200 bg-white/90 shadow-xl backdrop-blur-lg',
                         'transition-all duration-300 ease-out',
-                        isMobileCollapsed ? 'max-w-[72px] justify-center px-2 py-2' : 'max-w-sm justify-between gap-2 px-6 py-2',
+                        isMobileCollapsed
+                            ? 'max-w-[72px] justify-center px-2 py-2'
+                            : 'max-w-sm justify-between gap-2 px-6 py-2',
                     ].join(' ')}
                 >
                     {isMobileCollapsed ? (
@@ -267,7 +287,9 @@ const Navbar: React.FC = () => {
                                 type="button"
                                 onClick={item.onClick}
                                 className={[
-                                    item.key === 'profile' ? 'flex-shrink-0' : iconBase,
+                                    item.key === 'profile'
+                                        ? 'flex-shrink-0'
+                                        : iconBase,
                                     'transition-all duration-200',
                                 ].join(' ')}
                                 aria-label={item.label}
@@ -278,7 +300,9 @@ const Navbar: React.FC = () => {
                     )}
                 </div>
 
-                {showModal && <UserSearchModal onClose={() => setShowModal(false)} />}
+                {showModal && (
+                    <UserSearchModal onClose={() => setShowModal(false)} />
+                )}
             </div>
         </>
     );

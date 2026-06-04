@@ -15,11 +15,13 @@ export function useCollectionSummaries(collections: CollectionSummaryItem[]) {
         })),
     });
 
-    return collections.reduce<Record<string, { previewImage: string; recipeCount: number }>>(
-        (acc, collection, index) => {
-            acc[collection.id] = summaryQueries[index]?.data ?? { previewImage: '', recipeCount: 0 };
-            return acc;
-        },
-        {},
-    );
+    return collections.reduce<
+        Record<string, { previewImage: string; recipeCount: number }>
+    >((acc, collection, index) => {
+        acc[collection.id] = summaryQueries[index]?.data ?? {
+            previewImage: '',
+            recipeCount: 0,
+        };
+        return acc;
+    }, {});
 }

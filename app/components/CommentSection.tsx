@@ -61,7 +61,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
 
     const canSubmit = useMemo(
         () => commentText.trim().length > 0 && !submitting,
-        [commentText, submitting],
+        [commentText, submitting]
     );
 
     const goToProfile = (uid: string) => {
@@ -91,7 +91,12 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
     }, [recipeId]);
 
     useEffect(() => {
-        const commentsRef = collection(firestore, 'recipes', recipeId, 'comments');
+        const commentsRef = collection(
+            firestore,
+            'recipes',
+            recipeId,
+            'comments'
+        );
         const commentsQuery = query(commentsRef, orderBy('createdAt', 'asc'));
 
         const unsubscribe = onSnapshot(commentsQuery, (snapshot) => {
@@ -108,7 +113,9 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
 
     useEffect(() => {
         const fetchUserData = async () => {
-            const uniqueUserIds = Array.from(new Set(comments.map((c) => c.userId)));
+            const uniqueUserIds = Array.from(
+                new Set(comments.map((c) => c.userId))
+            );
             const newUsers: Record<string, UserDoc> = {};
 
             await Promise.all(
@@ -121,7 +128,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                             newUsers[uid] = docSnap.data() as UserDoc;
                         }
                     }
-                }),
+                })
             );
 
             if (Object.keys(newUsers).length > 0) {
@@ -148,7 +155,12 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
         if (!text || submitting) return;
 
         const recipeRef = doc(firestore, 'recipes', recipeId);
-        const commentsRef = collection(firestore, 'recipes', recipeId, 'comments');
+        const commentsRef = collection(
+            firestore,
+            'recipes',
+            recipeId,
+            'comments'
+        );
 
         try {
             setSubmitting(true);
@@ -197,7 +209,13 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
         }
 
         const recipeRef = doc(firestore, 'recipes', recipeId);
-        const commentRef = doc(firestore, 'recipes', recipeId, 'comments', commentId);
+        const commentRef = doc(
+            firestore,
+            'recipes',
+            recipeId,
+            'comments',
+            commentId
+        );
 
         try {
             setDeletingId(commentId);
@@ -213,7 +231,8 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                     ? (recipeSnap.data().commentCount as number | undefined)
                     : undefined;
 
-                const currentCount = typeof currentCountRaw === 'number' ? currentCountRaw : 0;
+                const currentCount =
+                    typeof currentCountRaw === 'number' ? currentCountRaw : 0;
                 const nextCount = Math.max(0, currentCount - 1);
 
                 tx.delete(commentRef);
@@ -246,7 +265,10 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
             </div>
 
             {/* Composer */}
-            <form onSubmit={handleAddComment} className="flex items-center gap-2">
+            <form
+                onSubmit={handleAddComment}
+                className="flex items-center gap-2"
+            >
                 <input
                     type="text"
                     value={commentText}
@@ -303,7 +325,9 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                                 <div className="flex items-start gap-3">
                                     <button
                                         type="button"
-                                        onClick={() => goToProfile(comment.userId)}
+                                        onClick={() =>
+                                            goToProfile(comment.userId)
+                                        }
                                         className="group flex min-w-0 items-start gap-3 text-left"
                                         aria-label={`Åpne profil for ${userInfo?.name ?? 'bruker'}`}
                                     >
@@ -311,7 +335,9 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                                             {userInfo?.photoURL ? (
                                                 <img
                                                     src={userInfo.photoURL}
-                                                    alt={userInfo.name || 'User'}
+                                                    alt={
+                                                        userInfo.name || 'User'
+                                                    }
                                                     className="h-full w-full object-cover"
                                                 />
                                             ) : (
@@ -324,7 +350,8 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                                         <div className="min-w-0">
                                             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
                                                 <h3 className="truncate text-sm font-bold text-[#12340d]">
-                                                    {userInfo?.name || 'Ukjent bruker'}
+                                                    {userInfo?.name ||
+                                                        'Ukjent bruker'}
                                                 </h3>
 
                                                 <span className="whitespace-nowrap text-xs text-[#6f8068]">
@@ -346,14 +373,18 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                                     {showDelete ? (
                                         <button
                                             type="button"
-                                            onClick={() => setDeleteConfirmId(comment.id)}
+                                            onClick={() =>
+                                                setDeleteConfirmId(comment.id)
+                                            }
                                             className="ml-auto inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-[#e5e5d7] px-3 text-sm font-medium text-[#12340d] transition hover:bg-[#d8d7cb]"
                                             aria-label="Slett kommentar"
                                         >
                                             <span className="material-symbols-outlined text-[18px]">
                                                 delete
                                             </span>
-                                            <span className="hidden sm:inline">Slett</span>
+                                            <span className="hidden sm:inline">
+                                                Slett
+                                            </span>
                                         </button>
                                     ) : null}
                                 </div>
@@ -384,7 +415,10 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                                     type="button"
                                     onClick={closeWithAnim}
                                     className="rounded-full border border-[#d8d7cb] px-4 py-2 text-[#12340d] transition hover:bg-[#f2f1e8]"
-                                    disabled={deletingId === deleteConfirmId || closing}
+                                    disabled={
+                                        deletingId === deleteConfirmId ||
+                                        closing
+                                    }
                                 >
                                     Avbryt
                                 </button>
@@ -392,13 +426,20 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                                 <button
                                     type="button"
                                     onClick={async () => {
-                                        await handleDeleteComment(deleteConfirmId);
+                                        await handleDeleteComment(
+                                            deleteConfirmId
+                                        );
                                         closeWithAnim();
                                     }}
                                     className="rounded-full bg-red-500 px-4 py-2 text-white transition hover:bg-red-600 disabled:opacity-60"
-                                    disabled={deletingId === deleteConfirmId || closing}
+                                    disabled={
+                                        deletingId === deleteConfirmId ||
+                                        closing
+                                    }
                                 >
-                                    {deletingId === deleteConfirmId ? 'Sletter…' : 'Slett'}
+                                    {deletingId === deleteConfirmId
+                                        ? 'Sletter…'
+                                        : 'Slett'}
                                 </button>
                             </div>
                         </div>

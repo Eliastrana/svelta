@@ -25,8 +25,12 @@ export function useRecipeRating(recipeId: string, uid?: string) {
         const recipeRef = doc(firestore, 'recipes', recipeId);
         const unsub = onSnapshot(recipeRef, (snap) => {
             const data = (snap.data() as RecipeRatingAgg | undefined) ?? {};
-            setRatingSum(typeof data.ratingSum === 'number' ? data.ratingSum : 0);
-            setRatingCount(typeof data.ratingCount === 'number' ? data.ratingCount : 0);
+            setRatingSum(
+                typeof data.ratingSum === 'number' ? data.ratingSum : 0
+            );
+            setRatingCount(
+                typeof data.ratingCount === 'number' ? data.ratingCount : 0
+            );
         });
 
         return () => unsub();

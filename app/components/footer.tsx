@@ -1,13 +1,13 @@
-import Link from "next/link";
+import Link from 'next/link';
 
 const Footer = () => {
     return (
         <footer className="relative overflow-hidden bg-[#171713] text-[#deded0] px-6 pt-24 pb-40">
             {/* Decorative background text */}
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        {/*<span className="select-none text-[24vw] font-black uppercase tracking-tighter text-[#deded0]/5">*/}
-        {/*  Svelta*/}
-        {/*</span>*/}
+                {/*<span className="select-none text-[24vw] font-black uppercase tracking-tighter text-[#deded0]/5">*/}
+                {/*  Svelta*/}
+                {/*</span>*/}
             </div>
 
             {/* Subtle grid */}
@@ -24,9 +24,7 @@ const Footer = () => {
                     </h1>
 
                     <div className="mt-6 max-w-md">
-                        <p className="italic text-[#deded0]/60">
-                            intransitiv
-                        </p>
+                        <p className="italic text-[#deded0]/60">intransitiv</p>
                         <p className="mt-2 text-xl font-semibold sm:text-2xl">
                             Å lide av mangel på mat
                         </p>

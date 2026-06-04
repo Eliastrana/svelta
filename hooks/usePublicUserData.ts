@@ -14,13 +14,16 @@ export function usePublicUserData(uid: string): PublicUserDoc | null {
             return;
         }
 
-        const unsubscribe = onSnapshot(doc(firestore, 'publicUsers', uid), (snap) => {
-            if (snap.exists()) {
-                setUserData(snap.data() as PublicUserDoc);
-            } else {
-                setUserData(null);
+        const unsubscribe = onSnapshot(
+            doc(firestore, 'publicUsers', uid),
+            (snap) => {
+                if (snap.exists()) {
+                    setUserData(snap.data() as PublicUserDoc);
+                } else {
+                    setUserData(null);
+                }
             }
-        });
+        );
 
         return () => unsubscribe();
     }, [uid]);

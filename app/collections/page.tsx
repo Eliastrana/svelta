@@ -8,7 +8,11 @@ import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { auth, storage } from '@/firebase';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CollectionDoc, createCollection, fetchCollections } from '@/helpers/collectionHelpers';
+import {
+    CollectionDoc,
+    createCollection,
+    fetchCollections,
+} from '@/helpers/collectionHelpers';
 import { useCollectionSummaries } from '@/hooks/collections/useCollectionSummaries';
 import AppModal from '@/app/components/AppModal';
 import CollectionCard from '@/app/components/CollectionCard';
@@ -38,7 +42,8 @@ const CollectionsPage: React.FC = () => {
 
     useEffect(() => {
         return () => {
-            if (coverPreview.startsWith('blob:')) URL.revokeObjectURL(coverPreview);
+            if (coverPreview.startsWith('blob:'))
+                URL.revokeObjectURL(coverPreview);
         };
     }, [coverPreview]);
 
@@ -68,14 +73,15 @@ const CollectionsPage: React.FC = () => {
             description?: string;
             isPublic?: boolean;
         }) => createCollection(uid, name, coverImage, description, isPublic),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['collections', uid] }),
+        onSuccess: () =>
+            queryClient.invalidateQueries({ queryKey: ['collections', uid] }),
     });
 
     const collectionSummaries = useCollectionSummaries(collections);
 
     const canCreate = useMemo(
         () => !!newListName.trim() && !createMutation.isPending,
-        [newListName, createMutation.isPending],
+        [newListName, createMutation.isPending]
     );
 
     const resetCreateDraft = () => {
@@ -101,7 +107,10 @@ const CollectionsPage: React.FC = () => {
             let coverImage = '';
 
             if (coverFile) {
-                const imageRef = ref(storage, `collection-covers/${uid}/${Date.now()}-${coverFile.name}`);
+                const imageRef = ref(
+                    storage,
+                    `collection-covers/${uid}/${Date.now()}-${coverFile.name}`
+                );
                 const snap = await uploadBytes(imageRef, coverFile);
                 coverImage = await getDownloadURL(snap.ref);
             }
@@ -140,8 +149,9 @@ const CollectionsPage: React.FC = () => {
         <div className="min-h-screen pb-24 ">
             <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
                 <div className="flex items-center justify-between">
-
-                    <h1 className="text-lg font-semibold text-slate-900">Kokebøker</h1>
+                    <h1 className="text-lg font-semibold text-slate-900">
+                        Kokebøker
+                    </h1>
 
                     <button
                         type="button"
@@ -158,13 +168,18 @@ const CollectionsPage: React.FC = () => {
                 <div className="rounded-xl ">
                     {isError ? (
                         <p className="text-sm text-red-600">
-                            Klarte ikke å hente lister: {error?.message ?? 'Ukjent feil'}
+                            Klarte ikke å hente lister:{' '}
+                            {error?.message ?? 'Ukjent feil'}
                         </p>
                     ) : loading ? (
                         <p className="text-slate-600">Laster…</p>
                     ) : collections.length === 0 ? (
                         <div className="rounded-[28px] border border-slate-200 bg-white/95 p-6 text-sm text-slate-600 shadow-sm">
-                            Ingen kokebøker ennå. Trykk på <span className="font-semibold text-slate-900">Ny kokebok</span> for å lage den første.
+                            Ingen kokebøker ennå. Trykk på{' '}
+                            <span className="font-semibold text-slate-900">
+                                Ny kokebok
+                            </span>{' '}
+                            for å lage den første.
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -174,9 +189,19 @@ const CollectionsPage: React.FC = () => {
                                     href={`/collections/${c.id}?owner=${uid}`}
                                     name={c.name}
                                     description={c.description}
-                                    previewImage={c.coverImage?.trim() || collectionSummaries[c.id]?.previewImage || ''}
-                                    recipeCount={collectionSummaries[c.id]?.recipeCount ?? 0}
-                                    visibilityLabel={c.isPublic ? 'Offentlig' : 'Privat'}
+                                    previewImage={
+                                        c.coverImage?.trim() ||
+                                        collectionSummaries[c.id]
+                                            ?.previewImage ||
+                                        ''
+                                    }
+                                    recipeCount={
+                                        collectionSummaries[c.id]
+                                            ?.recipeCount ?? 0
+                                    }
+                                    visibilityLabel={
+                                        c.isPublic ? 'Offentlig' : 'Privat'
+                                    }
                                 />
                             ))}
                         </div>
@@ -190,9 +215,13 @@ const CollectionsPage: React.FC = () => {
                         <div className="p-6">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
-                                    <h2 className="text-xl font-semibold text-slate-900">Ny samling</h2>
+                                    <h2 className="text-xl font-semibold text-slate-900">
+                                        Ny samling
+                                    </h2>
                                     <p className="mt-1 text-sm text-slate-600">
-                                        Velg et bilde hvis du vil, ellers bruker vi bildet fra den nyeste oppskriften i samlingen.
+                                        Velg et bilde hvis du vil, ellers bruker
+                                        vi bildet fra den nyeste oppskriften i
+                                        samlingen.
                                     </p>
                                 </div>
 
@@ -201,23 +230,40 @@ const CollectionsPage: React.FC = () => {
                                     onClick={closeWithAnim}
                                     className="grid h-10 w-10 place-items-center rounded-full hover:bg-slate-100"
                                     aria-label="Lukk"
-                                    disabled={closing || createMutation.isPending}
+                                    disabled={
+                                        closing || createMutation.isPending
+                                    }
                                 >
-                                    <span className="material-symbols-outlined">close</span>
+                                    <span className="material-symbols-outlined">
+                                        close
+                                    </span>
                                 </button>
                             </div>
 
                             <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-start">
                                 <label className="flex h-28 w-28 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-[var(--accent-soft)] text-slate-700">
                                     {coverPreview ? (
-                                        <img src={coverPreview} alt="Forside" className="h-full w-full object-cover" />
+                                        <img
+                                            src={coverPreview}
+                                            alt="Forside"
+                                            className="h-full w-full object-cover"
+                                        />
                                     ) : (
                                         <div className="flex flex-col items-center gap-2 text-center">
-                                            <span className="material-symbols-outlined text-[28px]">photo_camera</span>
-                                            <span className="text-xs font-medium">Velg bilde</span>
+                                            <span className="material-symbols-outlined text-[28px]">
+                                                photo_camera
+                                            </span>
+                                            <span className="text-xs font-medium">
+                                                Velg bilde
+                                            </span>
                                         </div>
                                     )}
-                                    <input type="file" accept="image/*" className="hidden" onChange={onPickCover} />
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={onPickCover}
+                                    />
                                 </label>
 
                                 <div className="flex-1">
@@ -226,11 +272,15 @@ const CollectionsPage: React.FC = () => {
                                         placeholder="Navn på kokebok…"
                                         className="w-full rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-300"
                                         value={newListName}
-                                        onChange={(e) => setNewListName(e.target.value)}
+                                        onChange={(e) =>
+                                            setNewListName(e.target.value)
+                                        }
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
                                                 e.preventDefault();
-                                                void handleSubmit(closeWithAnim);
+                                                void handleSubmit(
+                                                    closeWithAnim
+                                                );
                                             }
                                         }}
                                         disabled={createMutation.isPending}
@@ -240,23 +290,36 @@ const CollectionsPage: React.FC = () => {
                                         placeholder="Beskrivelse (valgfritt)…"
                                         className="mt-3 min-h-[96px] w-full rounded-2xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-300"
                                         value={newListDescription}
-                                        onChange={(e) => setNewListDescription(e.target.value)}
+                                        onChange={(e) =>
+                                            setNewListDescription(
+                                                e.target.value
+                                            )
+                                        }
                                         disabled={createMutation.isPending}
                                     />
 
                                     <label className="mt-3 flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700">
                                         <div>
-                                            <p className="font-semibold text-slate-900">Offentlig kokebok</p>
+                                            <p className="font-semibold text-slate-900">
+                                                Offentlig kokebok
+                                            </p>
                                             <p className="mt-1 text-xs text-slate-600">
-                                                Vises under Samlinger på profilsiden din.
+                                                Vises under Samlinger på
+                                                profilsiden din.
                                             </p>
                                         </div>
                                         <span className="relative inline-flex items-center">
                                             <input
                                                 type="checkbox"
                                                 checked={newListIsPublic}
-                                                onChange={(e) => setNewListIsPublic(e.target.checked)}
-                                                disabled={createMutation.isPending}
+                                                onChange={(e) =>
+                                                    setNewListIsPublic(
+                                                        e.target.checked
+                                                    )
+                                                }
+                                                disabled={
+                                                    createMutation.isPending
+                                                }
                                                 className="peer sr-only"
                                             />
                                             <span className="h-8 w-14 rounded-full bg-slate-300 transition-colors duration-200 peer-checked:bg-[var(--accent)] peer-disabled:opacity-50" />
@@ -270,7 +333,14 @@ const CollectionsPage: React.FC = () => {
                                                 type="button"
                                                 onClick={() => {
                                                     setCoverFile(null);
-                                                    if (coverPreview.startsWith('blob:')) URL.revokeObjectURL(coverPreview);
+                                                    if (
+                                                        coverPreview.startsWith(
+                                                            'blob:'
+                                                        )
+                                                    )
+                                                        URL.revokeObjectURL(
+                                                            coverPreview
+                                                        );
                                                     setCoverPreview('');
                                                 }}
                                                 className="text-sm font-medium text-slate-600 hover:text-slate-900"
@@ -282,16 +352,22 @@ const CollectionsPage: React.FC = () => {
                                         <button
                                             type="button"
                                             className="rounded-full confirm-button px-5 py-2 disabled:opacity-50"
-                                            onClick={() => void handleSubmit(closeWithAnim)}
+                                            onClick={() =>
+                                                void handleSubmit(closeWithAnim)
+                                            }
                                             disabled={!canCreate || closing}
                                         >
-                                            {createMutation.isPending ? 'Lager…' : 'Lag kokebok'}
+                                            {createMutation.isPending
+                                                ? 'Lager…'
+                                                : 'Lag kokebok'}
                                         </button>
                                     </div>
 
                                     {createMutation.isError ? (
                                         <p className="mt-3 text-sm text-red-600">
-                                            Klarte ikke å lage samling: {(createMutation.error as Error)?.message ?? 'Ukjent feil'}
+                                            Klarte ikke å lage samling:{' '}
+                                            {(createMutation.error as Error)
+                                                ?.message ?? 'Ukjent feil'}
                                         </p>
                                     ) : null}
                                 </div>
