@@ -41,10 +41,6 @@ export default function NotificationsModal({
                             <h2 className="text-lg font-bold text-[#12340d]">
                                 Varsler
                             </h2>
-                            <p className="mt-1 text-sm text-[#496444]">
-                                Likes, kommentarer og nye oppskrifter fra folk
-                                du folger.
-                            </p>
                         </div>
 
                         <button
@@ -80,7 +76,7 @@ export default function NotificationsModal({
                                     Ingen varsler enda
                                 </h3>
                                 <p className="mt-1 text-sm text-[#496444]">
-                                    Nar noen liker, kommenterer eller deler en
+                                    Når noen liker, kommenterer eller deler en
                                     ny oppskrift, dukker det opp her.
                                 </p>
                             </div>
@@ -147,7 +143,7 @@ export default function NotificationsModal({
                                                             {notification.body}
                                                         </p>
 
-                                                        <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[#6f8068]">
+                                                        <p className="mt-2 text-xs text-[#6f8068]">
                                                             {relativeLabel}
                                                         </p>
                                                     </div>

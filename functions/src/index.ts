@@ -528,7 +528,7 @@ export const notifyRecipeOwnerOnLike = onDocumentCreated(
             actorName,
             actorPhotoURL: actorProfile.photoURL ?? '',
             type: 'like',
-            title: 'Ny like pa oppskriften din',
+            title: `${actorName} tok av seg hatten! 🧑‍🍳`,
             body: `${actorName} likte "${recipeTitle}".`,
             link: `/recipe/${recipeId}`,
             recipeId,
@@ -565,7 +565,7 @@ export const notifyRecipeOwnerOnComment = onDocumentCreated(
         const commentExcerpt = truncateText(commentData.text ?? '', 120);
         const body = commentExcerpt
             ? `${actorName} kommenterte: "${commentExcerpt}"`
-            : `${actorName} la igjen en kommentar pa "${recipeTitle}".`;
+            : `${actorName} la igjen en kommentar på "${recipeTitle}".`;
 
         await createAndSendNotification({
             recipientId,
@@ -573,7 +573,7 @@ export const notifyRecipeOwnerOnComment = onDocumentCreated(
             actorName,
             actorPhotoURL: actorProfile.photoURL ?? '',
             type: 'comment',
-            title: 'Ny kommentar pa oppskriften din',
+            title: 'Ny kommentar på oppskriften din',
             body,
             link: `/recipe/${recipeId}`,
             recipeId,

@@ -138,11 +138,14 @@ export default function MobileAppPrompt() {
                         </button>
 
                         <h2 className="text-xl font-semibold tracking-tight text-slate-900">
-                            Legg Svelta pa hjemskjermen
+                            Legg Svelta pa hjemskjermen!
                         </h2>
                         <p className="mt-1 pr-10 text-sm text-slate-500">
-                            Da apner Svelta raskere fra mobilen, og du far en
-                            mer app-lignende opplevelse. Varsler kan du skru pa
+                            Da åpner Svelta raskere fra mobilen, og du far en
+                            mer app-lignende opplevelse.
+                        </p>
+                        <p className="mt-2 pr-10 text-sm text-slate-500 font-semibold">
+                            Varsler kan du skru på
                             senere i profilinnstillingene.
                         </p>
                     </div>
@@ -179,7 +182,7 @@ export default function MobileAppPrompt() {
                                                 }
                                                 className="mt-4 rounded-full bg-[#12340d] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 active:scale-[0.99]"
                                             >
-                                                Legg til pa hjemskjermen
+                                                Legg til på hjemskjermen
                                             </button>
                                         </>
                                     ) : isSafariOnIos() ? (
@@ -212,7 +215,7 @@ export default function MobileAppPrompt() {
                                 onClick={handleSnooze}
                                 className="w-full rounded-full bg-slate-100 px-5 py-2.5 font-semibold text-slate-700 transition hover:bg-slate-200 active:scale-95 sm:w-auto"
                             >
-                                Ikke na
+                                Ikke nå
                             </button>
                             <button
                                 type="button"

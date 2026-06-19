@@ -19,7 +19,7 @@ export default function NotificationsButton() {
             <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="fixed right-4 top-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#d8d7cb] bg-white/92 text-[#12340d] shadow-lg backdrop-blur md:right-6 md:top-6"
+                className="fixed right-4 top-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#d8d7cb] bg-white/92 text-[#12340d] backdrop-blur md:right-6 md:top-6"
                 aria-label="Apne varsler"
             >
                 <span className="material-symbols-outlined">notifications</span>
