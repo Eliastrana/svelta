@@ -50,6 +50,7 @@ import {
     filterVisibleRecipes,
 } from '@/helpers/recipeVisibility';
 import { useUserFollowing } from '@/hooks/useUserFollowing';
+import NotificationSettingsSection from '@/app/components/NotificationSettingsSection';
 
 interface UserData {
     name?: string;
@@ -800,6 +801,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                 </span>
                                 Rediger utseende
                             </button>
+
+                            <NotificationSettingsSection user={currentUser} />
 
                             <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                                 <label className="flex items-center justify-between gap-4">
