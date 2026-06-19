@@ -157,26 +157,24 @@ async function sendPushNotification(
 
     if (tokens.length === 0) return;
 
+    const iconPath = '/favicon/web-app-manifest-192x192.png';
+    const badgePath = '/favicon/favicon-96x96.png';
+    const tag = `svelta-${payload.type}`;
+
     const response = await admin.messaging().sendEachForMulticast({
         tokens,
-        notification: {
+        data: {
             title: payload.title,
             body: payload.body,
-        },
-        data: {
             link: payload.link,
             type: payload.type,
+            icon: iconPath,
+            badge: badgePath,
+            tag,
         },
         webpush: {
             headers: {
                 Urgency: 'high',
-            },
-            notification: {
-                title: payload.title,
-                body: payload.body,
-                icon: '/favicon/web-app-manifest-192x192.png',
-                badge: '/favicon/favicon-96x96.png',
-                tag: `svelta-${payload.type}`,
             },
             fcmOptions: {
                 link: toAbsoluteUrl(payload.link),
