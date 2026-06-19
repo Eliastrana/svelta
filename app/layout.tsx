@@ -4,6 +4,9 @@ import Navbar from '@/app/components/Navbar';
 import AuthSync from '@/app/components/AuthSync';
 import Footer from '@/app/components/footer';
 import ReactQueryProvider from '@/app/components/ReactQueryProvider';
+import NotificationBootstrap from '@/app/components/NotificationBootstrap';
+import NotificationsButton from '@/app/components/NotificationsButton';
+import MobileAppPrompt from '@/app/components/MobileAppPrompt';
 import { Suspense } from 'react';
 import {
     Fraunces,
@@ -48,6 +51,7 @@ export const metadata: Metadata = {
     title: 'Svelta | Sosial oppskriftsapp',
     description:
         'Svelta er en sosial oppskriftsapp der du kan dele oppskrifter, oppdage nye retter, følge kokker og bygge egne kokebøker.',
+    manifest: '/manifest.webmanifest',
 };
 
 export default function RootLayout({
@@ -71,6 +75,12 @@ export default function RootLayout({
                     content="Svelta, oppskrifter, mat, kokebok, matapp, sosial oppskriftsapp"
                 />
                 <meta name="author" content="Svelta" />
+                <meta name="apple-mobile-web-app-capable" content="yes" />
+                <meta name="mobile-web-app-capable" content="yes" />
+                <meta
+                    name="apple-mobile-web-app-status-bar-style"
+                    content="default"
+                />
 
                 <link
                     rel="icon"
@@ -90,14 +100,14 @@ export default function RootLayout({
                     href="/favicon/apple-touch-icon.png"
                 />
                 <meta name="apple-mobile-web-app-title" content="Svelta" />
-                <link rel="manifest" href="/favicon/site.webmanifest" />
+                <link rel="manifest" href="/manifest.webmanifest" />
 
                 <meta name="msapplication-TileColor" content="#ffffff" />
                 <meta
                     name="msapplication-TileImage"
                     content="/ms-icon-144x144.png"
                 />
-                <meta name="theme-color" content="#ffffff" />
+                <meta name="theme-color" content="#f8f4ea" />
 
                 <link
                     rel="stylesheet"
@@ -121,11 +131,14 @@ export default function RootLayout({
                 ].join(' ')}
             >
                 <AuthSync />
+                <NotificationBootstrap />
+                <MobileAppPrompt />
 
                 <ReactQueryProvider>
                     <Suspense fallback={null}>
                         <Navbar />
                     </Suspense>
+                    <NotificationsButton />
                     {children}
                 </ReactQueryProvider>
                 <Footer />

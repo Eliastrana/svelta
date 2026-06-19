@@ -3,6 +3,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import type { Messaging } from 'firebase/messaging';
 
 const runtimeHostname =
     typeof window !== 'undefined' ? window.location.hostname : null;
@@ -30,4 +31,28 @@ const provider = new GoogleAuthProvider();
 const firestore = getFirestore(app);
 const storage = getStorage(app);
 
-export { auth, provider, firestore, storage };
+let messagingPromise: Promise<Messaging | null> | null = null;
+
+export async function getBrowserMessaging(): Promise<Messaging | null> {
+    if (typeof window === 'undefined') return null;
+    if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+        return null;
+    }
+
+    if (!messagingPromise) {
+        messagingPromise = (async () => {
+            const { getMessaging, isSupported } = await import(
+                'firebase/messaging'
+            );
+
+            const supported = await isSupported();
+            if (!supported) return null;
+
+            return getMessaging(app);
+        })();
+    }
+
+    return messagingPromise;
+}
+
+export { app, auth, provider, firestore, storage };

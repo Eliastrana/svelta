@@ -1,5 +1,8 @@
 import * as admin from 'firebase-admin';
-import { onDocumentWritten } from 'firebase-functions/v2/firestore';
+import {
+    onDocumentCreated,
+    onDocumentWritten,
+} from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onRequest } from 'firebase-functions/https';
 
@@ -24,6 +27,27 @@ type RecipeDoc = admin.firestore.DocumentData & {
     temperature?: string;
     portions?: string;
     tags?: string[];
+};
+
+type PublicUserDoc = {
+    name?: string;
+    photoURL?: string;
+};
+
+type NotificationType = 'like' | 'comment' | 'new_recipe';
+
+type NotificationPayload = {
+    recipientId: string;
+    actorId: string;
+    actorName: string;
+    actorPhotoURL?: string;
+    type: NotificationType;
+    title: string;
+    body: string;
+    link: string;
+    recipeId?: string;
+    recipeTitle?: string;
+    commentText?: string;
 };
 
 function computePopularityScore(args: {
@@ -58,6 +82,139 @@ function asStringArray(value: unknown): string[] {
 
 function isPublicRecipe(data?: RecipeDoc | null): boolean {
     return data?.visibility !== 'private';
+}
+
+function truncateText(value: string, maxLength: number): string {
+    const trimmed = value.trim();
+    if (trimmed.length <= maxLength) return trimmed;
+    return `${trimmed.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function getAppBaseUrl(): string {
+    const explicitBaseUrl = process.env.APP_BASE_URL?.trim();
+    if (explicitBaseUrl) return explicitBaseUrl.replace(/\/+$/, '');
+
+    const projectId =
+        admin.app().options.projectId || process.env.GCLOUD_PROJECT || '';
+
+    return projectId ? `https://${projectId}.web.app` : 'https://localhost';
+}
+
+function toAbsoluteUrl(path: string): string {
+    const normalized = path.startsWith('/') ? path : `/${path}`;
+    return `${getAppBaseUrl()}${normalized}`;
+}
+
+async function fetchPublicUser(uid: string): Promise<PublicUserDoc> {
+    const snap = await db.collection('publicUsers').doc(uid).get();
+    return snap.exists ? ((snap.data() as PublicUserDoc) ?? {}) : {};
+}
+
+async function createNotification(
+    payload: NotificationPayload
+): Promise<string | null> {
+    if (!payload.recipientId || payload.recipientId === payload.actorId) {
+        return null;
+    }
+
+    const notificationRef = db
+        .collection('users')
+        .doc(payload.recipientId)
+        .collection('notifications')
+        .doc();
+
+    await notificationRef.set({
+        recipientId: payload.recipientId,
+        actorId: payload.actorId,
+        actorName: payload.actorName,
+        actorPhotoURL: payload.actorPhotoURL ?? '',
+        type: payload.type,
+        title: payload.title,
+        body: payload.body,
+        link: payload.link,
+        recipeId: payload.recipeId ?? '',
+        recipeTitle: payload.recipeTitle ?? '',
+        commentText: payload.commentText ?? '',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        readAt: null,
+    });
+
+    return notificationRef.id;
+}
+
+async function sendPushNotification(
+    recipientId: string,
+    payload: Pick<NotificationPayload, 'title' | 'body' | 'link' | 'type'>
+) {
+    const tokensSnap = await db
+        .collection('notificationTokens')
+        .where('userId', '==', recipientId)
+        .get();
+
+    const tokens = tokensSnap.docs
+        .map((tokenDoc) => tokenDoc.id)
+        .filter((token) => typeof token === 'string' && token.length > 0);
+
+    if (tokens.length === 0) return;
+
+    const response = await admin.messaging().sendEachForMulticast({
+        tokens,
+        notification: {
+            title: payload.title,
+            body: payload.body,
+        },
+        data: {
+            link: payload.link,
+            type: payload.type,
+        },
+        webpush: {
+            headers: {
+                Urgency: 'high',
+            },
+            notification: {
+                title: payload.title,
+                body: payload.body,
+                icon: '/favicon/web-app-manifest-192x192.png',
+                badge: '/favicon/favicon-96x96.png',
+                tag: `svelta-${payload.type}`,
+            },
+            fcmOptions: {
+                link: toAbsoluteUrl(payload.link),
+            },
+        },
+    });
+
+    const invalidTokenDeletes: Promise<unknown>[] = [];
+
+    response.responses.forEach((result, index) => {
+        if (result.success) return;
+
+        const errorCode = result.error?.code ?? '';
+        if (
+            errorCode.includes('registration-token-not-registered') ||
+            errorCode.includes('invalid-registration-token')
+        ) {
+            invalidTokenDeletes.push(
+                db.collection('notificationTokens')
+                    .doc(tokens[index])
+                    .delete()
+                    .catch(() => undefined)
+            );
+        }
+
+        console.error('Could not send push notification:', result.error);
+    });
+
+    if (invalidTokenDeletes.length > 0) {
+        await Promise.all(invalidTokenDeletes);
+    }
+}
+
+async function createAndSendNotification(payload: NotificationPayload) {
+    const notificationId = await createNotification(payload);
+    if (!notificationId) return;
+
+    await sendPushNotification(payload.recipientId, payload);
 }
 
 async function syncPublicPopularRecipe(
@@ -341,6 +498,134 @@ export const syncFollowerCountsOnUserWrite = onDocumentWritten(
         if (writes > 0) {
             await batch.commit();
         }
+    }
+);
+
+export const notifyRecipeOwnerOnLike = onDocumentCreated(
+    'recipes/{recipeId}/likes/{likeId}',
+    async (event) => {
+        const recipeId = event.params.recipeId;
+        const likeData = event.data?.data() as { userId?: string } | undefined;
+        const actorId = likeData?.userId ?? event.params.likeId;
+
+        if (!actorId) return;
+
+        const [recipeSnap, actorProfile] = await Promise.all([
+            db.collection('recipes').doc(recipeId).get(),
+            fetchPublicUser(actorId),
+        ]);
+
+        if (!recipeSnap.exists) return;
+
+        const recipe = recipeSnap.data() as RecipeDoc;
+        const recipientId = recipe.userId ?? '';
+        if (!recipientId || recipientId === actorId) return;
+
+        const actorName = actorProfile.name?.trim() || 'En kokk';
+        const recipeTitle = recipe.title?.trim() || 'oppskriften din';
+
+        await createAndSendNotification({
+            recipientId,
+            actorId,
+            actorName,
+            actorPhotoURL: actorProfile.photoURL ?? '',
+            type: 'like',
+            title: 'Ny like pa oppskriften din',
+            body: `${actorName} likte "${recipeTitle}".`,
+            link: `/recipe/${recipeId}`,
+            recipeId,
+            recipeTitle,
+        });
+    }
+);
+
+export const notifyRecipeOwnerOnComment = onDocumentCreated(
+    'recipes/{recipeId}/comments/{commentId}',
+    async (event) => {
+        const recipeId = event.params.recipeId;
+        const commentData = (event.data?.data() ?? {}) as {
+            text?: string;
+            userId?: string;
+        };
+        const actorId = commentData.userId ?? '';
+
+        if (!actorId) return;
+
+        const [recipeSnap, actorProfile] = await Promise.all([
+            db.collection('recipes').doc(recipeId).get(),
+            fetchPublicUser(actorId),
+        ]);
+
+        if (!recipeSnap.exists) return;
+
+        const recipe = recipeSnap.data() as RecipeDoc;
+        const recipientId = recipe.userId ?? '';
+        if (!recipientId || recipientId === actorId) return;
+
+        const actorName = actorProfile.name?.trim() || 'En kokk';
+        const recipeTitle = recipe.title?.trim() || 'oppskriften din';
+        const commentExcerpt = truncateText(commentData.text ?? '', 120);
+        const body = commentExcerpt
+            ? `${actorName} kommenterte: "${commentExcerpt}"`
+            : `${actorName} la igjen en kommentar pa "${recipeTitle}".`;
+
+        await createAndSendNotification({
+            recipientId,
+            actorId,
+            actorName,
+            actorPhotoURL: actorProfile.photoURL ?? '',
+            type: 'comment',
+            title: 'Ny kommentar pa oppskriften din',
+            body,
+            link: `/recipe/${recipeId}`,
+            recipeId,
+            recipeTitle,
+            commentText: commentData.text ?? '',
+        });
+    }
+);
+
+export const notifyFollowersOnNewRecipe = onDocumentCreated(
+    'recipes/{recipeId}',
+    async (event) => {
+        const recipeId = event.params.recipeId;
+        const recipe = event.data?.data() as RecipeDoc | undefined;
+
+        if (!recipe || !isPublicRecipe(recipe)) return;
+
+        const authorId = recipe.userId ?? '';
+        if (!authorId) return;
+
+        const [followersSnap, actorProfile] = await Promise.all([
+            db.collection('users')
+                .where('following', 'array-contains', authorId)
+                .get(),
+            fetchPublicUser(authorId),
+        ]);
+
+        if (followersSnap.empty) return;
+
+        const actorName = actorProfile.name?.trim() || 'En kokk du folger';
+        const recipeTitle = recipe.title?.trim() || 'en ny oppskrift';
+
+        await Promise.all(
+            followersSnap.docs.map(async (followerDoc) => {
+                if (followerDoc.id === authorId) return;
+
+                await createAndSendNotification({
+                    recipientId: followerDoc.id,
+                    actorId: authorId,
+                    actorName,
+                    actorPhotoURL: actorProfile.photoURL ?? '',
+                    type: 'new_recipe',
+                    title: `Ny oppskrift fra ${actorName}`,
+                    body: `${actorName} delte "${recipeTitle}".`,
+                    link: `/recipe/${recipeId}`,
+                    recipeId,
+                    recipeTitle,
+                });
+            })
+        );
     }
 );
 
