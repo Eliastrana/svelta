@@ -16,19 +16,23 @@ export default function NotificationsButton() {
 
     return (
         <>
-            <button
-                type="button"
-                onClick={() => setOpen(true)}
-                className="fixed right-4 top-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#d8d7cb] bg-white/92 text-[#12340d] backdrop-blur md:right-6 md:top-6"
-                aria-label="Apne varsler"
-            >
-                <span className="material-symbols-outlined">notifications</span>
-                {unreadCount > 0 ? (
-                    <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-[#365d2c] px-1.5 py-0.5 text-center text-[10px] font-semibold leading-none text-white">
-                        {unreadCount > 99 ? '99+' : unreadCount}
+            <div className="flex justify-end">
+                <button
+                    type="button"
+                    onClick={() => setOpen(true)}
+                    className="relative inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#d8d7cb] bg-white text-[#12340d] shadow-sm transition hover:bg-[#f7f6ef] active:scale-[0.98]"
+                    aria-label="Apne varsler"
+                >
+                    <span className="material-symbols-outlined">
+                        notifications
                     </span>
-                ) : null}
-            </button>
+                    {unreadCount > 0 ? (
+                        <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-[#365d2c] px-1.5 py-0.5 text-center text-[10px] font-semibold leading-none text-white">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                    ) : null}
+                </button>
+            </div>
 
             {open ? (
                 <NotificationsModal

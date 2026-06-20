@@ -5,7 +5,6 @@ import AuthSync from '@/app/components/AuthSync';
 import Footer from '@/app/components/footer';
 import ReactQueryProvider from '@/app/components/ReactQueryProvider';
 import NotificationBootstrap from '@/app/components/NotificationBootstrap';
-import NotificationsButton from '@/app/components/NotificationsButton';
 import MobileAppPrompt from '@/app/components/MobileAppPrompt';
 import { Suspense } from 'react';
 import {
@@ -138,7 +137,6 @@ export default function RootLayout({
                     <Suspense fallback={null}>
                         <Navbar />
                     </Suspense>
-                    <NotificationsButton />
                     {children}
                 </ReactQueryProvider>
                 <Footer />

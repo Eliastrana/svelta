@@ -9,6 +9,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import RecipeCard from '@/app/components/RecipeCard';
 import MostActiveCreators from '@/app/components/MostActiveCreators';
 import OnboardingIntro from '@/app/components/OnboardingIntro';
+import NotificationsButton from '@/app/components/NotificationsButton';
 
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useUserFollowing } from '@/hooks/useUserFollowing';
@@ -462,6 +463,10 @@ const Home: React.FC = () => {
 
     return (
         <div className="p-4 md:max-w-5xl lg:w-2/3 md:mx-auto md:mb-24">
+            <div className="mb-4">
+                <NotificationsButton />
+            </div>
+
             <div className="mb-3">
                 {!showPublicLanding &&
                 (activeFeed === 'popular' ||
