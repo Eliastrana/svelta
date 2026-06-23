@@ -212,6 +212,7 @@ const normalize = (s: string) =>
         .trim();
 
 const PAGE_SIZE = 8;
+const LOGGED_IN_POPULAR_PREFETCH_MIN = PAGE_SIZE * 3;
 const landingHeroVariants = {
     hidden: { opacity: 0, y: 28, filter: 'blur(18px)' },
     show: {
@@ -305,6 +306,7 @@ const Home: React.FC = () => {
 
     const followsNobody = isLoggedIn && following.length === 0;
     const followsSomebody = isLoggedIn && following.length > 0;
+    const showPublicLanding = !isLoggedIn;
 
     const { data: followedRecipes = [], isLoading: loadingFollowed } = useQuery<
         Recipe[],
@@ -364,6 +366,24 @@ const Home: React.FC = () => {
         return () => obs.disconnect();
     }, [activeFeed, hasNextPopular, fetchNextPopular, fetchingNextPopular]);
 
+    React.useEffect(() => {
+        if (showPublicLanding) return;
+        if (activeFeed !== 'popular') return;
+        if (loadingPopular || fetchingNextPopular) return;
+        if (!hasNextPopular) return;
+        if (popularRecipes.length >= LOGGED_IN_POPULAR_PREFETCH_MIN) return;
+
+        void fetchNextPopular();
+    }, [
+        activeFeed,
+        fetchNextPopular,
+        fetchingNextPopular,
+        hasNextPopular,
+        loadingPopular,
+        popularRecipes.length,
+        showPublicLanding,
+    ]);
+
     const baseRecipes: SearchableRecipe[] =
         activeFeed === 'following'
             ? (followedRecipes as SearchableRecipe[])
@@ -417,8 +437,6 @@ const Home: React.FC = () => {
     const shouldShowOnboarding = Boolean(
         user && showOnboarding && viewerProfile
     );
-    const showPublicLanding = !isLoggedIn;
-
     if (shouldBlockHome) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-[#fbfaf4] px-4">
@@ -686,7 +704,6 @@ const Home: React.FC = () => {
                 </div>
             )}
 
-            {/* Content */}
             <div className="mb-40">
                 {showFollowingCTA ? (
                     <div className="mt-3 rounded-2xl bg-white shadow-sm p-4">
@@ -722,12 +739,10 @@ const Home: React.FC = () => {
                             ))}
                         </div>
 
-                        {/* Auto-pagination sentinel (popular) */}
                         {activeFeed === 'popular' && hasNextPopular && (
                             <div ref={loadMoreRef} className="h-10" />
                         )}
 
-                        {/* Bottom-loading skeletons (popular) */}
                         {activeFeed === 'popular' && fetchingNextPopular && (
                             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {Array.from({ length: 2 }).map((_, i) => (
