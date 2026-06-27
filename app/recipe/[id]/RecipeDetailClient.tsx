@@ -16,6 +16,7 @@ import { useUserFollowing } from '@/hooks/useUserFollowing';
 import { auth, firestore } from '@/firebase';
 import RatingStars from '@/app/components/RatingStars';
 import { canViewRecipe } from '@/helpers/recipeVisibility';
+import { LinkedRecipeReference } from '@/app/types/CookingStep';
 
 type IngredientDetailed = { name: string; amount: string };
 
@@ -29,6 +30,7 @@ type RecipeForDetail = {
         title: string;
         description: string;
         imageUrl?: string;
+        linkedRecipe?: LinkedRecipeReference;
     }>;
     temperature?: string;
     cookingTime?: string;
@@ -672,6 +674,57 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                             <p className="mt-2 text-base leading-relaxed [overflow-wrap:anywhere]">
                                                 {step.description}
                                             </p>
+
+                                            {step.linkedRecipe?.id ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        router.push(
+                                                            `/recipe/${step.linkedRecipe?.id}`
+                                                        )
+                                                    }
+                                                    className="mt-4 flex w-full items-center gap-3 rounded-xl border border-[#d8d7cb] bg-[#fbfaf4] p-3 text-left transition hover:bg-[#efeee2]"
+                                                >
+                                                    <div className="flex h-12 w-12 sm:h-20 sm:w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#e5e5d7]">
+                                                        {step.linkedRecipe.coverImage ? (
+                                                            <img
+                                                                src={
+                                                                    step
+                                                                        .linkedRecipe
+                                                                        .coverImage
+                                                                }
+                                                                alt={
+                                                                    step
+                                                                        .linkedRecipe
+                                                                        .title
+                                                                }
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <span className="material-symbols-outlined text-[#496444]">
+                                                                menu_book
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-xs font-semibold text-[#496444]">
+                                                            Se oppskrift
+                                                        </p>
+                                                        <p className="truncate text-sm font-semibold text-[#12340d]">
+                                                            {
+                                                                step
+                                                                    .linkedRecipe
+                                                                    .title
+                                                            }
+                                                        </p>
+                                                    </div>
+
+                                                    <span className="material-symbols-outlined text-[#496444]">
+                                                        open_in_new
+                                                    </span>
+                                                </button>
+                                            ) : null}
 
                                             {step.imageUrl ? (
                                                 <div className="relative mt-4 aspect-[4/3] w-full overflow-hidden rounded-xl bg-[#e5e5d7]">

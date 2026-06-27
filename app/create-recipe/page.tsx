@@ -8,6 +8,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { CookingStep } from '@/app/types/CookingStep';
 import { normalizeIngredientAmountInput } from '@/helpers/ingredientAmountParser';
 import { RecipeVisibility } from '@/helpers/recipeVisibility';
+import { useAuthUser } from '@/hooks/useAuthUser';
+import { useUserRecipes } from '@/hooks/useUserRecipes';
 
 import RecipeCreatedModal from '@/app/components/RecipeCreatedModal';
 
@@ -39,6 +41,11 @@ type StepWithId = CookingStep & {
 
 type Ingredient = { name: string; amount: string };
 type IngredientWithId = Ingredient & { id: string };
+type RecipeReferenceOption = {
+    id: string;
+    title: string;
+    coverImage?: string;
+};
 
 const makeId = (prefix: 'step' | 'ing'): string => {
     const base =
@@ -61,11 +68,13 @@ const revokeBlobUrl = (url?: string | null) => {
 function SortableStepCard(props: {
     step: StepWithId;
     index: number;
+    availableRecipes: RecipeReferenceOption[];
     onChange: (
         id: string,
         field: 'title' | 'description',
         value: string
     ) => void;
+    onLinkedRecipeChange: (id: string, recipeId: string) => void;
     onImageChange: (
         id: string,
         event: React.ChangeEvent<HTMLInputElement>
@@ -73,8 +82,16 @@ function SortableStepCard(props: {
     onRemoveImage: (id: string) => void;
     onRemove: (id: string) => void;
 }) {
-    const { step, index, onChange, onImageChange, onRemoveImage, onRemove } =
-        props;
+    const {
+        step,
+        index,
+        availableRecipes,
+        onChange,
+        onLinkedRecipeChange,
+        onImageChange,
+        onRemoveImage,
+        onRemove,
+    } = props;
 
     const {
         attributes,
@@ -142,6 +159,30 @@ function SortableStepCard(props: {
                         className="w-full min-h-[90px] p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                         required
                     />
+
+                    <div className="mt-3">
+                        <label className="mb-2 block text-sm font-semibold text-slate-900">
+                            Referer til oppskrift
+                        </label>
+                        <select
+                            value={step.linkedRecipe?.id ?? ''}
+                            onChange={(e) =>
+                                onLinkedRecipeChange(step.id, e.target.value)
+                            }
+                            className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                        >
+                            <option value="">Ingen referanse</option>
+                            {availableRecipes.map((recipe) => (
+                                <option key={recipe.id} value={recipe.id}>
+                                    {recipe.title}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="mt-2 text-xs text-slate-500">
+                            Velg en av dine oppskrifter hvis dette steget bruker
+                            en annen oppskrift som del av fremgangsmåten.
+                        </p>
+                    </div>
 
                     <div className="mt-3">
                         <div className="mb-2 flex items-center justify-between gap-2">
@@ -336,6 +377,8 @@ function SortableIngredientCard(props: {
 }
 
 const CreateRecipe = () => {
+    const currentUser = useAuthUser();
+    const userRecipes = useUserRecipes(currentUser?.uid ?? '');
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [svgData, setSvgData] = useState('');
@@ -370,6 +413,15 @@ const CreateRecipe = () => {
     > | null>(null);
 
     const router = useRouter();
+    const recipeReferenceOptions = useMemo<RecipeReferenceOption[]>(
+        () =>
+            userRecipes.map((recipe) => ({
+                id: recipe.id,
+                title: recipe.title?.trim() || 'Oppskrift uten tittel',
+                coverImage: recipe.coverImage,
+            })),
+        [userRecipes]
+    );
 
     type ImportRecipeResponse = {
         title?: string;
@@ -437,6 +489,7 @@ const CreateRecipe = () => {
                             title: (s.title ?? '').trim() || 'Steg',
                             description: (s.description ?? '').trim(),
                             imageUrl: s.imageUrl?.trim() || '',
+                            linkedRecipe: s.linkedRecipe,
                             imagePreview: s.imageUrl?.trim() || '',
                             imageFile: null,
                         }))
@@ -521,6 +574,7 @@ const CreateRecipe = () => {
                 return {
                     ...step,
                     imageUrl: step.imageUrl?.trim() || storedImage,
+                    linkedRecipe: step.linkedRecipe,
                     imagePreview: storedImage || null,
                     imageFile: null,
                 };
@@ -561,6 +615,7 @@ const CreateRecipe = () => {
                 title: step.title,
                 description: step.description,
                 imageUrl: getStoredStepImage(step),
+                linkedRecipe: step.linkedRecipe,
                 imagePreview: getStoredStepImage(step) || null,
             })),
             ingredients: ingredients
@@ -604,6 +659,7 @@ const CreateRecipe = () => {
                 title: '',
                 description: '',
                 imageUrl: '',
+                linkedRecipe: undefined,
                 imagePreview: null,
                 imageFile: null,
             },
@@ -617,6 +673,28 @@ const CreateRecipe = () => {
     ) => {
         setCookingSteps((prev) =>
             prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
+        );
+    };
+
+    const handleLinkedRecipeChange = (id: string, recipeId: string) => {
+        setCookingSteps((prev) =>
+            prev.map((step) => {
+                if (step.id !== id) return step;
+                const linkedRecipe = recipeReferenceOptions.find(
+                    (recipe) => recipe.id === recipeId
+                );
+
+                return {
+                    ...step,
+                    linkedRecipe: linkedRecipe
+                        ? {
+                              id: linkedRecipe.id,
+                              title: linkedRecipe.title,
+                              coverImage: linkedRecipe.coverImage,
+                          }
+                        : undefined,
+                };
+            })
         );
     };
 
@@ -874,6 +952,16 @@ const CreateRecipe = () => {
                         title: s.title,
                         description: s.description,
                         imageUrl: imageUrl || '',
+                        ...(s.linkedRecipe?.id
+                            ? {
+                                  linkedRecipe: {
+                                      id: s.linkedRecipe.id,
+                                      title: s.linkedRecipe.title,
+                                      coverImage:
+                                          s.linkedRecipe.coverImage || '',
+                                  },
+                              }
+                            : {}),
                     };
                 })
             );
@@ -1300,7 +1388,13 @@ const CreateRecipe = () => {
                                             key={step.id}
                                             step={step}
                                             index={index}
+                                            availableRecipes={
+                                                recipeReferenceOptions
+                                            }
                                             onChange={handleStepChange}
+                                            onLinkedRecipeChange={
+                                                handleLinkedRecipeChange
+                                            }
                                             onImageChange={
                                                 handleStepImageChange
                                             }

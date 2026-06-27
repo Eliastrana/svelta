@@ -9,6 +9,8 @@ import { RecipeData } from '@/app/types/RecipeData';
 import { CookingStep } from '@/app/types/CookingStep';
 import { normalizeIngredientAmountInput } from '@/helpers/ingredientAmountParser';
 import { RecipeVisibility } from '@/helpers/recipeVisibility';
+import { useAuthUser } from '@/hooks/useAuthUser';
+import { useUserRecipes } from '@/hooks/useUserRecipes';
 
 import {
     DndContext,
@@ -38,6 +40,12 @@ type IngredientItem = {
     id: string;
     name: string;
     amount: string;
+};
+
+type RecipeReferenceOption = {
+    id: string;
+    title: string;
+    coverImage?: string;
 };
 
 type RecipeDoc = RecipeData & {
@@ -164,11 +172,13 @@ function isMeaningfulDraft(draft: DraftPayload): boolean {
 function SortableStepCard(props: {
     step: StepWithId;
     index: number;
+    availableRecipes: RecipeReferenceOption[];
     onChange: (
         stepId: string,
         field: 'title' | 'description',
         value: string
     ) => void;
+    onLinkedRecipeChange: (stepId: string, recipeId: string) => void;
     onImageChange: (
         stepId: string,
         event: React.ChangeEvent<HTMLInputElement>
@@ -176,8 +186,16 @@ function SortableStepCard(props: {
     onRemoveImage: (stepId: string) => void;
     onRemove: (stepId: string) => void;
 }) {
-    const { step, index, onChange, onImageChange, onRemoveImage, onRemove } =
-        props;
+    const {
+        step,
+        index,
+        availableRecipes,
+        onChange,
+        onLinkedRecipeChange,
+        onImageChange,
+        onRemoveImage,
+        onRemove,
+    } = props;
 
     const {
         attributes,
@@ -246,6 +264,30 @@ function SortableStepCard(props: {
                         className="w-full min-h-[90px] p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                         required
                     />
+
+                    <div className="mt-3">
+                        <label className="mb-2 block text-sm font-semibold text-slate-900">
+                            Referer til oppskrift
+                        </label>
+                        <select
+                            value={step.linkedRecipe?.id ?? ''}
+                            onChange={(e) =>
+                                onLinkedRecipeChange(step.id, e.target.value)
+                            }
+                            className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                        >
+                            <option value="">Ingen referanse</option>
+                            {availableRecipes.map((recipe) => (
+                                <option key={recipe.id} value={recipe.id}>
+                                    {recipe.title}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="mt-2 text-xs text-slate-500">
+                            Velg en av dine oppskrifter hvis dette steget viser
+                            videre til en annen oppskrift.
+                        </p>
+                    </div>
 
                     <div className="mt-3">
                         <div className="mb-2 flex items-center justify-between gap-2">
@@ -446,10 +488,23 @@ const EditRecipePage: React.FC = () => {
     const params = useParams();
     const recipeId = Array.isArray(params.id) ? params.id[0] : params.id;
     const router = useRouter();
+    const currentUser = useAuthUser();
+    const userRecipes = useUserRecipes(currentUser?.uid ?? '');
 
     const LOCAL_STORAGE_KEY = recipeId
         ? `editRecipeForm_${recipeId}`
         : 'editRecipeForm';
+    const recipeReferenceOptions = useMemo<RecipeReferenceOption[]>(
+        () =>
+            userRecipes
+                .filter((recipe) => recipe.id !== recipeId)
+                .map((recipe) => ({
+                    id: recipe.id,
+                    title: recipe.title?.trim() || 'Oppskrift uten tittel',
+                    coverImage: recipe.coverImage,
+                })),
+        [recipeId, userRecipes]
+    );
 
     const [loading, setLoading] = useState(true);
     const [draftChecked, setDraftChecked] = useState(false);
@@ -614,6 +669,7 @@ const EditRecipePage: React.FC = () => {
                         ...s,
                         id: s.id || makeId(),
                         imageUrl: s.imageUrl?.trim() || storedImage,
+                        linkedRecipe: s.linkedRecipe,
                         imagePreview: storedImage || null,
                         imageFile: null,
                     };
@@ -686,6 +742,7 @@ const EditRecipePage: React.FC = () => {
                         ...s,
                         id: makeId(),
                         imageUrl: s.imageUrl?.trim() || '',
+                        linkedRecipe: s.linkedRecipe,
                         imagePreview: s.imageUrl?.trim() || null,
                         imageFile: null,
                     }));
@@ -737,11 +794,12 @@ const EditRecipePage: React.FC = () => {
                 temperature,
                 cookingTime,
                 visibility,
-                cookingSteps: cookingSteps.map((s) => ({
-                    title: s.title,
-                    description: s.description,
-                    imageUrl: getStoredStepImage(s),
-                })),
+                    cookingSteps: cookingSteps.map((s) => ({
+                        title: s.title,
+                        description: s.description,
+                        imageUrl: getStoredStepImage(s),
+                        linkedRecipe: s.linkedRecipe,
+                    })),
             },
             ingredientsDetailed,
             ingredients: ingredientsDetailed.map((x) => x.name).filter(Boolean),
@@ -755,6 +813,7 @@ const EditRecipePage: React.FC = () => {
                 title: s.title,
                 description: s.description,
                 imageUrl: getStoredStepImage(s),
+                linkedRecipe: s.linkedRecipe,
                 imagePreview: getStoredStepImage(s) || null,
             })),
             newIngredientName,
@@ -819,6 +878,7 @@ const EditRecipePage: React.FC = () => {
                 title: '',
                 description: '',
                 imageUrl: '',
+                linkedRecipe: undefined,
                 imagePreview: null,
                 imageFile: null,
             },
@@ -832,6 +892,28 @@ const EditRecipePage: React.FC = () => {
     ) => {
         setCookingSteps((prev) =>
             prev.map((s) => (s.id === stepId ? { ...s, [field]: value } : s))
+        );
+    };
+
+    const handleLinkedRecipeChange = (stepId: string, recipeIdValue: string) => {
+        setCookingSteps((prev) =>
+            prev.map((step) => {
+                if (step.id !== stepId) return step;
+                const linkedRecipe = recipeReferenceOptions.find(
+                    (recipe) => recipe.id === recipeIdValue
+                );
+
+                return {
+                    ...step,
+                    linkedRecipe: linkedRecipe
+                        ? {
+                              id: linkedRecipe.id,
+                              title: linkedRecipe.title,
+                              coverImage: linkedRecipe.coverImage,
+                          }
+                        : undefined,
+                };
+            })
         );
     };
 
@@ -930,6 +1012,15 @@ const EditRecipePage: React.FC = () => {
                     title: s.title,
                     description: s.description,
                     imageUrl: imageUrl || '',
+                    ...(s.linkedRecipe?.id
+                        ? {
+                              linkedRecipe: {
+                                  id: s.linkedRecipe.id,
+                                  title: s.linkedRecipe.title,
+                                  coverImage: s.linkedRecipe.coverImage || '',
+                              },
+                          }
+                        : {}),
                 };
             })
         );
@@ -1325,7 +1416,13 @@ const EditRecipePage: React.FC = () => {
                                             key={step.id}
                                             step={step}
                                             index={index}
+                                            availableRecipes={
+                                                recipeReferenceOptions
+                                            }
                                             onChange={handleStepChange}
+                                            onLinkedRecipeChange={
+                                                handleLinkedRecipeChange
+                                            }
                                             onImageChange={
                                                 handleStepImageChange
                                             }

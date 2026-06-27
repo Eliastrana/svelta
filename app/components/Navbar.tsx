@@ -239,7 +239,7 @@ const Navbar: React.FC = () => {
             )}
 
             <div className="fixed bottom-2 inset-x-0 z-50 px-4 md:bottom-6">
-                <div className="mx-auto hidden max-w-sm items-center justify-between gap-2 rounded-full border border-slate-200 bg-white/90 px-6 py-2 shadow-xl backdrop-blur-lg md:flex">
+                <div className="mx-auto hidden max-w-sm items-center justify-between gap-2 rounded-full border border-slate-200 bg-white/90 px-2.5 py-2 shadow-xl backdrop-blur-lg md:flex">
                     {navItems.map((item) => (
                         <button
                             key={item.key}
@@ -263,7 +263,7 @@ const Navbar: React.FC = () => {
                         'transition-all duration-300 ease-out',
                         isMobileCollapsed
                             ? 'max-w-[72px] justify-center px-2 py-2'
-                            : 'max-w-sm justify-between gap-2 px-6 py-2',
+                            : 'max-w-sm justify-between gap-2 px-2 py-2',
                     ].join(' ')}
                 >
                     {isMobileCollapsed ? (

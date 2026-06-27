@@ -1,10 +1,12 @@
 import { Timestamp } from 'firebase/firestore';
 import { RecipeVisibility } from '@/helpers/recipeVisibility';
+import { LinkedRecipeReference } from '@/app/types/CookingStep';
 
 export type RecipeStep = {
     title: string;
     description: string;
     imageUrl?: string;
+    linkedRecipe?: LinkedRecipeReference;
 };
 
 export type Recipe = {

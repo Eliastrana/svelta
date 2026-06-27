@@ -12,7 +12,7 @@ type Props = {
 };
 
 const UserProfileDisplay = ({
-    sizeClassName = 'w-10 h-10',
+    sizeClassName = 'w-11 h-11',
     className = '',
     active = false,
 }: Props) => {
