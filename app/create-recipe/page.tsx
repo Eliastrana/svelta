@@ -9,9 +9,10 @@ import { CookingStep } from '@/app/types/CookingStep';
 import { normalizeIngredientAmountInput } from '@/helpers/ingredientAmountParser';
 import { RecipeVisibility } from '@/helpers/recipeVisibility';
 import { useAuthUser } from '@/hooks/useAuthUser';
-import { useUserRecipes } from '@/hooks/useUserRecipes';
+import { useUserFollowing } from '@/hooks/useUserFollowing';
 
 import RecipeCreatedModal from '@/app/components/RecipeCreatedModal';
+import RecipeReferencePickerModal from '@/app/components/RecipeReferencePickerModal';
 
 import {
     DndContext,
@@ -41,11 +42,6 @@ type StepWithId = CookingStep & {
 
 type Ingredient = { name: string; amount: string };
 type IngredientWithId = Ingredient & { id: string };
-type RecipeReferenceOption = {
-    id: string;
-    title: string;
-    coverImage?: string;
-};
 
 const makeId = (prefix: 'step' | 'ing'): string => {
     const base =
@@ -68,13 +64,14 @@ const revokeBlobUrl = (url?: string | null) => {
 function SortableStepCard(props: {
     step: StepWithId;
     index: number;
-    availableRecipes: RecipeReferenceOption[];
+    currentUserId: string;
+    followingIds: string[];
     onChange: (
         id: string,
         field: 'title' | 'description',
         value: string
     ) => void;
-    onLinkedRecipeChange: (id: string, recipeId: string) => void;
+    onLinkedRecipeChange: (id: string, linkedRecipe: StepWithId['linkedRecipe'] | null) => void;
     onImageChange: (
         id: string,
         event: React.ChangeEvent<HTMLInputElement>
@@ -82,10 +79,12 @@ function SortableStepCard(props: {
     onRemoveImage: (id: string) => void;
     onRemove: (id: string) => void;
 }) {
+    const [showReferencePicker, setShowReferencePicker] = useState(false);
     const {
         step,
         index,
-        availableRecipes,
+        currentUserId,
+        followingIds,
         onChange,
         onLinkedRecipeChange,
         onImageChange,
@@ -164,24 +163,74 @@ function SortableStepCard(props: {
                         <label className="mb-2 block text-sm font-semibold text-slate-900">
                             Referer til oppskrift
                         </label>
-                        <select
-                            value={step.linkedRecipe?.id ?? ''}
-                            onChange={(e) =>
-                                onLinkedRecipeChange(step.id, e.target.value)
-                            }
-                            className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                        >
-                            <option value="">Ingen referanse</option>
-                            {availableRecipes.map((recipe) => (
-                                <option key={recipe.id} value={recipe.id}>
-                                    {recipe.title}
-                                </option>
-                            ))}
-                        </select>
-                        <p className="mt-2 text-xs text-slate-500">
-                            Velg en av dine oppskrifter hvis dette steget bruker
-                            en annen oppskrift som del av fremgangsmåten.
-                        </p>
+                        {step.linkedRecipe ? (
+                            <div className="rounded-2xl border border-slate-200 bg-[#fbfaf4] p-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#ece7d9]">
+                                        {step.linkedRecipe.coverImage ? (
+                                            <img
+                                                src={step.linkedRecipe.coverImage}
+                                                alt={step.linkedRecipe.title}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <span className="material-symbols-outlined text-[#496444]">
+                                                menu_book
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-xs font-semibold text-[#6c7b65]">
+                                            Valgt referanse
+                                        </p>
+                                        <p className="truncate font-semibold text-[#12340d]">
+                                            {step.linkedRecipe.title}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowReferencePicker(true)
+                                        }
+                                        className="rounded-full bg-[#efe9db] px-3 py-2 text-sm font-semibold text-[#12340d] transition hover:bg-[#e4ddce]"
+                                    >
+                                        Bytt oppskrift
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            onLinkedRecipeChange(step.id, null)
+                                        }
+                                        className="rounded-full px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+                                    >
+                                        Fjern
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => setShowReferencePicker(true)}
+                                className="flex w-full items-center justify-between rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-left transition hover:bg-slate-100"
+                            >
+                                <div>
+                                    <p className="font-semibold text-slate-900">
+                                        Velg referert oppskrift
+                                    </p>
+                                    <p className="mt-1 text-xs text-slate-500">
+                                        Velg blant oppskriftene til folk du
+                                        følger.
+                                    </p>
+                                </div>
+                                <span className="material-symbols-outlined text-slate-600">
+                                    arrow_forward
+                                </span>
+                            </button>
+                        )}
                     </div>
 
                     <div className="mt-3">
@@ -240,6 +289,17 @@ function SortableStepCard(props: {
                     </span>
                 </button>
             </div>
+
+            {showReferencePicker ? (
+                <RecipeReferencePickerModal
+                    currentUserId={currentUserId}
+                    followingIds={followingIds}
+                    onClose={() => setShowReferencePicker(false)}
+                    onSelect={(linkedRecipe) =>
+                        onLinkedRecipeChange(step.id, linkedRecipe)
+                    }
+                />
+            ) : null}
         </div>
     );
 }
@@ -378,7 +438,7 @@ function SortableIngredientCard(props: {
 
 const CreateRecipe = () => {
     const currentUser = useAuthUser();
-    const userRecipes = useUserRecipes(currentUser?.uid ?? '');
+    const followingIds = useUserFollowing(currentUser?.uid ?? '');
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [svgData, setSvgData] = useState('');
@@ -413,15 +473,6 @@ const CreateRecipe = () => {
     > | null>(null);
 
     const router = useRouter();
-    const recipeReferenceOptions = useMemo<RecipeReferenceOption[]>(
-        () =>
-            userRecipes.map((recipe) => ({
-                id: recipe.id,
-                title: recipe.title?.trim() || 'Oppskrift uten tittel',
-                coverImage: recipe.coverImage,
-            })),
-        [userRecipes]
-    );
 
     type ImportRecipeResponse = {
         title?: string;
@@ -676,23 +727,17 @@ const CreateRecipe = () => {
         );
     };
 
-    const handleLinkedRecipeChange = (id: string, recipeId: string) => {
+    const handleLinkedRecipeChange = (
+        id: string,
+        linkedRecipe: StepWithId['linkedRecipe'] | null
+    ) => {
         setCookingSteps((prev) =>
             prev.map((step) => {
-                if (step.id !== id) return step;
-                const linkedRecipe = recipeReferenceOptions.find(
-                    (recipe) => recipe.id === recipeId
-                );
-
                 return {
                     ...step,
-                    linkedRecipe: linkedRecipe
-                        ? {
-                              id: linkedRecipe.id,
-                              title: linkedRecipe.title,
-                              coverImage: linkedRecipe.coverImage,
-                          }
-                        : undefined,
+                    ...(step.id === id
+                        ? { linkedRecipe: linkedRecipe ?? undefined }
+                        : {}),
                 };
             })
         );
@@ -1388,9 +1433,10 @@ const CreateRecipe = () => {
                                             key={step.id}
                                             step={step}
                                             index={index}
-                                            availableRecipes={
-                                                recipeReferenceOptions
+                                            currentUserId={
+                                                currentUser?.uid ?? ''
                                             }
+                                            followingIds={followingIds}
                                             onChange={handleStepChange}
                                             onLinkedRecipeChange={
                                                 handleLinkedRecipeChange
