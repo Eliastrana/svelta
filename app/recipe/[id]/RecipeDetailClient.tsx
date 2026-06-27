@@ -17,6 +17,7 @@ import { auth, firestore } from '@/firebase';
 import RatingStars from '@/app/components/RatingStars';
 import { canViewRecipe } from '@/helpers/recipeVisibility';
 import { LinkedRecipeReference } from '@/app/types/CookingStep';
+import { RecipeCoAuthor } from '@/app/types/Recipe';
 
 type IngredientDetailed = { name: string; amount: string };
 
@@ -26,6 +27,8 @@ type RecipeForDetail = {
     title: string;
     description?: string;
     coverImage?: string;
+    coAuthors?: RecipeCoAuthor[];
+    coAuthorIds?: string[];
     cookingSteps: Array<{
         title: string;
         description: string;
@@ -350,6 +353,10 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
 
     const userName = creatorDoc?.name || 'Ukjent brukernavn';
     const userPhoto = creatorDoc?.photoURL || '';
+    const coAuthorNames = (recipe.coAuthors ?? [])
+        .map((coAuthor) => coAuthor.name?.trim())
+        .filter((name): name is string => Boolean(name));
+    const allAuthorNames = [userName, ...coAuthorNames];
     const completedStepCount = checkedSteps.filter(Boolean).length;
 
     const handleDelete = async () => {
@@ -436,6 +443,12 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                 {recipe.description}
                             </p>
                         )}
+
+                        {allAuthorNames.length > 1 ? (
+                            <p className="mt-4 text-sm font-medium text-[#496444] [overflow-wrap:anywhere]">
+                                Laget av {allAuthorNames.join(', ')}
+                            </p>
+                        ) : null}
                     </section>
 
                     {/* Mobile image */}
@@ -479,7 +492,9 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                             </div>
 
                             <span className="text-[10px] uppercase tracking-wide text-[#496444]">
-                                Laget av
+                                {recipe.coAuthors?.length
+                                    ? 'Hovedforfatter'
+                                    : 'Laget av'}
                             </span>
 
                             <span className="max-w-full truncate font-medium">

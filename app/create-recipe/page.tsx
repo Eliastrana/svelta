@@ -10,9 +10,13 @@ import { normalizeIngredientAmountInput } from '@/helpers/ingredientAmountParser
 import { RecipeVisibility } from '@/helpers/recipeVisibility';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useUserFollowing } from '@/hooks/useUserFollowing';
+import { createCoAuthorInviteNotification } from '@/helpers/coAuthorInvites';
 
 import RecipeCreatedModal from '@/app/components/RecipeCreatedModal';
 import RecipeReferencePickerModal from '@/app/components/RecipeReferencePickerModal';
+import CoAuthorPickerModal, {
+    CoAuthorInvitee,
+} from '@/app/components/CoAuthorPickerModal';
 
 import {
     DndContext,
@@ -464,6 +468,9 @@ const CreateRecipe = () => {
 
     const [publishing, setPublishing] = useState(false);
     const [visibility, setVisibility] = useState<RecipeVisibility>('public');
+    const [showCoAuthorPicker, setShowCoAuthorPicker] = useState(false);
+    const [invitedCoAuthor, setInvitedCoAuthor] =
+        useState<CoAuthorInvitee | null>(null);
     const coverImagePreviewRef = useRef<string | null>(null);
     const cookingStepsRef = useRef<StepWithId[]>([]);
     const newIngredientAmountRef = useRef<HTMLInputElement | null>(null);
@@ -601,6 +608,7 @@ const CreateRecipe = () => {
             coverImagePreview?: string | null;
             tags?: string[];
             visibility?: RecipeVisibility;
+            invitedCoAuthor?: CoAuthorInvitee | null;
         } = JSON.parse(savedData);
 
         setTitle(formData.title || '');
@@ -613,6 +621,7 @@ const CreateRecipe = () => {
         setPortions(formData.portions || '');
         setVisibility(formData.visibility === 'private' ? 'private' : 'public');
         setCoverImagePreview(formData.coverImagePreview || null);
+        setInvitedCoAuthor(formData.invitedCoAuthor ?? null);
 
         const loadedSteps = formData.cookingSteps || [];
         setCookingSteps(
@@ -683,6 +692,7 @@ const CreateRecipe = () => {
             coverImagePreview,
             tags,
             visibility,
+            invitedCoAuthor,
         };
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(formData));
     }, [
@@ -700,6 +710,7 @@ const CreateRecipe = () => {
         portions,
         coverImagePreview,
         visibility,
+        invitedCoAuthor,
     ]);
 
     const handleAddStep = () => {
@@ -1038,7 +1049,24 @@ const CreateRecipe = () => {
                 likeCount: 0,
                 commentCount: 0,
                 tags,
+                coAuthors: [],
+                coAuthorIds: [],
+                pendingCoAuthorInviteIds: invitedCoAuthor
+                    ? [invitedCoAuthor.uid]
+                    : [],
             });
+
+            if (invitedCoAuthor) {
+                await createCoAuthorInviteNotification({
+                    actorId: user.uid,
+                    actorName:
+                        currentUser?.displayName?.trim() || 'En kokk',
+                    actorPhotoURL: currentUser?.photoURL || '',
+                    inviteeId: invitedCoAuthor.uid,
+                    recipeId: docRef.id,
+                    recipeTitle: title.trim() || 'en oppskrift',
+                });
+            }
 
             localStorage.removeItem(LOCAL_STORAGE_KEY);
             setCreatedRecipeId(docRef.id);
@@ -1058,6 +1086,15 @@ const CreateRecipe = () => {
                         // after closing, go to the recipe page
                         router.push(`/recipe/${createdRecipeId}`);
                     }}
+                />
+            ) : null}
+
+            {showCoAuthorPicker ? (
+                <CoAuthorPickerModal
+                    followingIds={followingIds}
+                    selectedUid={invitedCoAuthor?.uid}
+                    onClose={() => setShowCoAuthorPicker(false)}
+                    onSelect={(user) => setInvitedCoAuthor(user)}
                 />
             ) : null}
 
@@ -1195,6 +1232,68 @@ const CreateRecipe = () => {
                                 <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 peer-checked:translate-x-5" />
                             </span>
                         </label>
+
+                        <div className="mt-4 rounded-2xl border border-slate-200 px-4 py-4">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <p className="font-semibold text-slate-900">
+                                        Medforfatter
+                                    </p>
+                                    <p className="mt-1 text-xs text-slate-600">
+                                        Inviter en kokk du følger til å stå som
+                                        medforfatter på oppskriften.
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCoAuthorPicker(true)}
+                                    className="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-200"
+                                >
+                                    {invitedCoAuthor ? 'Bytt' : 'Velg kokk'}
+                                </button>
+                            </div>
+
+                            {invitedCoAuthor ? (
+                                <div className="mt-4 flex items-center gap-3 rounded-2xl bg-[#fbfaf4] p-3">
+                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e5e5d7]">
+                                        {invitedCoAuthor.photoURL ? (
+                                            <img
+                                                src={invitedCoAuthor.photoURL}
+                                                alt={invitedCoAuthor.name}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <span className="text-lg">
+                                                👩‍🍳
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate font-semibold text-[#12340d]">
+                                            {invitedCoAuthor.name}
+                                        </p>
+                                        <p className="mt-1 text-xs text-slate-600">
+                                            Får en invitasjon når oppskriften
+                                            publiseres.
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setInvitedCoAuthor(null)}
+                                        className="rounded-full px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+                                    >
+                                        Fjern
+                                    </button>
+                                </div>
+                            ) : (
+                                <p className="mt-4 text-sm text-slate-500">
+                                    Ingen medforfatter valgt.
+                                </p>
+                            )}
+                        </div>
                     </div>
 
                     {/* Cover image */}

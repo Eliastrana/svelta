@@ -1,6 +1,12 @@
 import type { Timestamp } from 'firebase/firestore';
 
-export type AppNotificationType = 'like' | 'comment' | 'new_recipe';
+export type AppNotificationType =
+    | 'like'
+    | 'comment'
+    | 'new_recipe'
+    | 'coauthor_invite';
+
+export type CoAuthorInviteStatus = 'pending' | 'accepted' | 'declined';
 
 export interface AppNotification {
     id: string;
@@ -15,6 +21,8 @@ export interface AppNotification {
     recipeId?: string;
     recipeTitle?: string;
     commentText?: string;
+    coAuthorInviteStatus?: CoAuthorInviteStatus;
+    respondedAt?: Timestamp | null;
     createdAt?: Timestamp | null;
     readAt?: Timestamp | null;
 }

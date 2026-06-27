@@ -9,7 +9,10 @@ export function normalizeRecipeVisibility(
 }
 
 export function canViewRecipe(
-    recipe: Pick<Recipe, 'userId'> & { visibility?: string },
+    recipe: Pick<Recipe, 'userId'> & {
+        visibility?: string;
+        coAuthorIds?: string[];
+    },
     viewerUid?: string,
     followingIds: string[] = []
 ) {
@@ -17,11 +20,17 @@ export function canViewRecipe(
     if (visibility === 'public') return true;
     if (!viewerUid) return false;
     if (recipe.userId === viewerUid) return true;
+    if (Array.isArray(recipe.coAuthorIds) && recipe.coAuthorIds.includes(viewerUid)) {
+        return true;
+    }
     return followingIds.includes(recipe.userId);
 }
 
 export function filterVisibleRecipes<
-    T extends Pick<Recipe, 'userId'> & { visibility?: string },
+    T extends Pick<Recipe, 'userId'> & {
+        visibility?: string;
+        coAuthorIds?: string[];
+    },
 >(recipes: T[], viewerUid?: string, followingIds: string[] = []) {
     return recipes.filter((recipe) =>
         canViewRecipe(recipe, viewerUid, followingIds)

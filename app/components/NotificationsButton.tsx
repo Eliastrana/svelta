@@ -36,6 +36,7 @@ export default function NotificationsButton() {
 
             {open ? (
                 <NotificationsModal
+                    currentUserId={user.uid}
                     notifications={notifications}
                     loading={loading}
                     markAllAsRead={markAllAsRead}

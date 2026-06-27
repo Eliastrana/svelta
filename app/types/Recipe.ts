@@ -9,11 +9,20 @@ export type RecipeStep = {
     linkedRecipe?: LinkedRecipeReference;
 };
 
+export type RecipeCoAuthor = {
+    uid: string;
+    name?: string;
+    photoURL?: string;
+};
+
 export type Recipe = {
     creator?: {
         name?: string;
         photoURL?: string;
     };
+    coAuthors?: RecipeCoAuthor[];
+    coAuthorIds?: string[];
+    pendingCoAuthorInviteIds?: string[];
     id: string;
     title: string;
     description?: string;

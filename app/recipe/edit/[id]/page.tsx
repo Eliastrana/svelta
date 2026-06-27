@@ -12,6 +12,11 @@ import { RecipeVisibility } from '@/helpers/recipeVisibility';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useUserFollowing } from '@/hooks/useUserFollowing';
 import RecipeReferencePickerModal from '@/app/components/RecipeReferencePickerModal';
+import CoAuthorPickerModal, {
+    CoAuthorInvitee,
+} from '@/app/components/CoAuthorPickerModal';
+import { fetchManyUsers } from '@/helpers/fetchManyUsers';
+import { createCoAuthorInviteNotification } from '@/helpers/coAuthorInvites';
 
 import {
     DndContext,
@@ -47,6 +52,13 @@ type RecipeDoc = RecipeData & {
     // ny struktur (kan mangle i eldre docs)
     ingredientsDetailed?: IngredientItem[];
     portions?: string;
+    coAuthors?: Array<{ uid: string; name?: string; photoURL?: string }>;
+    coAuthorIds?: string[];
+    pendingCoAuthorInviteIds?: string[];
+};
+
+type SelectedCoAuthor = CoAuthorInvitee & {
+    status: 'accepted' | 'pending';
 };
 
 type DraftPayload = {
@@ -66,6 +78,7 @@ type DraftPayload = {
 
     // NB: blob:-preview funker ikke etter reload, så vi ignorerer den ved hydration
     coverImagePreview?: string | null;
+    selectedCoAuthor?: SelectedCoAuthor | null;
 };
 
 const sanitizeRecipeData = (
@@ -602,6 +615,11 @@ const EditRecipePage: React.FC = () => {
     const [cookingTime, setCookingTime] = useState('');
     const [portions, setPortions] = useState('');
     const [visibility, setVisibility] = useState<RecipeVisibility>('public');
+    const [showCoAuthorPicker, setShowCoAuthorPicker] = useState(false);
+    const [selectedCoAuthor, setSelectedCoAuthor] =
+        useState<SelectedCoAuthor | null>(null);
+    const [initialPendingCoAuthorUid, setInitialPendingCoAuthorUid] =
+        useState('');
 
     const [cookingSteps, setCookingSteps] = useState<StepWithId[]>([]);
 
@@ -737,6 +755,12 @@ const EditRecipePage: React.FC = () => {
             setCoverImagePreview(
                 prev && !prev.startsWith('blob:') ? prev : null
             );
+            setSelectedCoAuthor(draft.selectedCoAuthor ?? null);
+            setInitialPendingCoAuthorUid(
+                draft.selectedCoAuthor?.status === 'pending'
+                    ? draft.selectedCoAuthor.uid
+                    : ''
+            );
 
             setDraftChecked(true);
             setLoading(false);
@@ -764,6 +788,41 @@ const EditRecipePage: React.FC = () => {
                 const alreadyHasTitle =
                     (recipeData.title ?? '').trim().length > 0;
                 if (!alreadyHasTitle) {
+                    const acceptedCoAuthor = Array.isArray(data.coAuthors)
+                        ? data.coAuthors[0]
+                        : undefined;
+                    const pendingCoAuthorUid = Array.isArray(
+                        data.pendingCoAuthorInviteIds
+                    )
+                        ? data.pendingCoAuthorInviteIds[0] ?? ''
+                        : '';
+
+                    let nextSelectedCoAuthor: SelectedCoAuthor | null = null;
+
+                    if (acceptedCoAuthor?.uid) {
+                        nextSelectedCoAuthor = {
+                            uid: acceptedCoAuthor.uid,
+                            name:
+                                acceptedCoAuthor.name?.trim() ||
+                                'Kokk uten navn',
+                            photoURL: acceptedCoAuthor.photoURL?.trim() || '',
+                            status: 'accepted',
+                        };
+                    } else if (pendingCoAuthorUid) {
+                        const usersMap = await fetchManyUsers([
+                            pendingCoAuthorUid,
+                        ]);
+                        const pendingUser = usersMap[pendingCoAuthorUid];
+                        nextSelectedCoAuthor = {
+                            uid: pendingCoAuthorUid,
+                            name:
+                                pendingUser?.name?.trim() ||
+                                'Kokk uten navn',
+                            photoURL: pendingUser?.photoURL?.trim() || '',
+                            status: 'pending',
+                        };
+                    }
+
                     setRecipeData(sanitizeRecipeData(data));
 
                     // Ingredients: ny hvis finnes, ellers legacy
@@ -801,6 +860,8 @@ const EditRecipePage: React.FC = () => {
                         imageFile: null,
                     }));
                     setCookingSteps(steps);
+                    setSelectedCoAuthor(nextSelectedCoAuthor);
+                    setInitialPendingCoAuthorUid(pendingCoAuthorUid);
 
                     setCoverImagePreview(null);
                 }
@@ -873,6 +934,7 @@ const EditRecipePage: React.FC = () => {
             newIngredientName,
             newIngredientAmount,
             coverImagePreview: null,
+            selectedCoAuthor,
         };
 
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
@@ -889,6 +951,7 @@ const EditRecipePage: React.FC = () => {
         portions,
         newIngredientName,
         newIngredientAmount,
+        selectedCoAuthor,
     ]);
 
     const setTitle = (v: string) => setRecipeData((p) => ({ ...p, title: v }));
@@ -1081,6 +1144,25 @@ const EditRecipePage: React.FC = () => {
             }))
             .filter((x) => x.name.length > 0);
 
+        const nextCoAuthors =
+            selectedCoAuthor?.status === 'accepted'
+                ? [
+                      {
+                          uid: selectedCoAuthor.uid,
+                          name: selectedCoAuthor.name,
+                          photoURL: selectedCoAuthor.photoURL || '',
+                      },
+                  ]
+                : [];
+        const nextCoAuthorIds =
+            selectedCoAuthor?.status === 'accepted'
+                ? [selectedCoAuthor.uid]
+                : [];
+        const nextPendingCoAuthorInviteIds =
+            selectedCoAuthor?.status === 'pending'
+                ? [selectedCoAuthor.uid]
+                : [];
+
         try {
             await updateDoc(doc(firestore, 'recipes', recipeId), {
                 title: trimmedTitle,
@@ -1099,8 +1181,26 @@ const EditRecipePage: React.FC = () => {
                 visibility,
                 cookingSteps: stepsForDb,
                 coverImage: coverImageUrl,
+                coAuthors: nextCoAuthors,
+                coAuthorIds: nextCoAuthorIds,
+                pendingCoAuthorInviteIds: nextPendingCoAuthorInviteIds,
                 updatedAt: serverTimestamp(),
             });
+
+            if (
+                selectedCoAuthor?.status === 'pending' &&
+                selectedCoAuthor.uid !== initialPendingCoAuthorUid
+            ) {
+                await createCoAuthorInviteNotification({
+                    actorId: user.uid,
+                    actorName:
+                        currentUser?.displayName?.trim() || 'En kokk',
+                    actorPhotoURL: currentUser?.photoURL || '',
+                    inviteeId: selectedCoAuthor.uid,
+                    recipeId,
+                    recipeTitle: trimmedTitle || 'en oppskrift',
+                });
+            }
 
             localStorage.removeItem(LOCAL_STORAGE_KEY);
             router.push(`/user/${user.uid}`);
@@ -1113,6 +1213,24 @@ const EditRecipePage: React.FC = () => {
 
     return (
         <div className="min-h-screen">
+            {showCoAuthorPicker ? (
+                <CoAuthorPickerModal
+                    followingIds={followingIds}
+                    selectedUid={selectedCoAuthor?.uid}
+                    onClose={() => setShowCoAuthorPicker(false)}
+                    onSelect={(user) =>
+                        setSelectedCoAuthor((prev) =>
+                            prev?.uid === user.uid && prev.status === 'accepted'
+                                ? prev
+                                : {
+                                      ...user,
+                                      status: 'pending',
+                                  }
+                        )
+                    }
+                />
+            ) : null}
+
             <div className="mx-auto max-w-xl px-4 py-6 pb-28">
                 <div className="mb-4 flex items-center justify-between">
                     <button
@@ -1195,6 +1313,70 @@ const EditRecipePage: React.FC = () => {
                                 <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 peer-checked:translate-x-5" />
                             </span>
                         </label>
+
+                        <div className="mt-4 rounded-2xl border border-slate-200 px-4 py-4">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <p className="font-semibold text-slate-900">
+                                        Medforfatter
+                                    </p>
+                                    <p className="mt-1 text-xs text-slate-600">
+                                        Inviter eller bytt ut medforfatter fra
+                                        kokkene du følger.
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCoAuthorPicker(true)}
+                                    className="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-200"
+                                >
+                                    {selectedCoAuthor ? 'Bytt' : 'Velg kokk'}
+                                </button>
+                            </div>
+
+                            {selectedCoAuthor ? (
+                                <div className="mt-4 flex items-center gap-3 rounded-2xl bg-[#fbfaf4] p-3">
+                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e5e5d7]">
+                                        {selectedCoAuthor.photoURL ? (
+                                            <img
+                                                src={selectedCoAuthor.photoURL}
+                                                alt={selectedCoAuthor.name}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <span className="text-lg">
+                                                👩‍🍳
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate font-semibold text-[#12340d]">
+                                            {selectedCoAuthor.name}
+                                        </p>
+                                        <p className="mt-1 text-xs text-slate-600">
+                                            {selectedCoAuthor.status ===
+                                            'accepted'
+                                                ? 'Er allerede medforfatter.'
+                                                : 'Venter på svar på invitasjonen.'}
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedCoAuthor(null)}
+                                        className="rounded-full px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+                                    >
+                                        Fjern
+                                    </button>
+                                </div>
+                            ) : (
+                                <p className="mt-4 text-sm text-slate-500">
+                                    Ingen medforfatter valgt.
+                                </p>
+                            )}
+                        </div>
                     </div>
 
                     {/* Cover */}
