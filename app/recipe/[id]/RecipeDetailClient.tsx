@@ -353,6 +353,20 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
 
     const userName = creatorDoc?.name || 'Ukjent brukernavn';
     const userPhoto = creatorDoc?.photoURL || '';
+    const authorEntries = [
+        {
+            uid: recipe.userId,
+            name: userName,
+            photoURL: userPhoto,
+        },
+        ...(recipe.coAuthors ?? [])
+            .filter((coAuthor) => coAuthor.uid !== recipe.userId)
+            .map((coAuthor) => ({
+                uid: coAuthor.uid,
+                name: coAuthor.name?.trim() || 'Medforfatter',
+                photoURL: coAuthor.photoURL?.trim() || '',
+            })),
+    ];
     const coAuthorNames = (recipe.coAuthors ?? [])
         .map((coAuthor) => coAuthor.name?.trim())
         .filter((name): name is string => Boolean(name));
@@ -444,11 +458,37 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                             </p>
                         )}
 
-                        {allAuthorNames.length > 1 ? (
-                            <p className="mt-4 text-sm font-medium text-[#496444] [overflow-wrap:anywhere]">
-                                Laget av {allAuthorNames.join(', ')}
-                            </p>
-                        ) : null}
+                        <div className="mt-5 flex flex-wrap items-center gap-3">
+                            <div className="flex -space-x-3">
+                                {authorEntries.map((author, index) => (
+                                    <div
+                                        key={`${author.uid}-${index}`}
+                                        className="h-11 w-11 overflow-hidden rounded-full ring-2 ring-[#f2f1e8]"
+                                    >
+                                        {author.photoURL ? (
+                                            <img
+                                                src={author.photoURL}
+                                                alt={author.name}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="grid h-full w-full place-items-center bg-[#deded0] text-[18px]">
+                                                🧑‍🍳
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="min-w-0">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-[#496444]">
+                                    Kokker
+                                </p>
+                                <p className="text-sm font-medium text-[#12340d] [overflow-wrap:anywhere]">
+                                    {allAuthorNames.join(', ')}
+                                </p>
+                            </div>
+                        </div>
                     </section>
 
                     {/* Mobile image */}
@@ -477,28 +517,33 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                             }
                             className="flex h-[86px] flex-col items-center justify-center rounded-xl bg-[#f2f1e8] px-2 text-center text-xs transition hover:bg-[#e8e7dc]"
                         >
-                            <div className="mb-1 h-8 w-8 overflow-hidden rounded-full bg-[#deded0]">
-                                {userPhoto ? (
-                                    <img
-                                        src={userPhoto}
-                                        alt="Creator"
-                                        className="h-full w-full object-cover"
-                                    />
-                                ) : (
-                                    <span className="material-symbols-outlined flex h-full w-full items-center justify-center text-[20px]">
-                                        person
-                                    </span>
-                                )}
+                            <div className="mb-1 flex -space-x-2">
+                                {authorEntries.slice(0, 2).map((author, index) => (
+                                    <div
+                                        key={`${author.uid}-${index}`}
+                                        className="h-8 w-8 overflow-hidden rounded-full ring-2 ring-[#f2f1e8] bg-[#deded0]"
+                                    >
+                                        {author.photoURL ? (
+                                            <img
+                                                src={author.photoURL}
+                                                alt={author.name}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <span className="material-symbols-outlined flex h-full w-full items-center justify-center text-[18px]">
+                                                person
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
 
                             <span className="text-[10px] uppercase tracking-wide text-[#496444]">
-                                {recipe.coAuthors?.length
-                                    ? 'Hovedforfatter'
-                                    : 'Laget av'}
+                                {authorEntries.length > 1 ? 'Kokker' : 'Laget av'}
                             </span>
 
-                            <span className="max-w-full truncate font-medium">
-                                {userName}
+                            <span className="max-w-full line-clamp-2 font-medium leading-tight">
+                                {allAuthorNames.join(', ')}
                             </span>
                         </button>
 

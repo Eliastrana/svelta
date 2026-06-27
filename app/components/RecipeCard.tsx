@@ -77,6 +77,22 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
 
     const userName = creator?.name || 'Ukjent brukernavn';
     const userPhoto = creator?.photoURL;
+    const authorEntries = [
+        {
+            uid: recipe.userId,
+            name: userName,
+            photoURL: userPhoto || '',
+        },
+        ...(recipe.coAuthors ?? [])
+            .filter((coAuthor) => coAuthor.uid !== recipe.userId)
+            .map((coAuthor) => ({
+                uid: coAuthor.uid,
+                name: coAuthor.name?.trim() || 'Medforfatter',
+                photoURL: coAuthor.photoURL?.trim() || '',
+            })),
+    ];
+    const visibleAuthorEntries = authorEntries.slice(0, 2);
+    const authorNamesLabel = visibleAuthorEntries.map((author) => author.name).join(' + ');
 
     const [mounted, setMounted] = useState(false);
 
@@ -369,37 +385,42 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                     className="flex min-w-0 items-center gap-2 text-left transition hover:opacity-80"
                     aria-label={`Gå til profilen til ${userName}`}
                 >
-                    <div
-                        className="h-10 w-10 shrink-0 overflow-hidden rounded-full"
-                        style={{
-                            backgroundColor: imageFallbackBackground,
-                            borderColor: `${theme?.main ?? '#d8d7cb'}33`,
-                        }}
-                    >
-                        {userPhoto ? (
-                            <Image
-                                src={userPhoto}
-                                alt="Creator"
-                                width={40}
-                                height={40}
-                                className="h-full w-full object-cover"
-                            />
-                        ) : (
+                    <div className="flex shrink-0 -space-x-2">
+                        {visibleAuthorEntries.map((author, index) => (
                             <div
-                                className="grid h-full w-full place-items-center"
-                                style={{ color: cardMutedText }}
+                                key={`${author.uid}-${index}`}
+                                className="h-10 w-10 overflow-hidden rounded-full ring-2"
+                                style={{
+                                    backgroundColor: imageFallbackBackground,
+                                    borderColor: theme?.soft ?? '#f2f1e8',
+                                }}
                             >
-                                🧑‍🍳
+                                {author.photoURL ? (
+                                    <Image
+                                        src={author.photoURL}
+                                        alt={author.name}
+                                        width={40}
+                                        height={40}
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    <div
+                                        className="grid h-full w-full place-items-center"
+                                        style={{ color: cardMutedText }}
+                                    >
+                                        🧑‍🍳
+                                    </div>
+                                )}
                             </div>
-                        )}
+                        ))}
                     </div>
 
                     <div className="min-w-0">
                         <p
-                            className="truncate text-sm font-bold"
+                            className="line-clamp-2 text-sm font-bold"
                             style={{ color: cardText }}
                         >
-                            {userName}
+                            {authorNamesLabel}
                         </p>
 
                         <p
