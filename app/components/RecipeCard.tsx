@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Timestamp } from 'firebase/firestore';
-import Image from 'next/image';
+import Image, { getImageProps } from 'next/image';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { Recipe } from '@/app/types/Recipe';
@@ -74,6 +74,7 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
 }) => {
     const router = useRouter();
     const qc = useQueryClient();
+    const prefetchedDetailImageKeysRef = useRef<Set<string>>(new Set());
 
     const userName = creator?.name || 'Ukjent brukernavn';
     const userPhoto = creator?.photoURL;
@@ -146,6 +147,39 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
             queryFn: () => fetchRecipeById(recipe.id),
             staleTime: 60_000,
         });
+
+        if (typeof window !== 'undefined' && recipe.coverImage) {
+            const coverImageSrc = recipe.coverImage;
+            const detailImageVariants = [
+                { sizes: '100vw', quality: 75 },
+                { sizes: '724px', quality: 90 },
+            ];
+
+            detailImageVariants.forEach(({ sizes, quality }) => {
+                const cacheKey = `${coverImageSrc}|${sizes}|${quality}`;
+                if (prefetchedDetailImageKeysRef.current.has(cacheKey)) return;
+                prefetchedDetailImageKeysRef.current.add(cacheKey);
+
+                const { props } = getImageProps({
+                    alt: recipe.title || 'Oppskriftsbilde',
+                    src: coverImageSrc,
+                    width: 724,
+                    height: 724,
+                    sizes,
+                    quality,
+                });
+
+                const prefetchImage = new window.Image();
+                prefetchImage.decoding = 'async';
+                prefetchImage.loading = 'eager';
+                if ('fetchPriority' in prefetchImage) {
+                    prefetchImage.fetchPriority = 'high';
+                }
+                if (props.sizes) prefetchImage.sizes = props.sizes;
+                if (props.srcSet) prefetchImage.srcset = props.srcSet;
+                prefetchImage.src = props.src;
+            });
+        }
     };
 
     const handleEnter = (e: React.MouseEvent) => {
