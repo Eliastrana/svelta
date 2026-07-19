@@ -91,7 +91,7 @@ const Navbar: React.FC = () => {
     // ─────────────────────────────────────────────────────────────
     // Active markers (based on current route)
     // ─────────────────────────────────────────────────────────────
-    const isHomeActive = pathname === '/';
+    const isHomeActive = pathname === '/' || pathname === '/feed';
 
     const isCreateActive =
         pathname === '/create-recipe' ||
@@ -187,7 +187,7 @@ const Navbar: React.FC = () => {
             key: 'home',
             label: 'Hjem',
             active: isHomeActive,
-            onClick: () => router.push('/'),
+            onClick: () => router.push('/feed'),
             icon: <span className="material-symbols-outlined">home</span>,
         },
         {

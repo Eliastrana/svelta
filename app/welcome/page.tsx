@@ -1,9 +1,15 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-export default async function RootPage() {
+import WelcomePageClient from '@/app/welcome/WelcomePageClient';
+
+export default async function WelcomePage() {
     const cookieStore = await cookies();
     const hasAuthCookie = Boolean(cookieStore.get('yourAuthToken')?.value);
 
-    redirect(hasAuthCookie ? '/feed' : '/welcome');
+    if (hasAuthCookie) {
+        redirect('/feed');
+    }
+
+    return <WelcomePageClient />;
 }

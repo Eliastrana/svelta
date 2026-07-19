@@ -1,9 +1,15 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-export default async function RootPage() {
+import FeedPageClient from '@/app/feed/FeedPageClient';
+
+export default async function FeedPage() {
     const cookieStore = await cookies();
     const hasAuthCookie = Boolean(cookieStore.get('yourAuthToken')?.value);
 
-    redirect(hasAuthCookie ? '/feed' : '/welcome');
+    if (!hasAuthCookie) {
+        redirect('/welcome');
+    }
+
+    return <FeedPageClient />;
 }
