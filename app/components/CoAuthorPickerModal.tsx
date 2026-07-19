@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React from 'react';
 import AppModal from '@/app/components/AppModal';
 import { fetchManyUsers } from '@/helpers/fetchManyUsers';
@@ -148,12 +149,14 @@ export default function CoAuthorPickerModal({
                                                     : 'border-[#e5e5d7] bg-white hover:bg-[#fbfaf4]',
                                             ].join(' ')}
                                         >
-                                            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e5e5d7]">
+                                            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e5e5d7]">
                                                 {user.photoURL ? (
-                                                    <img
+                                                    <Image
                                                         src={user.photoURL}
                                                         alt={user.name}
-                                                        className="h-full w-full object-cover"
+                                                        fill
+                                                        sizes="48px"
+                                                        className="object-cover"
                                                     />
                                                 ) : (
                                                     <span className="text-lg">

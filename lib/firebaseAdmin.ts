@@ -6,6 +6,7 @@ import {
     App,
     ServiceAccount,
 } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
 function getAdminApp(): App {
@@ -36,3 +37,4 @@ function getAdminApp(): App {
 }
 
 export const adminDb = getFirestore(getAdminApp());
+export const adminAuth = getAuth(getAdminApp());

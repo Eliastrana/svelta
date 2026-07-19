@@ -362,9 +362,11 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                                 color: chipText,
                             }}
                         >
-                            <img
+                            <Image
                                 src="/icons/chef.png"
                                 alt=""
+                                width={16}
+                                height={16}
                                 className="h-4 w-4"
                                 draggable={false}
                             />
@@ -384,10 +386,13 @@ const RecipeCardComponent: React.FC<RecipeCardProps> = ({
                         backgroundColor: tooltipBackground,
                     }}
                 >
-                    <img
+                    <Image
                         src="/icons/clock-gif.gif"
                         alt="Tid"
+                        width={16}
+                        height={16}
                         className="h-4 w-4 shrink-0 invert"
+                        unoptimized
                         draggable={false}
                     />
 

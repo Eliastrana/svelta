@@ -361,14 +361,16 @@ export default function RecipeReferencePickerModal({
                                                     }
                                                     className="flex w-full items-center gap-3 rounded-3xl border border-[#e5e1d4] bg-white p-3 text-left shadow-sm transition hover:-translate-y-[1px] hover:border-[#d3cdbd] hover:bg-[#fffdf7]"
                                                 >
-                                                    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#ece7d9]">
+                                                    <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#ece7d9]">
                                                         {user.photoURL ? (
-                                                            <img
+                                                            <Image
                                                                 src={
                                                                     user.photoURL
                                                                 }
                                                                 alt={user.name}
-                                                                className="h-full w-full object-cover"
+                                                                fill
+                                                                sizes="56px"
+                                                                className="object-cover"
                                                             />
                                                         ) : (
                                                             <span className="material-symbols-outlined text-[#496444]">

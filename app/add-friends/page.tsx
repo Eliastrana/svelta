@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
     doc,
@@ -425,12 +426,14 @@ const AddFriendsPage: React.FC = () => {
                 onClick={() => router.push(`/user/${u.uid}`)}
                 className="flex items-center gap-3 text-left"
             >
-                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#eef3e4]">
+                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#eef3e4]">
                     {u.photoURL ? (
-                        <img
+                        <Image
                             src={u.photoURL}
                             alt={u.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="40px"
+                            className="object-cover"
                         />
                     ) : (
                         <div className="grid h-full w-full place-items-center text-[#6c8765]">
@@ -513,12 +516,14 @@ const AddFriendsPage: React.FC = () => {
                                                 }
                                                 className="flex min-w-0 items-center gap-3 text-left"
                                             >
-                                                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#eef3e4]">
+                                                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#eef3e4]">
                                                     {u.photoURL ? (
-                                                        <img
+                                                        <Image
                                                             src={u.photoURL}
                                                             alt={u.name}
-                                                            className="h-full w-full object-cover"
+                                                            fill
+                                                            sizes="40px"
+                                                            className="object-cover"
                                                         />
                                                     ) : (
                                                         <div className="grid h-full w-full place-items-center text-[#6c8765]">
@@ -715,12 +720,14 @@ const AddFriendsPage: React.FC = () => {
                                             }
                                             className="flex items-center gap-3 text-left"
                                         >
-                                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#eef3e4]">
+                                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#eef3e4]">
                                                 {u.photoURL ? (
-                                                    <img
+                                                    <Image
                                                         src={u.photoURL}
                                                         alt={u.name}
-                                                        className="w-full h-full object-cover"
+                                                        fill
+                                                        sizes="40px"
+                                                        className="object-cover"
                                                     />
                                                 ) : (
                                                     <div className="grid h-full w-full place-items-center text-[#6c8765]">

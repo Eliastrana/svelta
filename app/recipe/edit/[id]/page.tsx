@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -288,12 +289,14 @@ function SortableStepCard(props: {
                         {step.linkedRecipe ? (
                             <div className="rounded-2xl border border-slate-200 bg-[#fbfaf4] p-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#ece7d9]">
+                                    <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#ece7d9]">
                                         {step.linkedRecipe.coverImage ? (
-                                            <img
+                                            <Image
                                                 src={step.linkedRecipe.coverImage}
                                                 alt={step.linkedRecipe.title}
-                                                className="h-full w-full object-cover"
+                                                fill
+                                                sizes="56px"
+                                                className="object-cover"
                                             />
                                         ) : (
                                             <span className="material-symbols-outlined text-[#496444]">
@@ -389,11 +392,14 @@ function SortableStepCard(props: {
                         </label>
 
                         {step.imagePreview || step.imageUrl ? (
-                            <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200">
-                                <img
-                                    src={step.imagePreview || step.imageUrl}
+                            <div className="relative mt-3 h-44 overflow-hidden rounded-2xl border border-slate-200">
+                                <Image
+                                    src={(step.imagePreview || step.imageUrl)!}
                                     alt={`Stegbilde ${index + 1}`}
-                                    className="h-44 w-full object-cover"
+                                    fill
+                                    sizes="100vw"
+                                    className="object-cover"
+                                    unoptimized={Boolean(step.imagePreview)}
                                 />
                             </div>
                         ) : null}
@@ -1337,12 +1343,14 @@ const EditRecipePage: React.FC = () => {
 
                             {selectedCoAuthor ? (
                                 <div className="mt-4 flex items-center gap-3 rounded-2xl bg-[#fbfaf4] p-3">
-                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e5e5d7]">
+                                    <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e5e5d7]">
                                         {selectedCoAuthor.photoURL ? (
-                                            <img
+                                            <Image
                                                 src={selectedCoAuthor.photoURL}
                                                 alt={selectedCoAuthor.name}
-                                                className="h-full w-full object-cover"
+                                                fill
+                                                sizes="48px"
+                                                className="object-cover"
                                             />
                                         ) : (
                                             <span className="text-lg">
@@ -1422,19 +1430,24 @@ const EditRecipePage: React.FC = () => {
                         </label>
 
                         {coverImagePreview ? (
-                            <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-                                <img
+                            <div className="relative mt-4 h-72 overflow-hidden rounded-2xl border border-slate-200">
+                                <Image
                                     src={coverImagePreview}
                                     alt="Cover Preview"
-                                    className="w-full max-h-72 object-cover"
+                                    fill
+                                    sizes="100vw"
+                                    className="object-cover"
+                                    unoptimized
                                 />
                             </div>
                         ) : recipeData.coverImage ? (
-                            <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-                                <img
+                            <div className="relative mt-4 h-72 overflow-hidden rounded-2xl border border-slate-200">
+                                <Image
                                     src={recipeData.coverImage}
                                     alt="Cover"
-                                    className="w-full max-h-72 object-cover"
+                                    fill
+                                    sizes="100vw"
+                                    className="object-cover"
                                 />
                             </div>
                         ) : null}

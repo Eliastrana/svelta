@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
     doc,
@@ -160,12 +161,14 @@ const LikedUsersModal: React.FC<{ recipeId: string; onClose: () => void }> = ({
                                             onClick={() => closeWithAnim()}
                                             className="flex items-center gap-3 rounded-xl bg-[#f2f1e8] p-3 transition hover:bg-[#e8e7dc] active:scale-[0.99]"
                                         >
-                                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#deded0]">
+                                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#deded0]">
                                                 {u.photoURL ? (
-                                                    <img
+                                                    <Image
                                                         src={u.photoURL}
                                                         alt={u.name || 'User'}
-                                                        className="h-full w-full object-cover"
+                                                        fill
+                                                        sizes="40px"
+                                                        className="object-cover"
                                                     />
                                                 ) : (
                                                     <div className="grid h-full w-full place-items-center text-[#496444]">
@@ -338,13 +341,15 @@ const LikeButton: React.FC<LikeButtonProps> = ({
                                     : 'bg-[#e5e5d7] text-[#12340d] group-hover:bg-[#d8d7cb]',
                             ].join(' ')}
                         >
-                            <img
+                            <Image
                                 src={
                                     hasLiked
                                         ? '/icons/chef_white.png'
                                         : '/icons/chef.png'
                                 }
                                 alt=""
+                                width={24}
+                                height={24}
                                 className="h-6 w-6"
                                 draggable={false}
                             />
@@ -407,13 +412,15 @@ const LikeButton: React.FC<LikeButtonProps> = ({
                             hasLiked ? 'bg-[#12340d]' : 'bg-[#e5e5d7]',
                         ].join(' ')}
                     >
-                        <img
+                        <Image
                             src={
                                 hasLiked
                                     ? '/icons/chef_white.png'
                                     : '/icons/chef.png'
                             }
                             alt=""
+                            width={24}
+                            height={24}
                             className="h-6 w-6"
                             draggable={false}
                         />

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
@@ -310,10 +311,13 @@ const OnboardingIntro: React.FC<OnboardingIntroProps> = ({
                                 <label className="cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 text-left transition hover:border-slate-300">
                                     <div className="relative aspect-[4/3] w-full bg-[#f1eee4]">
                                         {photoPreview ? (
-                                            <img
+                                            <Image
                                                 src={photoPreview}
                                                 alt="Valgt profilbilde"
-                                                className="h-full w-full object-cover"
+                                                fill
+                                                sizes="(max-width: 768px) 100vw, 50vw"
+                                                className="object-cover"
+                                                unoptimized
                                             />
                                         ) : (
                                             <div className="grid h-full w-full place-items-center text-slate-400">
@@ -344,10 +348,13 @@ const OnboardingIntro: React.FC<OnboardingIntroProps> = ({
                                 <label className="cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 text-left transition hover:border-slate-300">
                                     <div className="relative aspect-[4/3] w-full bg-[#f1eee4]">
                                         {backgroundPhotoPreview ? (
-                                            <img
+                                            <Image
                                                 src={backgroundPhotoPreview}
                                                 alt="Valgt bakgrunnsbilde"
-                                                className="h-full w-full object-cover"
+                                                fill
+                                                sizes="(max-width: 768px) 100vw, 50vw"
+                                                className="object-cover"
+                                                unoptimized
                                             />
                                         ) : (
                                             <div className="grid h-full w-full place-items-center text-slate-400">
@@ -487,16 +494,19 @@ const OnboardingIntro: React.FC<OnboardingIntroProps> = ({
                                 }}
                             >
                                 <div
-                                    className="h-28"
+                                    className="relative h-28"
                                     style={{
                                         backgroundColor: activeTheme.soft,
                                     }}
                                 >
                                     {backgroundPhotoPreview ? (
-                                        <img
+                                        <Image
                                             src={backgroundPhotoPreview}
                                             alt="Bakgrunn"
-                                            className="h-full w-full object-cover"
+                                            fill
+                                            sizes="100vw"
+                                            className="object-cover"
+                                            unoptimized
                                         />
                                     ) : null}
                                 </div>
@@ -509,16 +519,19 @@ const OnboardingIntro: React.FC<OnboardingIntroProps> = ({
                                 >
                                     <div className="flex items-center gap-3">
                                         <div
-                                            className="h-14 w-14 overflow-hidden rounded-2xl"
+                                            className="relative h-14 w-14 overflow-hidden rounded-2xl"
                                             style={{
                                                 backgroundColor: `${activeTheme.text}14`,
                                             }}
                                         >
                                             {photoPreview ? (
-                                                <img
+                                                <Image
                                                     src={photoPreview}
                                                     alt="Profil"
-                                                    className="h-full w-full object-cover"
+                                                    fill
+                                                    sizes="56px"
+                                                    className="object-cover"
+                                                    unoptimized
                                                 />
                                             ) : (
                                                 <div className="grid h-full w-full place-items-center text-2xl">

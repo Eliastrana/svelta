@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { auth } from '@/firebase';
 import { useUserData } from '@/hooks/useUserData';
@@ -47,13 +48,15 @@ const UserProfileDisplay = ({
     // Logged in
     return (
         <div
-            className={`${sizeClassName} ${className} ${ringClass} rounded-full overflow-hidden`}
+            className={`${sizeClassName} ${className} ${ringClass} relative rounded-full overflow-hidden`}
         >
             {profilePhoto ? (
-                <img
+                <Image
                     src={profilePhoto}
                     alt={user.displayName || 'Profile'}
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="48px"
+                    className="object-cover"
                 />
             ) : (
                 <div className="w-full h-full bg-slate-100 grid place-items-center">

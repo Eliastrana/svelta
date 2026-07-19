@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthUser } from '@/hooks/useAuthUser';
@@ -82,10 +83,13 @@ export default function RecommendModal({ onClose }: Props) {
                         Se så uproposjonal han er!
                     </p>
 
-                    <img
-                        className="mt-2 mb-2"
+                    <Image
+                        className="mb-2 mt-2 rounded-xl"
                         src="/corpcore.gif"
                         alt="CorpCoreKokken"
+                        width={320}
+                        height={240}
+                        unoptimized
                     />
 
                     {isLoading ? (

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -331,14 +332,16 @@ const CommentSection: React.FC<CommentSectionProps> = ({ recipeId }) => {
                                         className="group flex min-w-0 items-start gap-3 text-left"
                                         aria-label={`Åpne profil for ${userInfo?.name ?? 'bruker'}`}
                                     >
-                                        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#deded0] ring-1 ring-[#d8d7cb] transition group-hover:ring-[#12340d]/30">
+                                        <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#deded0] ring-1 ring-[#d8d7cb] transition group-hover:ring-[#12340d]/30">
                                             {userInfo?.photoURL ? (
-                                                <img
+                                                <Image
                                                     src={userInfo.photoURL}
                                                     alt={
                                                         userInfo.name || 'User'
                                                     }
-                                                    className="h-full w-full object-cover"
+                                                    fill
+                                                    sizes="44px"
+                                                    className="object-cover"
                                                 />
                                             ) : (
                                                 <div className="grid h-full w-full place-items-center text-[#496444]">

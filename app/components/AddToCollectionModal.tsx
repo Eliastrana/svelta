@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useEffect, useMemo, useState } from 'react';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { useQueryClient } from '@tanstack/react-query';
@@ -181,12 +182,17 @@ export default function AddToCollectionModal({
                     </h3>
 
                     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start">
-                        <label className="flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center self-start overflow-hidden rounded-2xl border border-slate-200 bg-[var(--accent-soft)] text-slate-700">
+                        <label className="relative flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center self-start overflow-hidden rounded-2xl border border-slate-200 bg-[var(--accent-soft)] text-slate-700">
                             {coverPreview ? (
-                                <img
+                                <Image
                                     src={coverPreview}
                                     alt="Omslag"
-                                    className="h-full w-full object-cover"
+                                    fill
+                                    sizes="80px"
+                                    className="object-cover"
+                                    unoptimized={coverPreview.startsWith(
+                                        'blob:'
+                                    )}
                                 />
                             ) : (
                                 <span className="material-symbols-outlined">
@@ -292,11 +298,11 @@ export default function AddToCollectionModal({
                                         key={c.id}
                                         className="flex items-center gap-3"
                                     >
-                                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
                                             {c.coverImage?.trim() ||
                                             collectionSummaries[c.id]
                                                 ?.previewImage ? (
-                                                <img
+                                                <Image
                                                     src={
                                                         c.coverImage?.trim() ||
                                                         collectionSummaries[
@@ -305,7 +311,9 @@ export default function AddToCollectionModal({
                                                         ''
                                                     }
                                                     alt={c.name}
-                                                    className="h-full w-full object-cover"
+                                                    fill
+                                                    sizes="56px"
+                                                    className="object-cover"
                                                 />
                                             ) : (
                                                 <div className="h-full w-full bg-[var(--accent)]" />

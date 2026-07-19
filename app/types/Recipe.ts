@@ -16,6 +16,8 @@ export type RecipeCoAuthor = {
 };
 
 export type Recipe = {
+    bgColor?: string;
+    fontStyle?: string;
     creator?: {
         name?: string;
         photoURL?: string;
@@ -32,7 +34,12 @@ export type Recipe = {
     visibility?: RecipeVisibility;
 
     ingredients?: string[];
+    ingredientsDetailed?: Array<{
+        name: string;
+        amount?: string;
+    }>;
     cookingSteps: RecipeStep[];
+    portions?: string;
 
     temperature?: string;
     cookingTime?: string;

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthUser } from '@/hooks/useAuthUser';
@@ -14,9 +15,11 @@ type Props = {
 
 function StarIcon({ filled }: { filled: boolean }) {
     return (
-        <img
+        <Image
             src={filled ? '/icons/star-filled.svg' : '/icons/star.svg'}
             alt=""
+            width={16}
+            height={16}
             className="h-4 w-4 select-none"
             draggable={false}
         />

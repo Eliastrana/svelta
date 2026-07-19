@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useCollectionRecipes } from '@/hooks/collections/useCollectionRecipies';
@@ -267,10 +268,12 @@ export default function CollectionPage() {
         <div className="min-h-screen pb-20">
             <div className="relative min-h-[40vh] w-full overflow-hidden bg-[var(--accent-soft)]">
                 {coverImage ? (
-                    <img
+                    <Image
                         src={coverImage}
                         alt={title}
-                        className="absolute inset-0 h-full w-full object-cover"
+                        fill
+                        sizes="100vw"
+                        className="object-cover"
                     />
                 ) : (
                     <div className="absolute inset-0 h-full w-full bg-[var(--accent)]" />
@@ -493,12 +496,17 @@ export default function CollectionPage() {
                             </div>
 
                             <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-start">
-                                <label className="flex h-28 w-28 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-[22px] border border-slate-200 bg-[var(--accent-soft)] text-slate-700">
+                                <label className="relative flex h-28 w-28 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-[22px] border border-slate-200 bg-[var(--accent-soft)] text-slate-700">
                                     {coverPreview && !removeCoverImage ? (
-                                        <img
+                                        <Image
                                             src={coverPreview}
                                             alt="Kokebokbilde"
-                                            className="h-full w-full object-cover"
+                                            fill
+                                            sizes="112px"
+                                            className="object-cover"
+                                            unoptimized={coverPreview.startsWith(
+                                                'blob:'
+                                            )}
                                         />
                                     ) : (
                                         <div className="flex flex-col items-center gap-2 text-center">

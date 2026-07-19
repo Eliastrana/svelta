@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
@@ -122,9 +123,9 @@ export default function NotificationsModal({
                                                     className="w-full text-left"
                                                 >
                                                     <div className="flex items-start gap-3">
-                                                        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#d8d7cb]">
+                                                        <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#d8d7cb]">
                                                             {notification.actorPhotoURL ? (
-                                                                <img
+                                                                <Image
                                                                     src={
                                                                         notification.actorPhotoURL
                                                                     }
@@ -132,7 +133,9 @@ export default function NotificationsModal({
                                                                         notification.actorName ||
                                                                         'Bruker'
                                                                     }
-                                                                    className="h-full w-full object-cover"
+                                                                    fill
+                                                                    sizes="44px"
+                                                                    className="object-cover"
                                                                 />
                                                             ) : (
                                                                 <span className="text-lg">

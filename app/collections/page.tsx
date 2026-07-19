@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
@@ -241,12 +242,17 @@ const CollectionsPage: React.FC = () => {
                             </div>
 
                             <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-start">
-                                <label className="flex h-28 w-28 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-[var(--accent-soft)] text-slate-700">
+                                <label className="relative flex h-28 w-28 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-[var(--accent-soft)] text-slate-700">
                                     {coverPreview ? (
-                                        <img
+                                        <Image
                                             src={coverPreview}
                                             alt="Forside"
-                                            className="h-full w-full object-cover"
+                                            fill
+                                            sizes="112px"
+                                            className="object-cover"
+                                            unoptimized={coverPreview.startsWith(
+                                                'blob:'
+                                            )}
                                         />
                                     ) : (
                                         <div className="flex flex-col items-center gap-2 text-center">

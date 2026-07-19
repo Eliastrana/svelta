@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
 
@@ -27,10 +28,12 @@ export default function CollectionCard({
         >
             <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[#deded0]">
                 {previewImage ? (
-                    <img
+                    <Image
                         src={previewImage}
                         alt={name}
-                        className="h-full w-full object-cover transition-transform duration-300 hover:scale-105 ease-out"
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-300 ease-out hover:scale-105"
                     />
                 ) : (
                     <div className="grid h-full w-full place-items-center bg-[var(--accent)] text-[#12340d]">

@@ -16,35 +16,13 @@ import { useUserFollowing } from '@/hooks/useUserFollowing';
 import { auth, firestore } from '@/firebase';
 import RatingStars from '@/app/components/RatingStars';
 import { canViewRecipe } from '@/helpers/recipeVisibility';
-import { LinkedRecipeReference } from '@/app/types/CookingStep';
-import { RecipeCoAuthor } from '@/app/types/Recipe';
+import { Recipe } from '@/app/types/Recipe';
 
 type IngredientDetailed = { name: string; amount: string };
 
-type RecipeForDetail = {
-    id: string;
-    userId: string;
-    title: string;
-    description?: string;
-    coverImage?: string;
-    coAuthors?: RecipeCoAuthor[];
-    coAuthorIds?: string[];
-    cookingSteps: Array<{
-        title: string;
-        description: string;
-        imageUrl?: string;
-        linkedRecipe?: LinkedRecipeReference;
-    }>;
-    temperature?: string;
-    cookingTime?: string;
-    portions?: string;
-    ingredients?: string[];
-    ingredientsDetailed?: IngredientDetailed[];
-    tags?: string[];
-};
-
 type Props = {
     id: string;
+    initialRecipe?: Recipe | null;
 };
 
 type WakeLockSentinelLike = {
@@ -112,7 +90,7 @@ const RecipeDetailSkeleton: React.FC = () => {
     );
 };
 
-const RecipeDetailClient: React.FC<Props> = ({ id }) => {
+const RecipeDetailClient: React.FC<Props> = ({ id, initialRecipe }) => {
     const router = useRouter();
 
     const [showAddModal, setShowAddModal] = useState(false);
@@ -122,8 +100,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
     const [wakeLockSupported, setWakeLockSupported] = useState(false);
     const [checkedSteps, setCheckedSteps] = useState<boolean[]>([]);
 
-    const [recipeRaw, loading] = useRecipe(id);
-    const recipe = recipeRaw as RecipeForDetail | null;
+    const [recipe, loading] = useRecipe(id, initialRecipe);
 
     const creatorDoc = usePublicUserData(recipe?.userId || '');
 
@@ -159,7 +136,7 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
             ? recipe.ingredientsDetailed
                   .map((i) => ({
                       name: i.name.trim(),
-                      amount: i.amount.trim(),
+                      amount: (i.amount ?? '').trim(),
                   }))
                   .filter((i) => i.name.length > 0)
             : (recipe.ingredients ?? [])
@@ -463,13 +440,15 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                 {authorEntries.map((author, index) => (
                                     <div
                                         key={`${author.uid}-${index}`}
-                                        className="h-11 w-11 overflow-hidden rounded-full ring-2 ring-[#f2f1e8]"
+                                        className="relative h-11 w-11 overflow-hidden rounded-full ring-2 ring-[#f2f1e8]"
                                     >
                                         {author.photoURL ? (
-                                            <img
+                                            <Image
                                                 src={author.photoURL}
                                                 alt={author.name}
-                                                className="h-full w-full object-cover"
+                                                fill
+                                                sizes="44px"
+                                                className="object-cover"
                                             />
                                         ) : (
                                             <div className="grid h-full w-full place-items-center bg-[#deded0] text-[18px]">
@@ -521,13 +500,15 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                 {authorEntries.slice(0, 2).map((author, index) => (
                                     <div
                                         key={`${author.uid}-${index}`}
-                                        className="h-8 w-8 overflow-hidden rounded-full ring-2 ring-[#f2f1e8] bg-[#deded0]"
+                                        className="relative h-8 w-8 overflow-hidden rounded-full bg-[#deded0] ring-2 ring-[#f2f1e8]"
                                     >
                                         {author.photoURL ? (
-                                            <img
+                                            <Image
                                                 src={author.photoURL}
                                                 alt={author.name}
-                                                className="h-full w-full object-cover"
+                                                fill
+                                                sizes="32px"
+                                                className="object-cover"
                                             />
                                         ) : (
                                             <span className="material-symbols-outlined flex h-full w-full items-center justify-center text-[18px]">
@@ -745,9 +726,9 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                                     }
                                                     className="mt-4 flex w-full items-center gap-3 rounded-xl border border-[#d8d7cb] bg-[#fbfaf4] p-3 text-left transition hover:bg-[#efeee2]"
                                                 >
-                                                    <div className="flex h-12 w-12 sm:h-20 sm:w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#e5e5d7]">
+                                                    <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#e5e5d7] sm:h-20 sm:w-20">
                                                         {step.linkedRecipe.coverImage ? (
-                                                            <img
+                                                            <Image
                                                                 src={
                                                                     step
                                                                         .linkedRecipe
@@ -758,7 +739,9 @@ const RecipeDetailClient: React.FC<Props> = ({ id }) => {
                                                                         .linkedRecipe
                                                                         .title
                                                                 }
-                                                                className="h-full w-full object-cover"
+                                                                fill
+                                                                sizes="(max-width: 640px) 48px, 80px"
+                                                                className="object-cover"
                                                             />
                                                         ) : (
                                                             <span className="material-symbols-outlined text-[#496444]">
