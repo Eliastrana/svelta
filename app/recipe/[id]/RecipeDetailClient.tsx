@@ -10,7 +10,9 @@ import CommentSection from '@/app/components/CommentSection';
 import AddToCollectionModal from '@/app/components/AddToCollectionModal';
 import AppModal from '@/app/components/AppModal';
 
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useRecipe } from '@/hooks/useRecipe';
+import { useUserData } from '@/hooks/useUserData';
 import { usePublicUserData } from '@/hooks/usePublicUserData';
 import { useUserFollowing } from '@/hooks/useUserFollowing';
 import { auth, firestore } from '@/firebase';
@@ -90,8 +92,79 @@ const RecipeDetailSkeleton: React.FC = () => {
     );
 };
 
+function renderDescriptionWithIngredientAmounts(
+    description: string,
+    mentions: Recipe['cookingSteps'][number]['ingredientMentions']
+) {
+    if (!mentions?.length) return description;
+
+    const normalizedDescription = description.toLocaleLowerCase('nb');
+    const positionedMentions = mentions
+        .map((mention, index) => {
+            const matchText = mention.matchText.trim();
+            const start = normalizedDescription.indexOf(
+                matchText.toLocaleLowerCase('nb')
+            );
+
+            return {
+                ...mention,
+                index,
+                start,
+                end: start >= 0 ? start + matchText.length : -1,
+            };
+        })
+        .filter((mention) => mention.start >= 0 && mention.end >= 0)
+        .sort((a, b) =>
+            a.start === b.start ? a.index - b.index : a.start - b.start
+        );
+
+    if (!positionedMentions.length) return description;
+
+    const nodes: React.ReactNode[] = [];
+    let cursor = 0;
+
+    positionedMentions.forEach((mention, index) => {
+        if (mention.start < cursor) return;
+
+        if (mention.start > cursor) {
+            nodes.push(
+                <React.Fragment key={`text-${index}-${cursor}`}>
+                    {description.slice(cursor, mention.start)}
+                </React.Fragment>
+            );
+        }
+
+        nodes.push(
+            <React.Fragment key={`match-${index}-${mention.start}`}>
+                {description.slice(mention.start, mention.end)}
+            </React.Fragment>
+        );
+        nodes.push(
+            <span
+                key={`tag-${index}-${mention.start}`}
+                className="ml-1 inline-flex translate-y-[-1px] rounded-full bg-[#e5e5d7] px-2 py-0.5 align-middle text-xs font-medium text-[#6f8068]"
+            >
+                {mention.amount}
+            </span>
+        );
+
+        cursor = mention.end;
+    });
+
+    if (cursor < description.length) {
+        nodes.push(
+            <React.Fragment key={`text-end-${cursor}`}>
+                {description.slice(cursor)}
+            </React.Fragment>
+        );
+    }
+
+    return nodes;
+}
+
 const RecipeDetailClient: React.FC<Props> = ({ id, initialRecipe }) => {
     const router = useRouter();
+    const currentUser = useAuthUser();
 
     const [showAddModal, setShowAddModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -103,8 +176,8 @@ const RecipeDetailClient: React.FC<Props> = ({ id, initialRecipe }) => {
     const [recipe, loading] = useRecipe(id, initialRecipe);
 
     const creatorDoc = usePublicUserData(recipe?.userId || '');
-
-    const currentUid = auth.currentUser?.uid ?? '';
+    const currentUid = currentUser?.uid ?? auth.currentUser?.uid ?? '';
+    const viewerProfile = useUserData(currentUid);
     const viewerFollowing = useUserFollowing(currentUid);
     const isLoggedIn = Boolean(currentUid);
     const isOwner = Boolean(
@@ -349,6 +422,8 @@ const RecipeDetailClient: React.FC<Props> = ({ id, initialRecipe }) => {
         .filter((name): name is string => Boolean(name));
     const allAuthorNames = [userName, ...coAuthorNames];
     const completedStepCount = checkedSteps.filter(Boolean).length;
+    const shouldShowIngredientAmounts =
+        viewerProfile?.showIngredientAmountsInSteps !== false;
 
     const handleDelete = async () => {
         if (!isOwner) return;
@@ -713,7 +788,12 @@ const RecipeDetailClient: React.FC<Props> = ({ id, initialRecipe }) => {
                                             </h3>
 
                                             <p className="mt-2 text-base leading-relaxed [overflow-wrap:anywhere]">
-                                                {step.description}
+                                                {shouldShowIngredientAmounts
+                                                    ? renderDescriptionWithIngredientAmounts(
+                                                          step.description,
+                                                          step.ingredientMentions
+                                                      )
+                                                    : step.description}
                                             </p>
 
                                             {step.linkedRecipe?.id ? (

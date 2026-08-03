@@ -18,6 +18,7 @@ export interface UserDoc {
     favoriteFood?: string;
     profileThemeId?: string;
     profileFontId?: string;
+    showIngredientAmountsInSteps?: boolean;
 }
 
 export function useUserData(uid: string): UserDoc | null {

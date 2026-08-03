@@ -47,6 +47,7 @@ export async function ensureUserDocument(
         favoriteFood: '',
         profileThemeId: DEFAULT_PROFILE_THEME_ID,
         profileFontId: 'urbanist',
+        showIngredientAmountsInSteps: true,
         hasCompletedOnboarding: false,
     };
 

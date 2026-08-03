@@ -8,6 +8,7 @@ import { auth, firestore, storage } from '@/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { CookingStep } from '@/app/types/CookingStep';
 import { normalizeIngredientAmountInput } from '@/helpers/ingredientAmountParser';
+import { generateStepIngredientMentions } from '@/helpers/generateStepIngredientMentions';
 import { RecipeVisibility } from '@/helpers/recipeVisibility';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useUserFollowing } from '@/hooks/useUserFollowing';
@@ -1032,9 +1033,30 @@ const CreateRecipe = () => {
                 .map((i) => ({ name: i.name.trim(), amount: i.amount.trim() }))
                 .filter((i) => i.name.length > 0);
 
+            const ingredientMentionsPromise = generateStepIngredientMentions({
+                ingredientsDetailed: ingredientsDetailedForDb,
+                cookingSteps: cookingSteps.map((step) => ({
+                    title: step.title,
+                    description: step.description,
+                })),
+            });
+
             const ingredientsStringsForDb: string[] = ingredientsDetailedForDb
                 .map((i) => `${i.amount} ${i.name}`.trim())
                 .filter(Boolean);
+
+            const ingredientMentionsByStep = await ingredientMentionsPromise;
+            const stepsForDbWithMentions: CookingStep[] = stepsForDb.map(
+                (step, index) => ({
+                    ...step,
+                    ...(ingredientMentionsByStep[index]?.length
+                        ? {
+                              ingredientMentions:
+                                  ingredientMentionsByStep[index],
+                          }
+                        : {}),
+                })
+            );
 
             const docRef = await addDoc(collection(firestore, 'recipes'), {
                 title,
@@ -1042,7 +1064,7 @@ const CreateRecipe = () => {
                 image: svgData,
                 bgColor,
                 fontStyle,
-                cookingSteps: stepsForDb,
+                cookingSteps: stepsForDbWithMentions,
                 ingredients: ingredientsStringsForDb,
                 ingredientsDetailed: ingredientsDetailedForDb,
                 temperature,

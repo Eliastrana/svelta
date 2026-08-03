@@ -66,6 +66,7 @@ interface UserData {
     favoriteFood?: string;
     profileThemeId?: string;
     profileFontId?: string;
+    showIngredientAmountsInSteps?: boolean;
 }
 
 interface ProfileListUser {
@@ -429,6 +430,7 @@ type EditProfileModalProps = {
     initialProfileThemeId: string;
     initialProfileFontId: string;
     initialIsProfilePrivate: boolean;
+    initialShowIngredientAmountsInSteps: boolean;
     uid: string;
     onSaved: (next: {
         bio: string;
@@ -438,6 +440,7 @@ type EditProfileModalProps = {
         profileThemeId: string;
         profileFontId: string;
         isProfilePrivate: boolean;
+        showIngredientAmountsInSteps: boolean;
     }) => void;
     onLogout: () => void;
 };
@@ -453,6 +456,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     initialProfileThemeId,
     initialProfileFontId,
     initialIsProfilePrivate,
+    initialShowIngredientAmountsInSteps,
     uid,
     onSaved,
     onLogout,
@@ -473,6 +477,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     const [isProfilePrivate, setIsProfilePrivate] = useState(
         initialIsProfilePrivate
     );
+    const [showIngredientAmountsInSteps, setShowIngredientAmountsInSteps] =
+        useState(initialShowIngredientAmountsInSteps);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -498,6 +504,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         setProfileThemeId(initialProfileThemeId);
         setProfileFontId(initialProfileFontId);
         setIsProfilePrivate(initialIsProfilePrivate);
+        setShowIngredientAmountsInSteps(initialShowIngredientAmountsInSteps);
         setError(null);
         setDeleteError(null);
         setDeleteConfirmText('');
@@ -514,6 +521,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         initialProfileThemeId,
         initialProfileFontId,
         initialIsProfilePrivate,
+        initialShowIngredientAmountsInSteps,
     ]);
 
     useEffect(() => {
@@ -580,6 +588,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 profileThemeId,
                 profileFontId,
                 isProfilePrivate,
+                showIngredientAmountsInSteps,
             });
 
             await syncPublicUserProfile(uid, {
@@ -596,6 +605,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 profileThemeId,
                 profileFontId,
                 isProfilePrivate,
+                showIngredientAmountsInSteps,
             });
 
             closeWithAnim();
@@ -803,6 +813,37 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                             </button>
 
                             <NotificationSettingsSection user={currentUser} />
+
+                            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                <label className="flex items-center justify-between gap-4">
+                                    <div>
+                                        <p className="text-sm font-semibold text-slate-900">
+                                            Vis ingrediensmengder i steg
+                                        </p>
+                                        <p className="mt-1 text-sm text-slate-500">
+                                            Når en ingrediens nevnes i et steg,
+                                            vises mengden som en liten tag i
+                                            teksten.
+                                        </p>
+                                    </div>
+                                    <span className="relative inline-flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={
+                                                showIngredientAmountsInSteps
+                                            }
+                                            onChange={(e) =>
+                                                setShowIngredientAmountsInSteps(
+                                                    e.target.checked
+                                                )
+                                            }
+                                            className="peer sr-only"
+                                        />
+                                        <span className="h-7 w-12 rounded-full bg-slate-300 transition-colors duration-200 peer-checked:bg-[var(--accent)]" />
+                                        <span className="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 peer-checked:translate-x-5" />
+                                    </span>
+                                </label>
+                            </div>
 
                             <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                                 <label className="flex items-center justify-between gap-4">
@@ -1184,6 +1225,8 @@ const UserProfile: React.FC = () => {
     const favoriteFood = userData.favoriteFood || '';
     const profileTheme = getProfileTheme(userData.profileThemeId);
     const profileFont = getProfileFont(userData.profileFontId);
+    const showIngredientAmountsInSteps =
+        userData.showIngredientAmountsInSteps !== false;
     const tabs: Array<{
         key: 'myRecipes' | 'likedRecipes' | 'publicCollections';
         label: string;
@@ -1641,6 +1684,9 @@ const UserProfile: React.FC = () => {
                     }
                     initialProfileFontId={userData.profileFontId || 'urbanist'}
                     initialIsProfilePrivate={Boolean(userData.isProfilePrivate)}
+                    initialShowIngredientAmountsInSteps={
+                        showIngredientAmountsInSteps
+                    }
                     uid={id}
                     onLogout={logout}
                     onSaved={(next) => {
@@ -1656,6 +1702,8 @@ const UserProfile: React.FC = () => {
                                       profileThemeId: next.profileThemeId,
                                       profileFontId: next.profileFontId,
                                       isProfilePrivate: next.isProfilePrivate,
+                                      showIngredientAmountsInSteps:
+                                          next.showIngredientAmountsInSteps,
                                   }
                                 : prev
                         );

@@ -8,6 +8,7 @@ import { auth, firestore, storage } from '@/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { RecipeData } from '@/app/types/RecipeData';
 import { CookingStep } from '@/app/types/CookingStep';
+import { generateStepIngredientMentions } from '@/helpers/generateStepIngredientMentions';
 import { normalizeIngredientAmountInput } from '@/helpers/ingredientAmountParser';
 import { RecipeVisibility } from '@/helpers/recipeVisibility';
 import { useAuthUser } from '@/hooks/useAuthUser';
@@ -1168,8 +1169,28 @@ const EditRecipePage: React.FC = () => {
             selectedCoAuthor?.status === 'pending'
                 ? [selectedCoAuthor.uid]
                 : [];
+        const ingredientMentionsPromise = generateStepIngredientMentions({
+            ingredientsDetailed: ingredientsForDb,
+            cookingSteps: cookingSteps.map((step) => ({
+                title: step.title,
+                description: step.description,
+            })),
+        });
 
         try {
+            const ingredientMentionsByStep = await ingredientMentionsPromise;
+            const stepsForDbWithMentions: CookingStep[] = stepsForDb.map(
+                (step, index) => ({
+                    ...step,
+                    ...(ingredientMentionsByStep[index]?.length
+                        ? {
+                              ingredientMentions:
+                                  ingredientMentionsByStep[index],
+                          }
+                        : {}),
+                })
+            );
+
             await updateDoc(doc(firestore, 'recipes', recipeId), {
                 title: trimmedTitle,
                 description: recipeData.description,
@@ -1185,7 +1206,7 @@ const EditRecipePage: React.FC = () => {
                 cookingTime,
                 portions,
                 visibility,
-                cookingSteps: stepsForDb,
+                cookingSteps: stepsForDbWithMentions,
                 coverImage: coverImageUrl,
                 coAuthors: nextCoAuthors,
                 coAuthorIds: nextCoAuthorIds,

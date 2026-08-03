@@ -86,6 +86,48 @@ function normalizeRecipe(
                                         };
                                     })()
                                   : undefined,
+                          ingredientMentions: Array.isArray(
+                              step.ingredientMentions
+                          )
+                              ? step.ingredientMentions.flatMap((mention) => {
+                                    if (
+                                        !mention ||
+                                        typeof mention !== 'object'
+                                    ) {
+                                        return [];
+                                    }
+
+                                    const rawMention = mention as Record<
+                                        string,
+                                        unknown
+                                    >;
+                                    const ingredientName = asString(
+                                        rawMention.ingredientName
+                                    );
+                                    const matchText = asString(
+                                        rawMention.matchText
+                                    );
+                                    const amount = asString(
+                                        rawMention.amount
+                                    );
+
+                                    if (
+                                        !ingredientName ||
+                                        !matchText ||
+                                        !amount
+                                    ) {
+                                        return [];
+                                    }
+
+                                    return [
+                                        {
+                                            ingredientName,
+                                            matchText,
+                                            amount,
+                                        },
+                                    ];
+                                })
+                              : undefined,
                       },
                   ];
               })
