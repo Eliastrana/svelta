@@ -57,6 +57,7 @@ type RecipeDoc = RecipeData & {
     coAuthors?: Array<{ uid: string; name?: string; photoURL?: string }>;
     coAuthorIds?: string[];
     pendingCoAuthorInviteIds?: string[];
+    updatedAt?: unknown;
 };
 
 type SelectedCoAuthor = CoAuthorInvitee & {
@@ -81,6 +82,7 @@ type DraftPayload = {
     // NB: blob:-preview funker ikke etter reload, så vi ignorerer den ved hydration
     coverImagePreview?: string | null;
     selectedCoAuthor?: SelectedCoAuthor | null;
+    sourceUpdatedAtMs?: number | null;
 };
 
 const sanitizeRecipeData = (
@@ -177,6 +179,46 @@ function isMeaningfulDraft(draft: DraftPayload): boolean {
             portions ||
             usablePreview
     );
+}
+
+function getUpdatedAtMs(value: unknown): number | null {
+    if (!value) return null;
+
+    if (
+        typeof value === 'object' &&
+        value !== null &&
+        'toMillis' in value &&
+        typeof (value as { toMillis?: unknown }).toMillis === 'function'
+    ) {
+        return ((value as { toMillis: () => number }).toMillis() ?? null) as
+            | number
+            | null;
+    }
+
+    if (value instanceof Date) {
+        return value.getTime();
+    }
+
+    if (
+        typeof value === 'object' &&
+        value !== null &&
+        'seconds' in value &&
+        typeof (value as { seconds?: unknown }).seconds === 'number'
+    ) {
+        const timestampValue = value as {
+            seconds: number;
+            nanoseconds?: number;
+        };
+        const seconds = timestampValue.seconds;
+        const nanoseconds =
+            typeof timestampValue.nanoseconds === 'number'
+                ? timestampValue.nanoseconds
+                : 0;
+
+        return seconds * 1000 + Math.round(nanoseconds / 1_000_000);
+    }
+
+    return null;
 }
 
 function SortableStepCard(props: {
@@ -582,6 +624,10 @@ const EditRecipePage: React.FC = () => {
 
     const [loading, setLoading] = useState(true);
     const [draftChecked, setDraftChecked] = useState(false);
+    const [storedDraft, setStoredDraft] = useState<DraftPayload | null>(null);
+    const [sourceUpdatedAtMs, setSourceUpdatedAtMs] = useState<number | null>(
+        null
+    );
     const hasFetched = useRef(false);
 
     const [recipeData, setRecipeData] = useState<RecipeData>({
@@ -679,6 +725,134 @@ const EditRecipePage: React.FC = () => {
         }, 1800);
     };
 
+    const hydrateFromDraft = (draft: DraftPayload) => {
+        if (draft.recipeData) {
+            setRecipeData(sanitizeRecipeData(draft.recipeData));
+        }
+
+        if (draft.ingredientsDetailed && draft.ingredientsDetailed.length > 0) {
+            setIngredientsDetailed(
+                draft.ingredientsDetailed.map((x) => ({
+                    id: x.id || makeId(),
+                    name: x.name ?? '',
+                    amount: x.amount ?? '',
+                }))
+            );
+        } else if (draft.ingredients && draft.ingredients.length > 0) {
+            setIngredientsDetailed(toIngredientItemsFromStrings(draft.ingredients));
+        } else if (
+            draft.recipeData?.ingredients &&
+            draft.recipeData.ingredients.length > 0
+        ) {
+            setIngredientsDetailed(
+                toIngredientItemsFromStrings(draft.recipeData.ingredients)
+            );
+        } else {
+            setIngredientsDetailed([]);
+        }
+
+        setTemperature(draft.temperature ?? draft.recipeData?.temperature ?? '');
+        setCookingTime(draft.cookingTime ?? draft.recipeData?.cookingTime ?? '');
+        setPortions(draft.portions ?? draft.recipeData?.portions ?? '');
+        setVisibility(
+            draft.recipeData?.visibility === 'private' ? 'private' : 'public'
+        );
+
+        const loadedSteps = draft.cookingSteps ?? [];
+        setCookingSteps(
+            loadedSteps.map((s) => {
+                const storedImage = getStoredStepImage(s);
+                return {
+                    ...s,
+                    id: s.id || makeId(),
+                    imageUrl: s.imageUrl?.trim() || storedImage,
+                    linkedRecipe: s.linkedRecipe,
+                    imagePreview: storedImage || null,
+                    imageFile: null,
+                };
+            })
+        );
+
+        setNewIngredientName(draft.newIngredientName ?? '');
+        setNewIngredientAmount(draft.newIngredientAmount ?? '');
+
+        const prev = draft.coverImagePreview ?? null;
+        setCoverImagePreview(prev && !prev.startsWith('blob:') ? prev : null);
+        setSelectedCoAuthor(draft.selectedCoAuthor ?? null);
+        setInitialPendingCoAuthorUid(
+            draft.selectedCoAuthor?.status === 'pending'
+                ? draft.selectedCoAuthor.uid
+                : ''
+        );
+    };
+
+    const hydrateFromRecipe = async (data: RecipeDoc) => {
+        const acceptedCoAuthor = Array.isArray(data.coAuthors)
+            ? data.coAuthors[0]
+            : undefined;
+        const pendingCoAuthorUid = Array.isArray(data.pendingCoAuthorInviteIds)
+            ? data.pendingCoAuthorInviteIds[0] ?? ''
+            : '';
+
+        let nextSelectedCoAuthor: SelectedCoAuthor | null = null;
+
+        if (acceptedCoAuthor?.uid) {
+            nextSelectedCoAuthor = {
+                uid: acceptedCoAuthor.uid,
+                name: acceptedCoAuthor.name?.trim() || 'Kokk uten navn',
+                photoURL: acceptedCoAuthor.photoURL?.trim() || '',
+                status: 'accepted',
+            };
+        } else if (pendingCoAuthorUid) {
+            const usersMap = await fetchManyUsers([pendingCoAuthorUid]);
+            const pendingUser = usersMap[pendingCoAuthorUid];
+            nextSelectedCoAuthor = {
+                uid: pendingCoAuthorUid,
+                name: pendingUser?.name?.trim() || 'Kokk uten navn',
+                photoURL: pendingUser?.photoURL?.trim() || '',
+                status: 'pending',
+            };
+        }
+
+        setRecipeData(sanitizeRecipeData(data));
+
+        if (
+            Array.isArray(data.ingredientsDetailed) &&
+            data.ingredientsDetailed.length > 0
+        ) {
+            setIngredientsDetailed(
+                data.ingredientsDetailed.map((x) => ({
+                    id: x.id || makeId(),
+                    name: x.name ?? '',
+                    amount: x.amount ?? '',
+                }))
+            );
+        } else {
+            const legacy = data.ingredients ?? [];
+            setIngredientsDetailed(toIngredientItemsFromStrings(legacy));
+        }
+
+        setTemperature(data.temperature ?? '');
+        setCookingTime(data.cookingTime ?? '');
+        setPortions(data.portions ?? '');
+        setVisibility(data.visibility === 'private' ? 'private' : 'public');
+
+        const steps = (data.cookingSteps ?? []).map((s) => ({
+            ...s,
+            id: makeId(),
+            imageUrl: s.imageUrl?.trim() || '',
+            linkedRecipe: s.linkedRecipe,
+            imagePreview: s.imageUrl?.trim() || null,
+            imageFile: null,
+        }));
+        setCookingSteps(steps);
+        setSelectedCoAuthor(nextSelectedCoAuthor);
+        setInitialPendingCoAuthorUid(pendingCoAuthorUid);
+        setNewIngredientName('');
+        setNewIngredientAmount('');
+        setCoverImagePreview(null);
+    };
+
     // 1) Sjekk localStorage først
     useEffect(() => {
         if (!recipeId) return;
@@ -698,86 +872,15 @@ const EditRecipePage: React.FC = () => {
                 return;
             }
 
-            if (draft.recipeData) {
-                setRecipeData(sanitizeRecipeData(draft.recipeData));
-            }
-
-            // ingredients: prioriter detailed, ellers legacy
-            if (
-                draft.ingredientsDetailed &&
-                draft.ingredientsDetailed.length > 0
-            ) {
-                setIngredientsDetailed(
-                    draft.ingredientsDetailed.map((x) => ({
-                        id: x.id || makeId(),
-                        name: x.name ?? '',
-                        amount: x.amount ?? '',
-                    }))
-                );
-            } else if (draft.ingredients && draft.ingredients.length > 0) {
-                setIngredientsDetailed(
-                    toIngredientItemsFromStrings(draft.ingredients)
-                );
-            } else if (
-                draft.recipeData?.ingredients &&
-                draft.recipeData.ingredients.length > 0
-            ) {
-                setIngredientsDetailed(
-                    toIngredientItemsFromStrings(draft.recipeData.ingredients)
-                );
-            }
-
-            setTemperature(
-                draft.temperature ?? draft.recipeData?.temperature ?? ''
-            );
-            setCookingTime(
-                draft.cookingTime ?? draft.recipeData?.cookingTime ?? ''
-            );
-            setPortions(draft.portions ?? draft.recipeData?.portions ?? '');
-            setVisibility(
-                draft.recipeData?.visibility === 'private'
-                    ? 'private'
-                    : 'public'
-            );
-
-            const loadedSteps = draft.cookingSteps ?? [];
-            setCookingSteps(
-                loadedSteps.map((s) => {
-                    const storedImage = getStoredStepImage(s);
-                    return {
-                        ...s,
-                        id: s.id || makeId(),
-                        imageUrl: s.imageUrl?.trim() || storedImage,
-                        linkedRecipe: s.linkedRecipe,
-                        imagePreview: storedImage || null,
-                        imageFile: null,
-                    };
-                })
-            );
-
-            setNewIngredientName(draft.newIngredientName ?? '');
-            setNewIngredientAmount(draft.newIngredientAmount ?? '');
-
-            const prev = draft.coverImagePreview ?? null;
-            setCoverImagePreview(
-                prev && !prev.startsWith('blob:') ? prev : null
-            );
-            setSelectedCoAuthor(draft.selectedCoAuthor ?? null);
-            setInitialPendingCoAuthorUid(
-                draft.selectedCoAuthor?.status === 'pending'
-                    ? draft.selectedCoAuthor.uid
-                    : ''
-            );
-
+            setStoredDraft(draft);
             setDraftChecked(true);
-            setLoading(false);
         } catch {
             localStorage.removeItem(LOCAL_STORAGE_KEY);
             setDraftChecked(true);
         }
     }, [recipeId, LOCAL_STORAGE_KEY]);
 
-    // 2) Hent fra Firestore hvis vi ikke allerede har draft
+    // 2) Hent fra Firestore og bruk draft bare hvis det matcher samme serverversjon
     useEffect(() => {
         if (!recipeId) return;
         if (!draftChecked) return;
@@ -791,86 +894,22 @@ const EditRecipePage: React.FC = () => {
                 if (!recipeSnap.exists()) return;
 
                 const data = recipeSnap.data() as RecipeDoc;
+                const serverUpdatedAtMs = getUpdatedAtMs(data.updatedAt);
+                setSourceUpdatedAtMs(serverUpdatedAtMs);
 
-                const alreadyHasTitle =
-                    (recipeData.title ?? '').trim().length > 0;
-                if (!alreadyHasTitle) {
-                    const acceptedCoAuthor = Array.isArray(data.coAuthors)
-                        ? data.coAuthors[0]
-                        : undefined;
-                    const pendingCoAuthorUid = Array.isArray(
-                        data.pendingCoAuthorInviteIds
-                    )
-                        ? data.pendingCoAuthorInviteIds[0] ?? ''
-                        : '';
+                const canUseStoredDraft =
+                    storedDraft &&
+                    isMeaningfulDraft(storedDraft) &&
+                    storedDraft.sourceUpdatedAtMs === serverUpdatedAtMs;
 
-                    let nextSelectedCoAuthor: SelectedCoAuthor | null = null;
-
-                    if (acceptedCoAuthor?.uid) {
-                        nextSelectedCoAuthor = {
-                            uid: acceptedCoAuthor.uid,
-                            name:
-                                acceptedCoAuthor.name?.trim() ||
-                                'Kokk uten navn',
-                            photoURL: acceptedCoAuthor.photoURL?.trim() || '',
-                            status: 'accepted',
-                        };
-                    } else if (pendingCoAuthorUid) {
-                        const usersMap = await fetchManyUsers([
-                            pendingCoAuthorUid,
-                        ]);
-                        const pendingUser = usersMap[pendingCoAuthorUid];
-                        nextSelectedCoAuthor = {
-                            uid: pendingCoAuthorUid,
-                            name:
-                                pendingUser?.name?.trim() ||
-                                'Kokk uten navn',
-                            photoURL: pendingUser?.photoURL?.trim() || '',
-                            status: 'pending',
-                        };
+                if (canUseStoredDraft) {
+                    hydrateFromDraft(storedDraft);
+                } else {
+                    if (storedDraft) {
+                        localStorage.removeItem(LOCAL_STORAGE_KEY);
+                        setStoredDraft(null);
                     }
-
-                    setRecipeData(sanitizeRecipeData(data));
-
-                    // Ingredients: ny hvis finnes, ellers legacy
-                    if (
-                        Array.isArray(data.ingredientsDetailed) &&
-                        data.ingredientsDetailed.length > 0
-                    ) {
-                        setIngredientsDetailed(
-                            data.ingredientsDetailed.map((x) => ({
-                                id: x.id || makeId(),
-                                name: x.name ?? '',
-                                amount: x.amount ?? '',
-                            }))
-                        );
-                    } else {
-                        const legacy = data.ingredients ?? [];
-                        setIngredientsDetailed(
-                            toIngredientItemsFromStrings(legacy)
-                        );
-                    }
-
-                    setTemperature(data.temperature ?? '');
-                    setCookingTime(data.cookingTime ?? '');
-                    setPortions(data.portions ?? '');
-                    setVisibility(
-                        data.visibility === 'private' ? 'private' : 'public'
-                    );
-
-                    const steps = (data.cookingSteps ?? []).map((s) => ({
-                        ...s,
-                        id: makeId(),
-                        imageUrl: s.imageUrl?.trim() || '',
-                        linkedRecipe: s.linkedRecipe,
-                        imagePreview: s.imageUrl?.trim() || null,
-                        imageFile: null,
-                    }));
-                    setCookingSteps(steps);
-                    setSelectedCoAuthor(nextSelectedCoAuthor);
-                    setInitialPendingCoAuthorUid(pendingCoAuthorUid);
-
-                    setCoverImagePreview(null);
+                    await hydrateFromRecipe(data);
                 }
             } finally {
                 setLoading(false);
@@ -879,8 +918,7 @@ const EditRecipePage: React.FC = () => {
         };
 
         void fetchRecipe();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [recipeId, draftChecked]);
+    }, [recipeId, draftChecked, storedDraft, LOCAL_STORAGE_KEY]);
 
     // cleanup blob preview
     useEffect(() => {
@@ -942,6 +980,7 @@ const EditRecipePage: React.FC = () => {
             newIngredientAmount,
             coverImagePreview: null,
             selectedCoAuthor,
+            sourceUpdatedAtMs,
         };
 
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
@@ -959,6 +998,7 @@ const EditRecipePage: React.FC = () => {
         newIngredientName,
         newIngredientAmount,
         selectedCoAuthor,
+        sourceUpdatedAtMs,
     ]);
 
     const setTitle = (v: string) => setRecipeData((p) => ({ ...p, title: v }));
