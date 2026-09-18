@@ -10,7 +10,8 @@
         "format": "prettier --write .",
         "backfill:public-users": "node --env-file=.env.local scripts/backfillPublicUsers.mjs",
         "fix:recipe-timestamps": "node --env-file=.env.local scripts/fixRecipeTimestampMaps.mjs",
-        "backfill:step-ingredient-mentions": "node --env-file=.env.local scripts/backfillStepIngredientMentions.mjs"
+        "backfill:step-ingredient-mentions": "node --env-file=.env.local scripts/backfillStepIngredientMentions.mjs",
+        "backfill:resized-images": "node --env-file=.env.local scripts/backfillResizedImages.mjs"
     },
     "dependencies": {
         "@dnd-kit/core": "^6.3.1",

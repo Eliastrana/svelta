@@ -25,6 +25,8 @@ export async function ensureUserDocument(
             name: existingData.name || preferredDisplayName,
             photoURL: existingData.photoURL || preferredPhotoURL,
             favoriteFood: existingData.favoriteFood || '',
+            backgroundPhotoURL: existingData.backgroundPhotoURL || '',
+            profileThemeId: existingData.profileThemeId || '',
         });
 
         return {
@@ -56,6 +58,8 @@ export async function ensureUserDocument(
         name: data.name,
         photoURL: data.photoURL,
         favoriteFood: data.favoriteFood,
+        backgroundPhotoURL: data.backgroundPhotoURL,
+        profileThemeId: data.profileThemeId,
     });
 
     return {

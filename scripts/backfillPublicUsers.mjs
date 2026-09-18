@@ -42,6 +42,8 @@ function buildPublicUser(data) {
         name: String(data?.name ?? '').trim(),
         photoURL: String(data?.photoURL ?? '').trim(),
         favoriteFood: String(data?.favoriteFood ?? '').trim(),
+        backgroundPhotoURL: String(data?.backgroundPhotoURL ?? '').trim(),
+        profileThemeId: String(data?.profileThemeId ?? '').trim(),
     };
 }
 

@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "cooked-df6a0"
+  },
+  "targets": {},
+  "etags": {
+    "cooked-df6a0": {
+      "extensionInstances": {
+        "storage-resize-images": "436b66780ad20665cca6c8aad2b2bf373b23b2e0033190ecd2f5d83bdce0de1b"
+      }
+    }
   }
 }

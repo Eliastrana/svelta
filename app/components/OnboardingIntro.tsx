@@ -211,6 +211,8 @@ const OnboardingIntro: React.FC<OnboardingIntroProps> = ({
                 name: initialName,
                 photoURL: payload.photoURL,
                 favoriteFood: payload.favoriteFood,
+                backgroundPhotoURL: payload.backgroundPhotoURL,
+                profileThemeId: payload.profileThemeId,
             });
             onComplete(payload);
         } catch (err) {

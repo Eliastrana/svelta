@@ -595,6 +595,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 name: initialName,
                 photoURL: nextPhotoURL,
                 favoriteFood: favoriteFood.trim(),
+                backgroundPhotoURL: nextBackgroundPhotoURL,
+                profileThemeId,
             });
 
             onSaved({
