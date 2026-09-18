@@ -208,11 +208,82 @@ async function sendPushNotification(
     }
 }
 
+/** Which varsler the recipient still wants; missing or true means yes. */
+type NotificationPrefs = {
+    like?: boolean;
+    comment?: boolean;
+    newRecipe?: boolean;
+};
+
+const PREF_BY_TYPE: Record<string, keyof NotificationPrefs> = {
+    like: 'like',
+    comment: 'comment',
+    new_recipe: 'newRecipe',
+};
+
+async function wantsNotification(
+    recipientId: string,
+    type: NotificationPayload['type']
+): Promise<boolean> {
+    const pref = PREF_BY_TYPE[type];
+
+    // Anything without a setting of its own, such as a co-author invite,
+    // always comes through: it is waiting on an answer.
+    if (!pref) return true;
+
+    const snap = await db.collection('users').doc(recipientId).get();
+    const prefs = (snap.data()?.notificationPrefs ?? {}) as NotificationPrefs;
+
+    return prefs[pref] !== false;
+}
+
 async function createAndSendNotification(payload: NotificationPayload) {
+    if (!(await wantsNotification(payload.recipientId, payload.type))) return;
+
     const notificationId = await createNotification(payload);
     if (!notificationId) return;
 
     await sendPushNotification(payload.recipientId, payload);
+}
+
+/** Shortest prefix a search matches on, so "ti" does not match everything. */
+const SEARCH_MIN_PREFIX = 2;
+
+/** Longest prefix stored per word; longer searches filter on the client. */
+const SEARCH_MAX_PREFIX = 12;
+
+/** Ceiling on stored prefixes, so one wordy recipe cannot bloat its doc. */
+const SEARCH_MAX_TERMS = 400;
+
+/**
+ * The words a recipe can be found by: every prefix of every word in its title
+ * and tags, lowercased and stripped of punctuation.
+ *
+ * Firestore can only match whole array entries, so the prefixes are what make
+ * a search find something while it is still being typed.
+ */
+function buildSearchTerms(data: RecipeDoc): string[] {
+    const source = [data.title ?? '', ...(data.tags ?? [])].join(' ');
+
+    const words = source
+        .toLowerCase()
+        .normalize('NFC')
+        .split(/[^\p{Letter}\p{Number}]+/u)
+        .filter((word) => word.length >= SEARCH_MIN_PREFIX);
+
+    const terms = new Set<string>();
+
+    for (const word of words) {
+        const end = Math.min(word.length, SEARCH_MAX_PREFIX);
+
+        for (let length = SEARCH_MIN_PREFIX; length <= end; length += 1) {
+            terms.add(word.slice(0, length));
+
+            if (terms.size >= SEARCH_MAX_TERMS) return [...terms];
+        }
+    }
+
+    return [...terms];
 }
 
 async function syncPublicPopularRecipe(
@@ -250,6 +321,7 @@ async function syncPublicPopularRecipe(
             temperature: data.temperature ?? '',
             portions: data.portions ?? '',
             tags: Array.isArray(data.tags) ? data.tags : [],
+            searchTerms: buildSearchTerms(data),
             feedUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
         { merge: true }
@@ -351,6 +423,7 @@ async function rebuildPublicPopularRecipesMirror() {
                     temperature: data.temperature ?? '',
                     portions: data.portions ?? '',
                     tags: Array.isArray(data.tags) ? data.tags : [],
+                    searchTerms: buildSearchTerms(data),
                     feedUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 },
                 { merge: true }
@@ -740,3 +813,145 @@ export const backfillDerivedData = onRequest(async (req, res) => {
 
     res.status(200).json({ ok: true });
 });
+
+/* -------------------------------------------------------------------------
+ * Cook directory ranking
+ *
+ * Kokker lists public profiles in `directoryRank` order, straight from a
+ * Firestore query, so the order holds no matter how many cooks there are.
+ * These triggers keep the rank and the recipe count behind it current.
+ * ---------------------------------------------------------------------- */
+
+/**
+ * A background photo and a profile photo are each worth more than any
+ * realistic number of recipes, so a fuller profile always ranks first and
+ * recipe count decides between cooks at the same level. Keep in step with
+ * scripts/backfillDirectoryRank.mjs.
+ */
+const DIRECTORY_PROFILE_WEIGHT = 1_000_000;
+
+type DirectoryFields = {
+    photoURL?: string;
+    backgroundPhotoURL?: string;
+    recipeCount?: number;
+    directoryRank?: number;
+};
+
+function computeDirectoryRank(data: DirectoryFields) {
+    const completeness =
+        (data.backgroundPhotoURL ? 1 : 0) + (data.photoURL ? 1 : 0);
+    const recipes = Math.min(
+        Math.max(data.recipeCount ?? 0, 0),
+        DIRECTORY_PROFILE_WEIGHT - 1
+    );
+
+    return completeness * DIRECTORY_PROFILE_WEIGHT + recipes;
+}
+
+/**
+ * Recipes other cooks can see. Private ones are subtracted rather than public
+ * ones counted, because recipes from before the visibility field have none
+ * and both apps treat them as public.
+ */
+async function countVisibleRecipes(uid: string) {
+    const owned = db.collection('recipes').where('userId', '==', uid);
+    const [all, hidden] = await Promise.all([
+        owned.count().get(),
+        owned.where('visibility', '==', 'private').count().get(),
+    ]);
+
+    return all.data().count - hidden.data().count;
+}
+
+/**
+ * Recounts a cook's recipes and rewrites their rank. Recounting instead of
+ * incrementing stays correct when Firestore delivers an event twice. The
+ * profile is read inside a transaction, so a photo change landing at the same
+ * moment is ranked from its new value rather than overwritten with the old.
+ */
+async function refreshDirectoryEntry(uid: string) {
+    const recipeCount = await countVisibleRecipes(uid);
+    const ref = db.collection('publicUsers').doc(uid);
+
+    await db.runTransaction(async (transaction) => {
+        const snap = await transaction.get(ref);
+
+        // No public profile yet. Creating one here would list a nameless
+        // cook; the apps create it on sign-in, and that write ranks it.
+        if (!snap.exists) return;
+
+        const data = snap.data() as DirectoryFields;
+        const directoryRank = computeDirectoryRank({ ...data, recipeCount });
+
+        if (
+            data.recipeCount === recipeCount &&
+            data.directoryRank === directoryRank
+        ) {
+            return;
+        }
+
+        transaction.set(ref, { recipeCount, directoryRank }, { merge: true });
+    });
+}
+
+export const syncDirectoryRankOnRecipeWrite = onDocumentWritten(
+    'recipes/{recipeId}',
+    async (event) => {
+        const before = event.data?.before.exists
+            ? (event.data.before.data() as RecipeDoc)
+            : null;
+        const after = event.data?.after.exists
+            ? (event.data.after.data() as RecipeDoc)
+            : null;
+
+        // Likes, comments and popularity writes land here constantly. Only a
+        // new or deleted recipe, a new owner, or a visibility change can move
+        // anyone's count.
+        if (
+            before &&
+            after &&
+            before.userId === after.userId &&
+            (before.visibility === 'private') ===
+                (after.visibility === 'private')
+        ) {
+            return;
+        }
+
+        const owners = new Set<string>();
+        if (before?.userId) owners.add(before.userId);
+        if (after?.userId) owners.add(after.userId);
+
+        await Promise.all([...owners].map(refreshDirectoryEntry));
+    }
+);
+
+export const syncDirectoryRankOnPublicUserWrite = onDocumentWritten(
+    'publicUsers/{uid}',
+    async (event) => {
+        const after = event.data?.after;
+        if (!after?.exists) return;
+
+        const data = after.data() as DirectoryFields;
+
+        // A cook listed for the first time has never been counted.
+        if (typeof data.recipeCount !== 'number') {
+            await refreshDirectoryEntry(event.params.uid);
+            return;
+        }
+
+        // Otherwise only a photo change can move the rank. Its own write
+        // comes back through here, finds the rank current, and stops.
+        if (data.directoryRank === computeDirectoryRank(data)) return;
+
+        await db.runTransaction(async (transaction) => {
+            const snap = await transaction.get(after.ref);
+            if (!snap.exists) return;
+
+            const current = snap.data() as DirectoryFields;
+            const directoryRank = computeDirectoryRank(current);
+            if (current.directoryRank === directoryRank) return;
+
+            transaction.set(after.ref, { directoryRank }, { merge: true });
+        });
+    }
+);
