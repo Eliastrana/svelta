@@ -1,0 +1,67 @@
+rules_version = '2';
+
+// Recipe photos, profile pictures and the sizes the resize extension makes
+// from them. The extension runs with admin credentials and is not bound by
+// this.
+//
+// Every uploader puts its own user id in the path, so ownership can be read
+// straight off it. Nothing is ever written twice to the same path, so an
+// upload may only add: that way a stranger cannot replace the photo on
+// someone else's recipe, and the old copy of anything is always the one that
+// was uploaded by the cook it belongs to.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function newImage() {
+      return resource == null &&
+        request.resource.contentType.matches('image/.*') &&
+        request.resource.size < 12 * 1024 * 1024;
+    }
+
+    function mine(userId) {
+      return signedIn() && request.auth.uid == userId && newImage();
+    }
+
+    // A cover is a flat file named after the cook who uploaded it.
+    match /recipe-covers/{file} {
+      allow read: if true;
+      allow create: if signedIn() && newImage() &&
+        file.matches(request.auth.uid + '-.*');
+      allow update, delete: if false;
+    }
+
+    match /recipe-steps/{userId}/{file=**} {
+      allow read: if true;
+      allow create: if mine(userId);
+      allow update, delete: if false;
+    }
+
+    match /profile-pictures/{userId}/{file=**} {
+      allow read: if true;
+      allow create: if mine(userId);
+      allow update, delete: if false;
+    }
+
+    match /profile-backgrounds/{userId}/{file=**} {
+      allow read: if true;
+      allow create: if mine(userId);
+      allow update, delete: if false;
+    }
+
+    match /collection-covers/{userId}/{file=**} {
+      allow read: if true;
+      allow create: if mine(userId);
+      allow update, delete: if false;
+    }
+
+    // Images already uploaded stay readable; nothing new goes anywhere else.
+    match /{path=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

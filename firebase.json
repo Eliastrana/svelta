@@ -18,5 +18,11 @@
     ],
     "extensions": {
         "storage-resize-images": "firebase/storage-resize-images@0.3.6"
+    },
+    "firestore": {
+        "rules": "firestore.rules"
+    },
+    "storage": {
+        "rules": "storage.rules"
     }
 }

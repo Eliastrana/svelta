@@ -33,6 +33,7 @@
     },
     "devDependencies": {
         "@eslint/eslintrc": "^3",
+        "@firebase/rules-unit-testing": "^5.0.2",
         "@tailwindcss/postcss": "^4",
         "@types/node": "^20.19.35",
         "@types/react": "^19",

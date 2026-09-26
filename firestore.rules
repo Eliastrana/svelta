@@ -1,0 +1,217 @@
+rules_version = '2';
+
+// Svelta's data, and who is allowed near it.
+//
+// The Cloud Functions run with admin credentials and are not bound by any of
+// this; everything here is about what the website and the app may do with a
+// signed-in user's own credentials.
+//
+// Reads of `recipes` are still wide open, the way they have always been,
+// because several list queries in both clients ask for recipes without a
+// visibility filter and Firestore fails a query it cannot prove is allowed.
+// Tightening that needs those queries changed first; it is the one hole
+// knowingly left open here.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    /** True when an update leaves every other field alone. */
+    function onlyChanges(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(fields);
+    }
+
+    match /recipes/{recipeId} {
+
+      function isAuthor() {
+        return signedIn() && (
+          resource.data.userId == uid() ||
+          (resource.data.get('coAuthorIds', []) is list &&
+            uid() in resource.data.get('coAuthorIds', []))
+        );
+      }
+
+      /**
+       * The counts every reader keeps up to date by liking, commenting or
+       * rating. They are the only thing a stranger may write on a recipe.
+       */
+      function onlyCounters() {
+        return onlyChanges([
+          'likeCount',
+          'commentCount',
+          'ratingCount',
+          'ratingSum'
+        ]);
+      }
+
+      allow read: if true;
+
+      allow create: if signedIn() && request.resource.data.userId == uid();
+      allow update: if isAuthor() || (signedIn() && onlyCounters());
+      allow delete: if isAuthor();
+
+      // One like per cook, under their own id.
+      match /likes/{likeId} {
+        allow read: if true;
+        allow create, delete: if signedIn() && likeId == uid();
+        allow update: if false;
+      }
+
+      // One rating per cook, under their own id, one through five.
+      match /ratings/{ratingId} {
+        function validValue() {
+          return request.resource.data.value is int &&
+            request.resource.data.value >= 1 &&
+            request.resource.data.value <= 5;
+        }
+
+        allow read: if true;
+        allow create, update: if signedIn() && ratingId == uid() && validValue();
+        allow delete: if signedIn() && ratingId == uid();
+      }
+
+      // Written by anyone, removed by the one who wrote it or by the cook
+      // whose recipe it sits under.
+      match /comments/{commentId} {
+        allow read: if true;
+
+        allow create: if signedIn() &&
+          request.resource.data.userId == uid() &&
+          request.resource.data.text is string &&
+          request.resource.data.text.size() > 0 &&
+          request.resource.data.text.size() <= 2000;
+
+        allow update: if false;
+
+        allow delete: if signedIn() && (
+          resource.data.userId == uid() ||
+          get(/databases/$(database)/documents/recipes/$(recipeId)).data.userId == uid()
+        );
+      }
+    }
+
+    match /users/{userId} {
+
+      /**
+       * Following someone writes to their document as well as your own, and
+       * closing an account tidies itself out of everyone else's lists. Those
+       * fields, and only those, are open to another signed-in cook.
+       */
+      function followFieldsOnly() {
+        return onlyChanges([
+          'following',
+          'followingCount',
+          'followerCount',
+          'incomingFollowRequests',
+          'outgoingFollowRequests'
+        ]);
+      }
+
+      // A cook's document carries no contact details, and both clients need
+      // to read each other's to draw profiles and follower lists.
+      allow read: if signedIn();
+
+      allow create: if signedIn() && userId == uid();
+      allow update: if (signedIn() && userId == uid()) ||
+        (signedIn() && followFieldsOnly());
+      allow delete: if signedIn() && userId == uid();
+
+      // Varsler are between a cook and their own kitchen.
+      match /notifications/{notificationId} {
+        allow read, write: if signedIn() && userId == uid();
+      }
+
+      // Cookbooks are shown on a profile, so anyone signed in may read them.
+      match /collections/{collectionId} {
+        allow read: if signedIn();
+        allow write: if signedIn() && userId == uid();
+      }
+    }
+
+    // What a cookbook holds. The owner puts recipes in and takes them out; a
+    // cook whose recipe is being deleted may also pull it from the cookbooks
+    // it was saved into.
+    match /collectionsRecipes/{collectionId}/recipes/{entryId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn() && request.resource.data.ownerId == uid();
+      allow update: if signedIn() && resource.data.ownerId == uid();
+
+      allow delete: if signedIn() && (
+        resource.data.ownerId == uid() ||
+        (resource.data.recipeRef is path &&
+          exists(resource.data.recipeRef) &&
+          get(resource.data.recipeRef).data.userId == uid())
+      );
+    }
+
+    // The profile card other cooks see. Kept in step by the functions; a cook
+    // may only ever write their own.
+    match /publicUsers/{userId} {
+      allow read: if true;
+      allow create, update: if signedIn() && userId == uid();
+      allow delete: if signedIn() && userId == uid();
+    }
+
+    // The feed and the search index, both written by the functions alone.
+    match /publicPopularRecipes/{recipeId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // A device asking for push. Written by the device that owns it, and read
+    // by nobody but the functions.
+    match /notificationTokens/{token} {
+      allow read: if false;
+      allow create, update: if signedIn() &&
+        request.resource.data.userId == uid();
+      allow delete: if signedIn() && resource.data.userId == uid();
+    }
+
+    // Reports of content a cook finds objectionable. Written once, by the
+    // cook reporting, and read only by us through the console.
+    match /reports/{reportId} {
+      allow read: if false;
+      allow create: if signedIn() &&
+        request.resource.data.reporterId == uid() &&
+        request.resource.data.targetType in ['recipe', 'comment', 'user'] &&
+        request.resource.data.targetId is string &&
+        request.resource.data.reason is string &&
+        request.resource.data.reason.size() <= 2000;
+      allow update, delete: if false;
+    }
+
+    // Collection group queries are matched by their own rules, not by the
+    // ones above: closing an account looks for everything a cook has left
+    // across every recipe, and the cookbook entries pointing at a recipe are
+    // found the same way. Writing still goes through the rules above, which
+    // are matched on the document's real path.
+    match /{path=**}/likes/{likeId} {
+      allow read: if true;
+    }
+
+    match /{path=**}/comments/{commentId} {
+      allow read: if true;
+    }
+
+    match /{path=**}/ratings/{ratingId} {
+      allow read: if signedIn();
+    }
+
+    match /{path=**}/recipes/{entryId} {
+      allow read: if signedIn();
+    }
+
+    // Anything not named above belongs to nobody.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
