@@ -18,8 +18,13 @@ service firebase.storage {
 
     function newImage() {
       return resource == null &&
-        request.resource.contentType.matches('image/.*') &&
-        request.resource.size < 12 * 1024 * 1024;
+        request.resource.size < 12 * 1024 * 1024 &&
+        // The name is checked first, and on its own is enough: a photo
+        // picked on a phone often arrives with no type at all, or as
+        // octet-stream, and an upload that is really a photo should not be
+        // turned away for it.
+        (request.resource.name.matches('.*\\.(jpg|jpeg|png|heic|heif|webp|gif)') ||
+          request.resource.contentType.matches('image/.*'));
     }
 
     function mine(userId) {
