@@ -5,6 +5,8 @@ import {
 } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onRequest } from 'firebase-functions/https';
+// Accounts have no v2 trigger of their own; deletion is still a v1 one.
+import * as functionsV1 from 'firebase-functions/v1';
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -955,3 +957,171 @@ export const syncDirectoryRankOnPublicUserWrite = onDocumentWritten(
         });
     }
 );
+
+/**
+ * Everything a cook leaves behind, cleared out when their account goes.
+ *
+ * Deleting an account removes the sign-in and nothing else, so without this
+ * their profile stays in the cook directory and their comments keep their
+ * name. Closing an account from inside the app does its own tidying up;
+ * this catches the deletions that happen anywhere else, the console
+ * included.
+ */
+async function purgeCook(uid: string) {
+    const gone: admin.firestore.DocumentReference[] = [];
+
+    // Their own recipes, with everything hanging off them.
+    const own = await db.collection('recipes').where('userId', '==', uid).get();
+    const ownIds = new Set(own.docs.map((doc) => doc.id));
+
+    for (const recipe of own.docs) {
+        const [likes, comments, ratings, saved] = await Promise.all([
+            recipe.ref.collection('likes').get(),
+            recipe.ref.collection('comments').get(),
+            recipe.ref.collection('ratings').get(),
+            db
+                .collectionGroup('recipes')
+                .where('recipeRef', '==', recipe.ref)
+                .get(),
+        ]);
+
+        for (const snap of [likes, comments, ratings, saved]) {
+            snap.docs.forEach((doc) => gone.push(doc.ref));
+        }
+
+        gone.push(recipe.ref);
+        gone.push(db.collection('publicPopularRecipes').doc(recipe.id));
+    }
+
+    // What they left on other cooks' recipes, and the counts to mend.
+    const deltas = new Map<string, Record<string, number>>();
+
+    const note = (recipeId: string | undefined, field: string, by: number) => {
+        if (!recipeId || ownIds.has(recipeId)) return;
+
+        const current = deltas.get(recipeId) ?? {};
+        current[field] = (current[field] ?? 0) + by;
+        deltas.set(recipeId, current);
+    };
+
+    const [likes, comments] = await Promise.all([
+        db.collectionGroup('likes').where('userId', '==', uid).get(),
+        db.collectionGroup('comments').where('userId', '==', uid).get(),
+    ]);
+
+    likes.docs.forEach((doc) => {
+        gone.push(doc.ref);
+        note(doc.ref.parent.parent?.id, 'likeCount', -1);
+    });
+
+    comments.docs.forEach((doc) => {
+        gone.push(doc.ref);
+        note(doc.ref.parent.parent?.id, 'commentCount', -1);
+    });
+
+    // A rating is written under the cook's own id, so it is looked up rather
+    // than searched for.
+    const rated = await db.collection('recipes').get();
+
+    for (const recipe of rated.docs) {
+        if (ownIds.has(recipe.id)) continue;
+
+        const rating = await recipe.ref.collection('ratings').doc(uid).get();
+        if (!rating.exists) continue;
+
+        gone.push(rating.ref);
+        note(recipe.id, 'ratingCount', -1);
+        note(recipe.id, 'ratingSum', -Number(rating.data()?.value ?? 0));
+    }
+
+    // Their cookbooks, and what was saved into them.
+    const books = await db
+        .collection('users')
+        .doc(uid)
+        .collection('collections')
+        .get();
+
+    for (const book of books.docs) {
+        const saved = await db
+            .collection('collectionsRecipes')
+            .doc(book.id)
+            .collection('recipes')
+            .get();
+
+        saved.docs.forEach((doc) => gone.push(doc.ref));
+        gone.push(book.ref);
+    }
+
+    const [notifications, tokens] = await Promise.all([
+        db.collection('users').doc(uid).collection('notifications').get(),
+        db.collection('notificationTokens').where('userId', '==', uid).get(),
+    ]);
+
+    notifications.docs.forEach((doc) => gone.push(doc.ref));
+    tokens.docs.forEach((doc) => gone.push(doc.ref));
+
+    // Their place in everyone else's lists.
+    const [followers, incoming, outgoing] = await Promise.all([
+        db.collection('users').where('following', 'array-contains', uid).get(),
+        db
+            .collection('users')
+            .where('incomingFollowRequests', 'array-contains', uid)
+            .get(),
+        db
+            .collection('users')
+            .where('outgoingFollowRequests', 'array-contains', uid)
+            .get(),
+    ]);
+
+    for (const doc of followers.docs) {
+        await doc.ref.update({
+            following: admin.firestore.FieldValue.arrayRemove(uid),
+            followingCount: admin.firestore.FieldValue.increment(-1),
+        });
+    }
+
+    for (const doc of incoming.docs) {
+        await doc.ref.update({
+            incomingFollowRequests:
+                admin.firestore.FieldValue.arrayRemove(uid),
+        });
+    }
+
+    for (const doc of outgoing.docs) {
+        await doc.ref.update({
+            outgoingFollowRequests:
+                admin.firestore.FieldValue.arrayRemove(uid),
+        });
+    }
+
+    for (const [recipeId, fields] of deltas) {
+        const update: Record<string, admin.firestore.FieldValue> = {};
+
+        for (const [field, by] of Object.entries(fields)) {
+            update[field] = admin.firestore.FieldValue.increment(by);
+        }
+
+        await db
+            .collection('recipes')
+            .doc(recipeId)
+            .update(update)
+            .catch(() => undefined);
+    }
+
+    gone.push(db.collection('publicUsers').doc(uid));
+    gone.push(db.collection('users').doc(uid));
+
+    for (let index = 0; index < gone.length; index += 400) {
+        const batch = db.batch();
+        gone.slice(index, index + 400).forEach((ref) => batch.delete(ref));
+        await batch.commit();
+    }
+
+    console.log(`Purged ${gone.length} documents for ${uid}.`);
+}
+
+export const purgeCookOnAccountDeleted = functionsV1
+    .auth.user()
+    .onDelete(async (user) => {
+        await purgeCook(user.uid);
+    });
