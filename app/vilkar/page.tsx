@@ -36,71 +36,88 @@ const sections = [
         ],
     },
     {
-        title: '5. Ditt ansvar for innhold',
+        title: '5. Rapportering og blokkering',
+        body: [
+            'Svelta har null toleranse for støtende innhold og for kokker som oppfører seg dårlig mot andre.',
+            'Finner du noe som ikke hører hjemme i tjenesten, kan du rapportere det fra ⋯-menyen på oppskriften, kommentaren eller kokken det gjelder. Alle rapporter blir sett på innen 24 timer. Innhold som bryter med vilkårene blir fjernet, og kontoer som gjentar seg blir stengt.',
+            'Du kan også blokkere en kokk selv. Da ser du ikke noe fra dem i appen igjen.',
+        ],
+    },
+    {
+        title: '6. Ditt ansvar for innhold',
         body: [
             'Du er selv ansvarlig for det du publiserer i Svelta.',
             'Hvis du deler oppskrifter, bilder eller annet materiale, beholder du i utgangspunktet rettighetene til innholdet ditt, men du gir Svelta en nødvendig bruksrett til å vise, lagre og distribuere innholdet i appen så lenge det finnes i tjenesten.',
         ],
     },
     {
-        title: '6. Kokebøker, likes, kommentarer og vurderinger',
+        title: '7. Kokebøker, likes, kommentarer og vurderinger',
         body: [
             'Svelta lar deg opprette private og offentlige kokebøker. Offentlige kokebøker kan vises på profilsiden din og være tilgjengelige for andre brukere.',
             'Likes, kommentarer, vurderinger og andre handlinger i appen regnes som aktivitet knyttet til kontoen din og kan brukes for å vise innhold, telle aktivitet og skape sosiale funksjoner i tjenesten.',
         ],
     },
     {
-        title: '7. Moderering og fjerning av innhold',
+        title: '8. Moderering og fjerning av innhold',
         body: [
             'Svelta kan fjerne innhold eller begrense tilgang til kontoer dersom det er nødvendig for å håndheve disse vilkårene, beskytte andre brukere, sikre stabil drift eller oppfylle rettslige plikter.',
             'Vi kan også gjøre endringer i innhold eller funksjonalitet dersom det er nødvendig for sikkerhet, feilretting eller videreutvikling av tjenesten.',
         ],
     },
     {
-        title: '8. Personopplysninger og personvern',
+        title: '9. Hjelp fra AI',
+        body: [
+            'Svelta bruker AI som et hjelpemiddel mens du lager en oppskrift: den kan foreslå tagger, koble ingredienser til stegene de hører til, hente en oppskrift fra en lenke du limer inn, og finne oppskrifter når du ber om det.',
+            'AI-en skriver ikke oppskriftene for deg. Du ser og kan endre alt den foreslår før du publiserer, og det du publiserer er ditt eget innhold og ditt ansvar.',
+            'Teksten og lenkene du sender inn for slik hjelp, behandles for å kunne svare på forespørselen.',
+        ],
+    },
+    {
+        title: '10. Personopplysninger og personvern',
         body: [
             'Svelta behandler personopplysninger som er nødvendige for å levere tjenesten, for eksempel profilinformasjon, bilder du laster opp, relasjoner mellom brukere og aktivitet i appen.',
             'Vi forsøker å gi tydelig informasjon om hvordan opplysninger brukes, og om hvilke valg du har som bruker. Rettigheter som innsyn, retting og sletting følger av personvernregelverket så langt det passer for tjenesten.',
         ],
     },
     {
-        title: '9. Sletting av konto og aktivitet',
+        title: '11. Sletting av konto og aktivitet',
         body: [
             'Du kan be om å slette kontoen din fra rediger-profil-seksjonen i appen.',
             'Når en konto slettes, forsøker Svelta også å fjerne tilknyttet aktivitet fra tjenesten, inkludert egen profil, egne oppskrifter, egne kokebøker og aktivitet som likes, kommentarer og vurderinger. Enkelte opplysninger kan likevel måtte beholdes dersom det følger av lovkrav, sikkerhetshensyn eller tekniske begrensninger.',
         ],
     },
     {
-        title: '10. Tilgjengelighet og endringer',
+        title: '12. Tilgjengelighet og endringer',
         body: [
             'Svelta leveres som den er. Vi garanterer ikke at tjenesten alltid er feilfri, kontinuerlig tilgjengelig eller fri for avbrudd.',
             'Vi kan når som helst oppdatere, endre eller avslutte deler av tjenesten dersom det er nødvendig.',
         ],
     },
     {
-        title: '11. Ansvarsbegrensning',
+        title: '13. Ansvarsbegrensning',
         body: [
             'Svelta er ikke ansvarlig for innhold som brukere publiserer, med mindre ansvar følger av ufravikelig lov.',
             'Vi er heller ikke ansvarlige for indirekte tap, følgeskader eller tap som oppstår som følge av bruk eller manglende tilgang til tjenesten, med mindre annet følger av ufravikelig lov.',
         ],
     },
     {
-        title: '12. Endringer i vilkårene',
+        title: '14. Endringer i vilkårene',
         body: [
-            'Disse vilkårene kan oppdateres over tid. Den versjonen som til enhver tid ligger publisert i appen, er den gjeldende versjonen.',
+            'Disse vilkårene kan oppdateres over tid. Den versjonen som til enhver tid ligger publisert på svelta.no/vilkar, er den gjeldende versjonen, og det er den appen viser til.',
             'Hvis endringene er vesentlige, bør de kommuniseres tydelig i tjenesten.',
         ],
     },
     {
-        title: '13. Kontakt',
+        title: '15. Kontakt',
         body: [
-            'Hvis du har spørsmål om vilkårene eller bruk av tjenesten, kan du bruke kontaktinformasjonen som til enhver tid er oppgitt for Svelta.',
+            'Gjelder det innhold i appen, er raskeste vei å rapportere det fra ⋯-menyen på oppskriften, kommentaren eller kokken. Rapporten kommer rett til oss, og vi ser på den innen 24 timer.',
+            'Har du andre spørsmål om vilkårene eller bruk av tjenesten, kan du bruke kontaktinformasjonen som til enhver tid er oppgitt for Svelta.',
         ],
     },
 ];
 
 export default function TermsPage() {
-    const updatedAt = '25. mai 2026';
+    const updatedAt = '2. oktober 2026';
 
     return (
         <main className="min-h-screen pb-24">
