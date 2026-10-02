@@ -198,8 +198,20 @@ async function sendPushNotification(
                             type: payload.type,
                             actorId: payload.actorId,
                             notificationId: payload.notificationId,
+                            // Carried in the data as well: the extension that
+                            // attaches it reads whichever of the two places
+                            // this version of Expo put it in.
+                            ...(actorImage ? { imageUrl: actorImage } : {}),
                         },
-                        ...(actorImage ? { richContent: { image: actorImage } } : {}),
+                        ...(actorImage
+                            ? {
+                                  richContent: { image: actorImage },
+                                  // Off by default, and without it iOS never
+                                  // hands the alert to our extension, so the
+                                  // picture is never fetched.
+                                  mutableContent: true,
+                              }
+                            : {}),
                     }))),
                 });
                 if (!result.ok) throw new Error(`Expo push HTTP ${result.status}`);
