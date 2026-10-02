@@ -111,7 +111,7 @@ const sections = [
         title: '15. Kontakt',
         body: [
             'Gjelder det innhold i appen, er raskeste vei å rapportere det fra ⋯-menyen på oppskriften, kommentaren eller kokken. Rapporten kommer rett til oss, og vi ser på den innen 24 timer.',
-            'Har du andre spørsmål om vilkårene eller bruk av tjenesten, kan du bruke kontaktinformasjonen som til enhver tid er oppgitt for Svelta.',
+            'Har du andre spørsmål om vilkårene eller bruk av tjenesten, kan du sende e-post til eliastrana@gmail.com.',
         ],
     },
 ];
