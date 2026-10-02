@@ -13,6 +13,8 @@ export function middleware(req: NextRequest) {
         pathname === '/old_favicon.ico' ||
         pathname === '/robots.txt' ||
         pathname === '/sitemap.xml' ||
+        pathname === '/vilkar' ||
+
         PUBLIC_FILE.test(pathname);
 
     if (isAlwaysAllowed) return NextResponse.next();
