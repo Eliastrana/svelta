@@ -146,31 +146,91 @@ async function createNotification(
 
 async function sendPushNotification(
     recipientId: string,
-    payload: Pick<NotificationPayload, 'title' | 'body' | 'link' | 'type'>
+    payload: Pick<NotificationPayload, 'title' | 'body' | 'link' | 'type' | 'actorId' | 'actorPhotoURL'> & { notificationId: string }
 ) {
     const tokensSnap = await db
         .collection('notificationTokens')
         .where('userId', '==', recipientId)
         .get();
 
-    const tokens = tokensSnap.docs
+    const webTokens = tokensSnap.docs
+        .filter((tokenDoc) => tokenDoc.data().kind !== 'expo')
         .map((tokenDoc) => tokenDoc.id)
-        .filter((token) => typeof token === 'string' && token.length > 0);
+        .filter((token) => token.length > 0);
+    const expoTokens = tokensSnap.docs
+        .filter((tokenDoc) => tokenDoc.data().kind === 'expo')
+        .map((tokenDoc) => tokenDoc.id)
+        // Expo hands out ExponentPushToken[...]; the shorter spelling is
+        // accepted too, since both turn up in their own documentation.
+        .filter(
+            (token) =>
+                token.startsWith('ExponentPushToken[') ||
+                token.startsWith('ExpoPushToken[')
+        );
 
-    if (tokens.length === 0) return;
+    if (webTokens.length === 0 && expoTokens.length === 0) return;
 
     const iconPath = '/favicon/web-app-manifest-192x192.png';
     const badgePath = '/favicon/favicon-96x96.png';
     const tag = `svelta-${payload.type}`;
 
+    const actorImage = payload.actorPhotoURL?.startsWith('https://')
+        ? payload.actorPhotoURL
+        : undefined;
+
+    if (expoTokens.length > 0) {
+        // Expo accepts up to 100 messages per request. Keep web and native
+        // tokens separate: FCM cannot send to an Expo push token.
+        for (let start = 0; start < expoTokens.length; start += 100) {
+            const batch = expoTokens.slice(start, start + 100);
+            try {
+                const result = await fetch('https://exp.host/--/api/v2/push/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(batch.map((to) => ({
+                        to,
+                        title: payload.title,
+                        body: payload.body,
+                        sound: 'default',
+                        channelId: 'svelta-alerts',
+                        data: {
+                            link: payload.link,
+                            type: payload.type,
+                            actorId: payload.actorId,
+                            notificationId: payload.notificationId,
+                        },
+                        ...(actorImage ? { richContent: { image: actorImage } } : {}),
+                    }))),
+                });
+                if (!result.ok) throw new Error(`Expo push HTTP ${result.status}`);
+                const tickets = (await result.json()) as {
+                    data?: Array<{ status: string; details?: { error?: string } }>;
+                };
+                await Promise.all((tickets.data ?? []).map((ticket, index) => {
+                    if (ticket.details?.error === 'DeviceNotRegistered') {
+                        return db.collection('notificationTokens').doc(batch[index]).delete();
+                    }
+                    if (ticket.status === 'error') {
+                        console.error('Expo push rejected notification:', ticket);
+                    }
+                    return Promise.resolve();
+                }));
+            } catch (error) {
+                console.error('Could not send Expo push notification:', error);
+            }
+        }
+    }
+
+    if (webTokens.length === 0) return;
+
     const response = await admin.messaging().sendEachForMulticast({
-        tokens,
+        tokens: webTokens,
         data: {
             title: payload.title,
             body: payload.body,
             link: payload.link,
             type: payload.type,
-            icon: iconPath,
+            icon: actorImage ?? iconPath,
             badge: badgePath,
             tag,
         },
@@ -196,7 +256,7 @@ async function sendPushNotification(
         ) {
             invalidTokenDeletes.push(
                 db.collection('notificationTokens')
-                    .doc(tokens[index])
+                    .doc(webTokens[index])
                     .delete()
                     .catch(() => undefined)
             );
@@ -245,7 +305,10 @@ async function createAndSendNotification(payload: NotificationPayload) {
     const notificationId = await createNotification(payload);
     if (!notificationId) return;
 
-    await sendPushNotification(payload.recipientId, payload);
+    await sendPushNotification(payload.recipientId, {
+        ...payload,
+        notificationId,
+    });
 }
 
 /** Shortest prefix a search matches on, so "ti" does not match everything. */
