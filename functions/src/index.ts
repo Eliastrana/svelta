@@ -50,6 +50,13 @@ type NotificationPayload = {
     recipeId?: string;
     recipeTitle?: string;
     commentText?: string;
+
+    /**
+     * The same thing said without the cook's name in front of it. On a phone
+     * the alert carries their face and their name already, the way a message
+     * does, so repeating it reads as a stutter.
+     */
+    shortBody?: string;
 };
 
 function computePopularityScore(args: {
@@ -146,7 +153,17 @@ async function createNotification(
 
 async function sendPushNotification(
     recipientId: string,
-    payload: Pick<NotificationPayload, 'title' | 'body' | 'link' | 'type' | 'actorId' | 'actorPhotoURL'> & { notificationId: string }
+    payload: Pick<
+        NotificationPayload,
+        | 'title'
+        | 'body'
+        | 'link'
+        | 'type'
+        | 'actorId'
+        | 'actorName'
+        | 'actorPhotoURL'
+        | 'shortBody'
+    > & { notificationId: string }
 ) {
     const tokensSnap = await db
         .collection('notificationTokens')
@@ -202,6 +219,10 @@ async function sendPushNotification(
                             // attaches it reads whichever of the two places
                             // this version of Expo put it in.
                             ...(actorImage ? { imageUrl: actorImage } : {}),
+                            // The phone shows the alert under the cook's own
+                            // name and face, so it needs both.
+                            actorName: payload.actorName,
+                            shortBody: payload.shortBody ?? payload.body,
                         },
                         ...(actorImage
                             ? {
@@ -680,6 +701,7 @@ export const notifyRecipeOwnerOnLike = onDocumentCreated(
             type: 'like',
             title: `${actorName} tok av seg hatten! 🧑‍🍳`,
             body: `${actorName} likte "${recipeTitle}".`,
+            shortBody: `Tok av seg hatten for "${recipeTitle}" 🧑‍🍳`,
             link: `/recipe/${recipeId}`,
             recipeId,
             recipeTitle,
@@ -716,6 +738,9 @@ export const notifyRecipeOwnerOnComment = onDocumentCreated(
         const body = commentExcerpt
             ? `${actorName} kommenterte: "${commentExcerpt}"`
             : `${actorName} la igjen en kommentar på "${recipeTitle}".`;
+        const shortBody = commentExcerpt
+            ? commentExcerpt
+            : `La igjen en kommentar på "${recipeTitle}".`;
 
         await createAndSendNotification({
             recipientId,
@@ -725,6 +750,7 @@ export const notifyRecipeOwnerOnComment = onDocumentCreated(
             type: 'comment',
             title: 'Ny kommentar på oppskriften din',
             body,
+            shortBody,
             link: `/recipe/${recipeId}`,
             recipeId,
             recipeTitle,
@@ -768,6 +794,7 @@ export const notifyFollowersOnNewRecipe = onDocumentCreated(
                     type: 'new_recipe',
                     title: `Ny oppskrift fra ${actorName}`,
                     body: `${actorName} delte "${recipeTitle}".`,
+                    shortBody: `Delte "${recipeTitle}"`,
                     link: `/recipe/${recipeId}`,
                     recipeId,
                     recipeTitle,
