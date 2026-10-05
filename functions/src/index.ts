@@ -36,7 +36,7 @@ type PublicUserDoc = {
     photoURL?: string;
 };
 
-type NotificationType = 'like' | 'comment' | 'new_recipe';
+type NotificationType = 'like' | 'comment' | 'new_recipe' | 'coauthor_invite';
 
 type NotificationPayload = {
     recipientId: string;
@@ -755,6 +755,90 @@ export const notifyRecipeOwnerOnComment = onDocumentCreated(
             recipeId,
             recipeTitle,
             commentText: commentData.text ?? '',
+        });
+    }
+);
+
+/**
+ * An invitation to co-author a recipe is left in the invited cook's inbox by
+ * the app of the cook inviting, which cannot send a push from there. This
+ * sees it arrive, makes the alert say who it is from and what it is about
+ * from what is stored rather than from what the app wrote, and sends it.
+ *
+ * Written rather than created, so that inviting again after an answer, which
+ * rewrites the same invitation as pending, is told as well.
+ */
+export const notifyOnCoAuthorInvite = onDocumentWritten(
+    'users/{userId}/notifications/{notificationId}',
+    async (event) => {
+        const after = event.data?.after.data() as
+            | {
+                  type?: string;
+                  actorId?: string;
+                  recipeId?: string;
+                  coAuthorInviteStatus?: string;
+              }
+            | undefined;
+        const before = event.data?.before.data() as
+            | { coAuthorInviteStatus?: string }
+            | undefined;
+
+        if (
+            after?.type !== 'coauthor_invite' ||
+            after.coAuthorInviteStatus !== 'pending'
+        ) {
+            return;
+        }
+
+        // Rewriting the text below writes the invitation again; that is not
+        // a new invitation.
+        if (before && before.coAuthorInviteStatus === 'pending') return;
+
+        const recipientId = event.params.userId;
+        const actorId = after.actorId ?? '';
+        const recipeId = after.recipeId ?? '';
+
+        if (!actorId || !recipeId || actorId === recipientId) return;
+
+        const [recipeSnap, actorProfile] = await Promise.all([
+            db.collection('recipes').doc(recipeId).get(),
+            fetchPublicUser(actorId),
+        ]);
+
+        // Only the recipe's own cook can invite to it.
+        if (!recipeSnap.exists) return;
+        const recipe = recipeSnap.data() as RecipeDoc;
+        if (recipe.userId !== actorId) return;
+
+        const actorName = actorProfile.name?.trim() || 'En kokk';
+        const recipeTitle = recipe.title?.trim() || 'oppskriften';
+        const title = `${actorName} inviterte deg som medforfatter`;
+        const body = `Vil du stå som medforfatter på "${recipeTitle}"?`;
+
+        // The app wrote the cook's name from their sign-in, which for an
+        // account made with an e-mail address has none; what is stored on
+        // their profile is the truth.
+        await event.data!.after.ref.set(
+            {
+                actorName,
+                actorPhotoURL: actorProfile.photoURL ?? '',
+                recipeTitle,
+                title,
+                body,
+            },
+            { merge: true }
+        );
+
+        await sendPushNotification(recipientId, {
+            type: 'coauthor_invite',
+            title,
+            body,
+            shortBody: `Inviterte deg som medforfatter på "${recipeTitle}"`,
+            link: `/recipe/${recipeId}`,
+            actorId,
+            actorName,
+            actorPhotoURL: actorProfile.photoURL ?? '',
+            notificationId: event.params.notificationId,
         });
     }
 );
