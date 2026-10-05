@@ -70,6 +70,21 @@ await env.withSecurityRulesDisabled(async (context) => {
         ratingSum: 0,
     });
 
+    for (const id of ['co1', 'co2']) {
+        await setDoc(doc(db, 'recipes/' + id), {
+            userId: ANNA,
+            title: 'Annas suppe',
+            visibility: 'public',
+            coAuthors: [],
+            coAuthorIds: [],
+            pendingCoAuthorInviteIds: [BJORN, 'dora'],
+            likeCount: 0,
+            commentCount: 0,
+            ratingCount: 0,
+            ratingSum: 0,
+        });
+    }
+
     await setDoc(doc(db, 'recipes/r1/comments/c1'), {
         userId: BJORN,
         text: 'Nam',
@@ -279,6 +294,149 @@ await check('varsler are read by the cook they belong to', () =>
 await check("varsler are not read by anyone else", () =>
     assertFails(getDoc(doc(bjorn, 'users/' + ANNA + '/notifications/n1')))
 );
+
+console.log('\nco-authors');
+
+const invitation = (actor, recipeId, extra = {}) => ({
+    recipientId: BJORN,
+    actorId: actor,
+    actorName: 'Anna',
+    type: 'coauthor_invite',
+    recipeId,
+    recipeTitle: 'Annas suppe',
+    coAuthorInviteStatus: 'pending',
+    ...extra,
+});
+
+const inbox = 'users/' + BJORN + '/notifications/';
+
+await check('the cook whose recipe it is leaves an invitation in the inbox', () =>
+    assertSucceeds(
+        setDoc(doc(anna, inbox + 'co1_' + ANNA + '_coauthor'), invitation(ANNA, 'co1'))
+    )
+);
+
+await check('inviting again rewrites the same invitation', () =>
+    assertSucceeds(
+        setDoc(
+            doc(anna, inbox + 'co1_' + ANNA + '_coauthor'),
+            invitation(ANNA, 'co1'),
+            { merge: true }
+        )
+    )
+);
+
+await check('a cook who does not own the recipe cannot invite to it', () =>
+    assertFails(
+        setDoc(
+            doc(env.authenticatedContext(CARL).firestore(), inbox + 'co1_' + CARL + '_coauthor'),
+            invitation(CARL, 'co1', { actorId: CARL })
+        )
+    )
+);
+
+await check('an invitation cannot be sent in someone else\'s name', () =>
+    // Bjørn writing into Carl's inbox, saying it is from Anna.
+    assertFails(
+        setDoc(
+            doc(bjorn, 'users/' + CARL + '/notifications/co1_' + ANNA + '_coauthor'),
+            invitation(ANNA, 'co1', { recipientId: CARL })
+        )
+    )
+);
+
+await check('an invitation is not an open door into an inbox', async () => {
+    // Some other kind of alert.
+    await assertFails(
+        setDoc(
+            doc(anna, inbox + 'co1_' + ANNA + '_coauthor'),
+            invitation(ANNA, 'co1', { type: 'like' })
+        )
+    );
+
+    // Not at the place an invitation sits.
+    await assertFails(
+        setDoc(doc(anna, inbox + 'anything'), invitation(ANNA, 'co1'))
+    );
+
+    // Not addressed to the one whose inbox it lands in.
+    await assertFails(
+        setDoc(
+            doc(anna, inbox + 'co2_' + ANNA + '_coauthor'),
+            invitation(ANNA, 'co2', { recipientId: CARL })
+        )
+    );
+});
+
+await check('an invited cook may take the invitation up', () =>
+    assertSucceeds(
+        updateDoc(doc(bjorn, 'recipes/co1'), {
+            coAuthorIds: [BJORN],
+            coAuthors: [{ uid: BJORN, name: 'Bjørn', photoURL: '' }],
+            pendingCoAuthorInviteIds: ['dora'],
+        })
+    )
+);
+
+await check('an invited cook may turn the invitation down', () =>
+    assertSucceeds(
+        updateDoc(doc(bjorn, 'recipes/co2'), {
+            pendingCoAuthorInviteIds: ['dora'],
+        })
+    )
+);
+
+await check('a cook that was never invited cannot become a co-author', () =>
+    assertFails(
+        updateDoc(doc(bjorn, 'recipes/r1'), {
+            coAuthorIds: [CARL, BJORN],
+            coAuthors: [{ uid: BJORN, name: 'Bjørn', photoURL: '' }],
+        })
+    )
+);
+
+await check('answering cannot be used to change anything else', async () => {
+    const reset = async () =>
+        env.withSecurityRulesDisabled(async (context) => {
+            await setDoc(doc(context.firestore(), 'recipes/co3'), {
+                userId: ANNA,
+                title: 'Annas gryte',
+                coAuthors: [],
+                coAuthorIds: [],
+                pendingCoAuthorInviteIds: [BJORN, 'dora'],
+            });
+        });
+
+    await reset();
+
+    // The recipe itself.
+    await assertFails(
+        updateDoc(doc(bjorn, 'recipes/co3'), {
+            title: 'Bjørns gryte',
+            coAuthorIds: [BJORN],
+            coAuthors: [{ uid: BJORN, name: 'Bjørn', photoURL: '' }],
+            pendingCoAuthorInviteIds: ['dora'],
+        })
+    );
+
+    // Someone else's invitation.
+    await assertFails(
+        updateDoc(doc(bjorn, 'recipes/co3'), {
+            coAuthorIds: [BJORN],
+            coAuthors: [{ uid: BJORN, name: 'Bjørn', photoURL: '' }],
+            pendingCoAuthorInviteIds: [],
+        })
+    );
+
+    // Someone else as a co-author.
+    await assertFails(
+        updateDoc(doc(bjorn, 'recipes/co3'), {
+            coAuthorIds: [BJORN, CARL],
+            coAuthors: [{ uid: BJORN, name: 'Bjørn', photoURL: '' }],
+            pendingCoAuthorInviteIds: ['dora'],
+        })
+    );
+});
 
 await check('a cookbook is readable, and only the owner writes it', async () => {
     await assertSucceeds(getDoc(doc(bjorn, 'users/' + ANNA + '/collections/k1')));

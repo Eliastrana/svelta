@@ -51,10 +51,41 @@ service cloud.firestore {
         ]);
       }
 
+      /**
+       * Answering an invitation to be a co-author. The one it was sent to
+       * may take their name off the pending list, and, if they accept, put
+       * it on the list of co-authors -- and change nothing else, nobody
+       * else's invitation included.
+       */
+      function answersInvitation() {
+        let pending = resource.data.get('pendingCoAuthorInviteIds', []);
+        let pendingAfter = request.resource.data.get('pendingCoAuthorInviteIds', []);
+        let authors = resource.data.get('coAuthorIds', []);
+        let authorsAfter = request.resource.data.get('coAuthorIds', []);
+
+        return signedIn() &&
+          pending is list && uid() in pending &&
+          onlyChanges([
+            'coAuthors',
+            'coAuthorIds',
+            'pendingCoAuthorInviteIds'
+          ]) &&
+          // Only their own invitation leaves the list.
+          !(uid() in pendingAfter) &&
+          pending.toSet().difference(pendingAfter.toSet()).hasOnly([uid()]) &&
+          pendingAfter.toSet().difference(pending.toSet()).size() == 0 &&
+          // Nobody is dropped as a co-author, and only they may be added.
+          authors.toSet().difference(authorsAfter.toSet()).size() == 0 &&
+          authorsAfter.toSet().difference(authors.toSet()).hasOnly([uid()]) &&
+          request.resource.data.get('coAuthors', []).size() <=
+            resource.data.get('coAuthors', []).size() + 1;
+      }
+
       allow read: if true;
 
       allow create: if signedIn() && request.resource.data.userId == uid();
-      allow update: if isAuthor() || (signedIn() && onlyCounters());
+      allow update: if isAuthor() || (signedIn() && onlyCounters()) ||
+        answersInvitation();
       allow delete: if isAuthor();
 
       // One like per cook, under their own id.
@@ -123,9 +154,35 @@ service cloud.firestore {
         (signedIn() && followFieldsOnly());
       allow delete: if signedIn() && userId == uid();
 
-      // Varsler are between a cook and their own kitchen.
+      // Varsler are between a cook and their own kitchen, with the one
+      // exception of an invitation to co-author a recipe, which the cook
+      // inviting leaves in the inbox of the cook invited.
       match /notifications/{notificationId} {
-        allow read, write: if signedIn() && userId == uid();
+        function isInvitationFromMe() {
+          let sent = request.resource.data;
+
+          return signedIn() &&
+            sent.type == 'coauthor_invite' &&
+            sent.actorId == uid() &&
+            sent.recipientId == userId &&
+            userId != uid() &&
+            sent.recipeId is string &&
+            // The one place an invitation can sit, so it can be found again
+            // and one cook cannot fill another's inbox.
+            notificationId == sent.recipeId + '_' + uid() + '_coauthor' &&
+            // And only the recipe's own cook may invite to it.
+            get(/databases/$(database)/documents/recipes/$(sent.recipeId))
+              .data.userId == uid();
+        }
+
+        allow read: if signedIn() && userId == uid();
+        allow write: if signedIn() && userId == uid();
+
+        allow create: if isInvitationFromMe();
+
+        // Inviting again after an answer rewrites the same invitation.
+        allow update: if isInvitationFromMe() &&
+          resource.data.actorId == uid();
       }
 
       // Cookbooks are shown on a profile, so anyone signed in may read them.
