@@ -19,6 +19,13 @@ import CoAuthorPickerModal, {
 } from '@/app/components/CoAuthorPickerModal';
 import { fetchManyUsers } from '@/helpers/fetchManyUsers';
 import { createCoAuthorInviteNotification } from '@/helpers/coAuthorInvites';
+import {
+    RecipeCoverPicker,
+    RecipeEditorHeader,
+    RecipeEditorNavigation,
+    RecipeEditorReview,
+    RECIPE_EDITOR_STEPS,
+} from '@/app/components/RecipeEditorWizard';
 
 import {
     DndContext,
@@ -83,6 +90,7 @@ type DraftPayload = {
     coverImagePreview?: string | null;
     selectedCoAuthor?: SelectedCoAuthor | null;
     sourceUpdatedAtMs?: number | null;
+    linkIngredients?: boolean;
 };
 
 const sanitizeRecipeData = (
@@ -100,6 +108,7 @@ const sanitizeRecipeData = (
     coverImage: value?.coverImage ?? '',
     portions: value?.portions ?? '',
     visibility: value?.visibility === 'private' ? 'private' : 'public',
+    tags: Array.isArray(value?.tags) ? value.tags : [],
 });
 
 const makeId = (): string =>
@@ -623,6 +632,12 @@ const EditRecipePage: React.FC = () => {
         : 'editRecipeForm';
 
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [currentStep, setCurrentStep] = useState(0);
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const [linkIngredients, setLinkIngredients] = useState(false);
+    const [newTag, setNewTag] = useState('');
+    const [generatingTags, setGeneratingTags] = useState(false);
     const [draftChecked, setDraftChecked] = useState(false);
     const [storedDraft, setStoredDraft] = useState<DraftPayload | null>(null);
     const [sourceUpdatedAtMs, setSourceUpdatedAtMs] = useState<number | null>(
@@ -757,6 +772,7 @@ const EditRecipePage: React.FC = () => {
         setVisibility(
             draft.recipeData?.visibility === 'private' ? 'private' : 'public'
         );
+        setLinkIngredients(Boolean(draft.linkIngredients ?? draft.cookingSteps?.some((step) => step.ingredientMentions?.length)));
 
         const loadedSteps = draft.cookingSteps ?? [];
         setCookingSteps(
@@ -836,6 +852,7 @@ const EditRecipePage: React.FC = () => {
         setCookingTime(data.cookingTime ?? '');
         setPortions(data.portions ?? '');
         setVisibility(data.visibility === 'private' ? 'private' : 'public');
+        setLinkIngredients(Boolean(data.cookingSteps?.some((step) => step.ingredientMentions?.length)));
 
         const steps = (data.cookingSteps ?? []).map((s) => ({
             ...s,
@@ -943,7 +960,7 @@ const EditRecipePage: React.FC = () => {
     // Persist draft (ikke lagre blob preview)
     useEffect(() => {
         if (!recipeId) return;
-        if (!draftChecked) return;
+        if (!draftChecked || loading) return;
 
         const payload: DraftPayload = {
             recipeData: {
@@ -959,6 +976,7 @@ const EditRecipePage: React.FC = () => {
                         description: s.description,
                         imageUrl: getStoredStepImage(s),
                         linkedRecipe: s.linkedRecipe,
+                        ingredientMentions: s.ingredientMentions,
                     })),
             },
             ingredientsDetailed,
@@ -974,6 +992,7 @@ const EditRecipePage: React.FC = () => {
                 description: s.description,
                 imageUrl: getStoredStepImage(s),
                 linkedRecipe: s.linkedRecipe,
+                ingredientMentions: s.ingredientMentions,
                 imagePreview: getStoredStepImage(s) || null,
             })),
             newIngredientName,
@@ -981,6 +1000,7 @@ const EditRecipePage: React.FC = () => {
             coverImagePreview: null,
             selectedCoAuthor,
             sourceUpdatedAtMs,
+            linkIngredients,
         };
 
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
@@ -988,6 +1008,7 @@ const EditRecipePage: React.FC = () => {
         recipeId,
         LOCAL_STORAGE_KEY,
         draftChecked,
+        loading,
         recipeData,
         ingredientsDetailed,
         temperature,
@@ -999,6 +1020,7 @@ const EditRecipePage: React.FC = () => {
         newIngredientAmount,
         selectedCoAuthor,
         sourceUpdatedAtMs,
+        linkIngredients,
     ]);
 
     const setTitle = (v: string) => setRecipeData((p) => ({ ...p, title: v }));
@@ -1134,14 +1156,87 @@ const EditRecipePage: React.FC = () => {
         [recipeData.title]
     );
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const tags = recipeData.tags ?? [];
+    const addTag = (value: string) => {
+        const tag = value.trim();
+        if (!tag) return;
+        setRecipeData((data) => ({
+            ...data,
+            tags: data.tags?.some((item) => item.toLowerCase() === tag.toLowerCase())
+                ? data.tags
+                : [...(data.tags ?? []), tag].slice(0, 12),
+        }));
+        setNewTag('');
+    };
+    const removeTag = (tag: string) =>
+        setRecipeData((data) => ({ ...data, tags: (data.tags ?? []).filter((item) => item !== tag) }));
 
+    const generateTags = async () => {
+        if (generatingTags) return;
+        setGeneratingTags(true);
+        try {
+            const response = await fetch('/api/generate-tags', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: recipeData.title,
+                    description: recipeData.description,
+                    ingredientsDetailed,
+                    cookingSteps,
+                }),
+            });
+            const result = (await response.json()) as { tags?: string[]; error?: string };
+            if (!response.ok) throw new Error(result.error || 'Kunne ikke foreslå tagger.');
+            if (Array.isArray(result.tags)) setRecipeData((data) => ({ ...data, tags: result.tags }));
+        } catch (error) {
+            setSaveError(error instanceof Error ? error.message : 'Kunne ikke foreslå tagger.');
+        } finally {
+            setGeneratingTags(false);
+        }
+    };
+
+    const goToStep = (step: number) => {
+        setSaveError(null);
+        setCurrentStep(Math.max(0, Math.min(step, RECIPE_EDITOR_STEPS.length - 1)));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const next = () => {
+        if (currentStep === 0 && !trimmedTitle) return setSaveError('Gi oppskriften et navn før du går videre.');
+        if (currentStep === 2 && !ingredientsDetailed.some((item) => item.name.trim())) return setSaveError('Legg til minst én ingrediens.');
+        if (currentStep === 3 && !cookingSteps.some((step) => step.description.trim())) return setSaveError('Beskriv minst ett steg i fremgangsmåten.');
+        goToStep(currentStep + 1);
+    };
+
+    const toggleIngredientLinks = async (enabled: boolean) => {
+        setLinkIngredients(enabled);
+        if (!enabled) {
+            setCookingSteps((steps) => steps.map((step) => {
+                const next = { ...step };
+                delete next.ingredientMentions;
+                return next;
+            }));
+            return;
+        }
+        const mentions = await generateStepIngredientMentions({ ingredientsDetailed, cookingSteps });
+        setCookingSteps((steps) => steps.map((step, index) => ({
+            ...step,
+            ingredientMentions: mentions[index] || [],
+        })));
+    };
+
+    const handleSubmit = async () => {
+        if (saving || currentStep !== RECIPE_EDITOR_STEPS.length - 1) return;
         const user = auth.currentUser;
-        if (!user) return alert('Please sign in first.');
+        if (!user) return setSaveError('Logg inn før du lagrer.');
         if (!recipeId) return;
-        if (!trimmedTitle) return;
+        if (!trimmedTitle) return setSaveError('Gi oppskriften et navn.');
+        if (!ingredientsDetailed.some((item) => item.name.trim())) return setSaveError('Legg til minst én ingrediens.');
+        if (!cookingSteps.some((step) => step.description.trim())) return setSaveError('Beskriv minst ett steg i fremgangsmåten.');
 
+        setSaveError(null);
+        setSaving(true);
+        try {
         let coverImageUrl = recipeData.coverImage || '';
 
         if (coverImageFile) {
@@ -1154,7 +1249,7 @@ const EditRecipePage: React.FC = () => {
         }
 
         const stepsForDb: CookingStep[] = await Promise.all(
-            cookingSteps.map(async (s, index) => {
+            cookingSteps.filter((step) => step.description.trim()).map(async (s, index) => {
                 let imageUrl = s.imageUrl?.trim() || getStoredStepImage(s);
 
                 if (s.imageFile) {
@@ -1167,9 +1262,12 @@ const EditRecipePage: React.FC = () => {
                 }
 
                 return {
-                    title: s.title,
-                    description: s.description,
+                    title: s.title.trim(),
+                    description: s.description.trim(),
                     imageUrl: imageUrl || '',
+                    ...(linkIngredients && s.ingredientMentions?.length
+                        ? { ingredientMentions: s.ingredientMentions }
+                        : {}),
                     ...(s.linkedRecipe?.id
                         ? {
                               linkedRecipe: {
@@ -1185,7 +1283,6 @@ const EditRecipePage: React.FC = () => {
 
         const ingredientsForDb = ingredientsDetailed
             .map((x) => ({
-                id: x.id,
                 name: normalizeIngredientName(x.name),
                 amount: normalizeIngredientAmount(x.amount),
             }))
@@ -1209,36 +1306,14 @@ const EditRecipePage: React.FC = () => {
             selectedCoAuthor?.status === 'pending'
                 ? [selectedCoAuthor.uid]
                 : [];
-        const ingredientMentionsPromise = generateStepIngredientMentions({
-            ingredientsDetailed: ingredientsForDb,
-            cookingSteps: cookingSteps.map((step) => ({
-                title: step.title,
-                description: step.description,
-            })),
-        });
-
-        try {
-            const ingredientMentionsByStep = await ingredientMentionsPromise;
-            const stepsForDbWithMentions: CookingStep[] = stepsForDb.map(
-                (step, index) => ({
-                    ...step,
-                    ...(ingredientMentionsByStep[index]?.length
-                        ? {
-                              ingredientMentions:
-                                  ingredientMentionsByStep[index],
-                          }
-                        : {}),
-                })
-            );
-
             await updateDoc(doc(firestore, 'recipes', recipeId), {
                 title: trimmedTitle,
-                description: recipeData.description,
+                description: recipeData.description.trim(),
                 image: recipeData.image,
                 bgColor: recipeData.bgColor,
                 fontStyle: recipeData.fontStyle,
                 // legacy
-                ingredients: ingredientsForDb.map((x) => x.name),
+                ingredients: ingredientsForDb.map((x) => `${x.amount} ${x.name}`.trim()),
                 // ny
                 ingredientsDetailed: ingredientsForDb,
 
@@ -1246,7 +1321,8 @@ const EditRecipePage: React.FC = () => {
                 cookingTime,
                 portions,
                 visibility,
-                cookingSteps: stepsForDbWithMentions,
+                cookingSteps: stepsForDb,
+                tags,
                 coverImage: coverImageUrl,
                 coAuthors: nextCoAuthors,
                 coAuthorIds: nextCoAuthorIds,
@@ -1258,21 +1334,28 @@ const EditRecipePage: React.FC = () => {
                 selectedCoAuthor?.status === 'pending' &&
                 selectedCoAuthor.uid !== initialPendingCoAuthorUid
             ) {
-                await createCoAuthorInviteNotification({
-                    actorId: user.uid,
-                    actorName:
-                        currentUser?.displayName?.trim() || 'En kokk',
-                    actorPhotoURL: currentUser?.photoURL || '',
-                    inviteeId: selectedCoAuthor.uid,
-                    recipeId,
-                    recipeTitle: trimmedTitle || 'en oppskrift',
-                });
+                try {
+                    await createCoAuthorInviteNotification({
+                        actorId: user.uid,
+                        actorName: currentUser?.displayName?.trim() || 'En kokk',
+                        actorPhotoURL: currentUser?.photoURL || '',
+                        inviteeId: selectedCoAuthor.uid,
+                        recipeId,
+                        recipeTitle: trimmedTitle,
+                    });
+                } catch (error) {
+                    console.error('Could not send co-author invitation:', error);
+                    alert('Oppskriften ble lagret, men invitasjonen kunne ikke sendes.');
+                }
             }
 
             localStorage.removeItem(LOCAL_STORAGE_KEY);
-            router.push(`/user/${user.uid}`);
+            router.replace(`/recipe/${recipeId}`);
         } catch (error) {
             console.error('Error updating recipe:', error);
+            setSaveError(error instanceof Error ? error.message : 'Kunne ikke lagre oppskriften. Prøv igjen.');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -1299,79 +1382,75 @@ const EditRecipePage: React.FC = () => {
             ) : null}
 
             <div className="mx-auto max-w-xl px-4 py-6 pb-28">
-                <div className="mb-4 flex items-center justify-between">
-                    <button
-                        onClick={() => router.back()}
-                        className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100"
-                        aria-label="Tilbake"
-                        type="button"
-                    >
-                        <span className="material-symbols-outlined">
-                            arrow_back
-                        </span>
-                    </button>
-
-                    <h1 className="text-lg font-semibold text-slate-900">
-                        Rediger oppskrift
-                    </h1>
-
-                    <button
-                        type="submit"
-                        form="edit-recipe-form"
-                        className="h-10 px-4 rounded-full brown-button text-sm font-semibold shadow-sm hover:opacity-95 active:scale-[0.99] transition"
-                    >
-                        Lagre
-                    </button>
-                </div>
+                <RecipeEditorHeader step={currentStep} mode="edit" />
                 <form
                     id="edit-recipe-form"
-                    onSubmit={handleSubmit}
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        if (currentStep !== RECIPE_EDITOR_STEPS.length - 1) next();
+                    }}
                     className="space-y-4"
+                    noValidate
                 >
                     {/* Basic info */}
-                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                    <div hidden={currentStep !== 0 && currentStep !== 5} className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                        <div hidden={currentStep !== 0}>
                         <label className="block text-sm font-semibold text-slate-900 mb-2">
-                            Tittel
+                            Navn på oppskriften
                         </label>
                         <input
                             type="text"
-                            placeholder="f.eks. Verdens beste lasagne"
+                            placeholder="F.eks. mammas lasagne"
                             value={recipeData.title}
                             onChange={(e) => setTitle(e.target.value)}
                             className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                            required
                         />
 
                         <label className="block text-sm font-semibold text-slate-900 mt-4 mb-2">
                             Beskrivelse
                         </label>
                         <textarea
-                            placeholder="Kort og fristende…"
+                            placeholder="Fortell litt om retten..."
                             value={recipeData.description}
                             onChange={(e) => setDescription(e.target.value)}
                             className="w-full min-h-[120px] p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                            required
                         />
+                        </div>
+
+                        <div hidden={currentStep !== 5}>
+                        <label className="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700">
+                            <div>
+                                <p className="font-semibold text-slate-900">Koble ingredienser til steg (AI)</p>
+                                <p className="mt-1 text-xs text-slate-600">Marker hvilke ingredienser hvert steg bruker.</p>
+                            </div>
+                            <input
+                                type="checkbox"
+                                checked={linkIngredients}
+                                onChange={(e) => void toggleIngredientLinks(e.target.checked)}
+                                className="h-5 w-5 accent-[#12340d]"
+                            />
+                        </label>
 
                         <label className="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700">
                             <div>
                                 <p className="font-semibold text-slate-900">
-                                    Privat oppskrift
+                                    Offentlig oppskrift
                                 </p>
                                 <p className="mt-1 text-xs text-slate-600">
-                                    Bare folk som følger deg kan se den.
-                                    Offentlige oppskrifter vises til alle.
+                                    {visibility === 'public'
+                                        ? 'Alle kan oppdage oppskriften din.'
+                                        : 'Bare du, medforfattere og følgerne dine kan se oppskriften.'}
                                 </p>
                             </div>
                             <span className="relative inline-flex items-center">
                                 <input
                                     type="checkbox"
-                                    checked={visibility === 'private'}
+                                    checked={visibility === 'public'}
                                     onChange={(e) =>
                                         setVisibility(
                                             e.target.checked
-                                                ? 'private'
-                                                : 'public'
+                                                ? 'public'
+                                                : 'private'
                                         )
                                     }
                                     className="peer sr-only"
@@ -1446,76 +1525,26 @@ const EditRecipePage: React.FC = () => {
                                 </p>
                             )}
                         </div>
+                        </div>
                     </div>
 
                     {/* Cover */}
-                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <h2 className="text-base font-semibold text-slate-900">
-                                Forsidebilde
-                            </h2>
-                            {(coverImagePreview || recipeData.coverImage) && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        revokeBlobUrl(
-                                            coverImagePreviewRef.current
-                                        );
-                                        setCoverImageFile(null);
-                                        setCoverImagePreview(null);
-                                        setRecipeData((p) => ({
-                                            ...p,
-                                            coverImage: '',
-                                        }));
-                                    }}
-                                    className="text-sm text-slate-600 hover:underline"
-                                >
-                                    Fjern
-                                </button>
-                            )}
-                        </div>
-
-                        <label className="flex flex-col items-center justify-center w-full h-36 border border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 transition">
-                            <span className="material-symbols-outlined text-slate-700">
-                                upload
-                            </span>
-                            <p className="mt-2 text-sm text-slate-600">
-                                Klikk eller dra og slipp bildet ditt her
-                            </p>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={handleImageChange}
-                            />
-                        </label>
-
-                        {coverImagePreview ? (
-                            <div className="relative mt-4 h-72 overflow-hidden rounded-2xl border border-slate-200">
-                                <Image
-                                    src={coverImagePreview}
-                                    alt="Cover Preview"
-                                    fill
-                                    sizes="100vw"
-                                    className="object-cover"
-                                    unoptimized
-                                />
-                            </div>
-                        ) : recipeData.coverImage ? (
-                            <div className="relative mt-4 h-72 overflow-hidden rounded-2xl border border-slate-200">
-                                <Image
-                                    src={recipeData.coverImage}
-                                    alt="Cover"
-                                    fill
-                                    sizes="100vw"
-                                    className="object-cover"
-                                />
-                            </div>
-                        ) : null}
+                    <div hidden={currentStep !== 0} className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                        <RecipeCoverPicker
+                            image={coverImagePreview || recipeData.coverImage}
+                            onChange={handleImageChange}
+                            onRemove={() => {
+                                revokeBlobUrl(coverImagePreviewRef.current);
+                                setCoverImageFile(null);
+                                setCoverImagePreview(null);
+                                setRecipeData((data) => ({ ...data, coverImage: '' }));
+                            }}
+                        />
                     </div>
 
                     {/* Ingredients + meta */}
-                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                    <div hidden={currentStep !== 1 && currentStep !== 2} className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                        <div hidden={currentStep !== 2}>
                         <h2 className="text-base font-semibold text-slate-900 mb-3">
                             Ingredienser
                         </h2>
@@ -1640,8 +1669,10 @@ const EditRecipePage: React.FC = () => {
                             </button>
                         </div>
 
+                        </div>
+                        <div hidden={currentStep !== 1}>
+                        <h2 className="mb-4 text-base font-semibold text-slate-900">Litt praktisk</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 ">
-                            {' '}
                             <div>
                                 <label className="block text-sm font-semibold text-slate-900 mb-2">
                                     Temperatur
@@ -1685,10 +1716,11 @@ const EditRecipePage: React.FC = () => {
                                 />
                             </div>
                         </div>
+                        </div>
                     </div>
 
                     {/* Steps */}
-                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                    <div hidden={currentStep !== 3} className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="text-base font-semibold text-slate-900">
                                 Steg
@@ -1753,16 +1785,64 @@ const EditRecipePage: React.FC = () => {
                         </DndContext>
                     </div>
 
-                    {/* bottom save */}
-                    <div className="sm:hidden pt-2">
-                        <button
-                            type="submit"
-                            className="w-full rounded-full py-3 font-semibold  shadow-lg bg-cyan-100 hover:opacity-95 active:scale-[0.99] transition"
-                        >
-                            Lagre
-                        </button>
+                    <div hidden={currentStep !== 4} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                            <h2 className="text-base font-semibold text-slate-900">Tagger</h2>
+                            <button
+                                type="button"
+                                onClick={() => void generateTags()}
+                                disabled={generatingTags}
+                                className="brown-button rounded-full px-3 py-2 text-sm font-semibold disabled:opacity-50"
+                            >
+                                {generatingTags ? 'Finner tagger…' : 'Foreslå tagger med AI'}
+                            </button>
+                        </div>
+                        <div className="flex gap-2">
+                            <input
+                                value={newTag}
+                                onChange={(event) => setNewTag(event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                        event.preventDefault();
+                                        addTag(newTag);
+                                    }
+                                }}
+                                placeholder="Legg til egen tagg (f.eks. middag)"
+                                className="min-w-0 flex-1 rounded-2xl border border-slate-200 p-3"
+                            />
+                            <button type="button" onClick={() => addTag(newTag)} disabled={!newTag.trim()} className="rounded-full bg-slate-100 px-3 font-semibold text-slate-800 disabled:opacity-50">
+                                Legg til
+                            </button>
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                            {tags.length ? tags.map((tag) => (
+                                <button key={tag} type="button" onClick={() => removeTag(tag)} className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-800" aria-label={`Fjern tagg ${tag}`}>
+                                    #{tag} ×
+                                </button>
+                            )) : <p className="text-sm text-slate-600">Ingen tagger ennå.</p>}
+                        </div>
                     </div>
+                    {currentStep === 6 ? (
+                        <RecipeEditorReview
+                            coverImage={coverImagePreview || recipeData.coverImage}
+                            title={recipeData.title}
+                            description={recipeData.description}
+                            ingredientCount={ingredientsDetailed.filter((item) => item.name.trim()).length}
+                            stepCount={cookingSteps.filter((step) => step.description.trim()).length}
+                            visibility={visibility}
+                            mode="edit"
+                        />
+                    ) : null}
                 </form>
+                <RecipeEditorNavigation
+                    step={currentStep}
+                    mode="edit"
+                    busy={saving}
+                    error={saveError}
+                    onBack={() => goToStep(currentStep - 1)}
+                    onNext={next}
+                    onPublish={() => void handleSubmit()}
+                />
             </div>
         </div>
     );

@@ -16,6 +16,13 @@ import { createCoAuthorInviteNotification } from '@/helpers/coAuthorInvites';
 
 import RecipeCreatedModal from '@/app/components/RecipeCreatedModal';
 import RecipeReferencePickerModal from '@/app/components/RecipeReferencePickerModal';
+import {
+    RecipeCoverPicker,
+    RecipeEditorHeader,
+    RecipeEditorNavigation,
+    RecipeEditorReview,
+    RECIPE_EDITOR_STEPS,
+} from '@/app/components/RecipeEditorWizard';
 import CoAuthorPickerModal, {
     CoAuthorInvitee,
 } from '@/app/components/CoAuthorPickerModal';
@@ -453,8 +460,8 @@ const CreateRecipe = () => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [svgData, setSvgData] = useState('');
-    const [bgColor, setBgColor] = useState('#ffffff');
-    const [fontStyle, setFontStyle] = useState('sans-serif');
+    const [bgColor, setBgColor] = useState('#edf8d9');
+    const [fontStyle, setFontStyle] = useState('Urbanist');
 
     const [cookingSteps, setCookingSteps] = useState<StepWithId[]>([]);
 
@@ -471,10 +478,17 @@ const CreateRecipe = () => {
 
     const [temperature, setTemperature] = useState('');
     const [cookingTime, setCookingTime] = useState('');
-    const [portions, setPortions] = useState('');
+    const [portions, setPortions] = useState('4');
 
     const [publishing, setPublishing] = useState(false);
+    const [draftReady, setDraftReady] = useState(false);
+    const [currentStep, setCurrentStep] = useState(0);
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const [linkIngredients, setLinkIngredients] = useState(false);
     const [visibility, setVisibility] = useState<RecipeVisibility>('public');
+    const [tags, setTags] = useState<string[]>([]);
+    const [newTag, setNewTag] = useState('');
+    const [generatingTags, setGeneratingTags] = useState(false);
     const [showCoAuthorPicker, setShowCoAuthorPicker] = useState(false);
     const [invitedCoAuthor, setInvitedCoAuthor] =
         useState<CoAuthorInvitee | null>(null);
@@ -596,9 +610,12 @@ const CreateRecipe = () => {
     // Load draft
     useEffect(() => {
         const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (!savedData) return;
+        if (!savedData) {
+            setDraftReady(true);
+            return;
+        }
 
-        const formData: {
+        let formData: {
             title?: string;
             description?: string;
             svgData?: string;
@@ -616,19 +633,28 @@ const CreateRecipe = () => {
             tags?: string[];
             visibility?: RecipeVisibility;
             invitedCoAuthor?: CoAuthorInvitee | null;
-        } = JSON.parse(savedData);
+            linkIngredients?: boolean;
+        };
+        try {
+            formData = JSON.parse(savedData);
+        } catch {
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+            setDraftReady(true);
+            return;
+        }
 
         setTitle(formData.title || '');
         setDescription(formData.description || '');
         setSvgData(formData.svgData || '');
-        setBgColor(formData.bgColor || '#ffffff');
-        setFontStyle(formData.fontStyle || 'sans-serif');
+        setBgColor(formData.bgColor || '#edf8d9');
+        setFontStyle(formData.fontStyle || 'Urbanist');
         setTemperature(formData.temperature || '');
         setCookingTime(formData.cookingTime || '');
-        setPortions(formData.portions || '');
+        setPortions(formData.portions || '4');
         setVisibility(formData.visibility === 'private' ? 'private' : 'public');
-        setCoverImagePreview(formData.coverImagePreview || null);
+        setCoverImagePreview(formData.coverImagePreview?.startsWith('blob:') ? null : formData.coverImagePreview || null);
         setInvitedCoAuthor(formData.invitedCoAuthor ?? null);
+        setLinkIngredients(Boolean(formData.linkIngredients));
 
         const loadedSteps = formData.cookingSteps || [];
         setCookingSteps(
@@ -667,10 +693,12 @@ const CreateRecipe = () => {
         setNewIngredientName(formData.newIngredientName || '');
         setNewIngredientAmount(formData.newIngredientAmount || '');
         setTags(Array.isArray(formData.tags) ? formData.tags : []);
+        setDraftReady(true);
     }, []);
 
     // Persist draft
     useEffect(() => {
+        if (!draftReady) return;
         const formData = {
             title,
             description,
@@ -683,6 +711,7 @@ const CreateRecipe = () => {
                 description: step.description,
                 imageUrl: getStoredStepImage(step),
                 linkedRecipe: step.linkedRecipe,
+                ingredientMentions: step.ingredientMentions,
                 imagePreview: getStoredStepImage(step) || null,
             })),
             ingredients: ingredients
@@ -696,13 +725,15 @@ const CreateRecipe = () => {
             temperature,
             cookingTime,
             portions,
-            coverImagePreview,
+            coverImagePreview: coverImagePreview?.startsWith('blob:') ? null : coverImagePreview,
             tags,
             visibility,
             invitedCoAuthor,
+            linkIngredients,
         };
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(formData));
     }, [
+        draftReady,
         title,
         description,
         svgData,
@@ -716,8 +747,10 @@ const CreateRecipe = () => {
         cookingTime,
         portions,
         coverImagePreview,
+        tags,
         visibility,
         invitedCoAuthor,
+        linkIngredients,
     ]);
 
     const handleAddStep = () => {
@@ -905,10 +938,6 @@ const CreateRecipe = () => {
         }
     };
 
-    const [tags, setTags] = useState<string[]>([]);
-    const [newTag, setNewTag] = useState('');
-    const [generatingTags, setGeneratingTags] = useState(false);
-
     const addTag = (value: string) => {
         const t = value.trim();
         if (!t) return;
@@ -973,19 +1002,88 @@ const CreateRecipe = () => {
 
     const trimmedTitle = useMemo(() => title.trim(), [title]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const goToStep = (step: number) => {
+        setSaveError(null);
+        setCurrentStep(Math.max(0, Math.min(step, RECIPE_EDITOR_STEPS.length - 1)));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
-        if (publishing) return; // ✅ blokker dobbeltklikk / dobbel submit
+    const next = () => {
+        if (currentStep === 0 && !trimmedTitle) {
+            setSaveError('Gi oppskriften et navn før du går videre.');
+            return;
+        }
+        if (currentStep === 2 && !ingredients.some((item) => item.name.trim())) {
+            setSaveError('Legg til minst én ingrediens.');
+            return;
+        }
+        if (currentStep === 3 && !cookingSteps.some((step) => step.description.trim())) {
+            setSaveError('Beskriv minst ett steg i fremgangsmåten.');
+            return;
+        }
+        goToStep(currentStep + 1);
+    };
+
+    const resetDraft = () => {
+        if (publishing || !window.confirm('Nullstille oppskriften? All tekst, bilder, ingredienser og steg i utkastet fjernes. Dette kan ikke angres.')) return;
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        revokeBlobUrl(coverImagePreviewRef.current);
+        cookingStepsRef.current.forEach((step) => revokeBlobUrl(step.imagePreview));
+        setTitle('');
+        setDescription('');
+        setSvgData('');
+        setBgColor('#edf8d9');
+        setFontStyle('Urbanist');
+        setCoverImageFile(null);
+        setCoverImagePreview(null);
+        setIngredients([]);
+        setCookingSteps([]);
+        setNewIngredientName('');
+        setNewIngredientAmount('');
+        setTemperature('');
+        setCookingTime('');
+        setPortions('4');
+        setVisibility('public');
+        setTags([]);
+        setInvitedCoAuthor(null);
+        setLinkIngredients(false);
+        goToStep(0);
+    };
+
+    const toggleIngredientLinks = async (enabled: boolean) => {
+        setLinkIngredients(enabled);
+        if (!enabled) {
+            setCookingSteps((steps) => steps.map((step) => {
+                const next = { ...step };
+                delete next.ingredientMentions;
+                return next;
+            }));
+            return;
+        }
+        const mentions = await generateStepIngredientMentions({
+            ingredientsDetailed: ingredients,
+            cookingSteps,
+        });
+        setCookingSteps((steps) => steps.map((step, index) => ({
+            ...step,
+            ingredientMentions: mentions[index] || [],
+        })));
+    };
+
+    const handleSubmit = async () => {
+        if (publishing || currentStep !== RECIPE_EDITOR_STEPS.length - 1) return;
 
         const user = auth.currentUser;
-        if (!user) return alert('Please sign in first.');
-        if (!trimmedTitle) return;
+        if (!user) return setSaveError('Logg inn før du publiserer.');
+        if (!trimmedTitle) return setSaveError('Gi oppskriften et navn.');
+        if (!ingredients.some((item) => item.name.trim())) return setSaveError('Legg til minst én ingrediens.');
+        if (!cookingSteps.some((step) => step.description.trim())) return setSaveError('Beskriv minst ett steg i fremgangsmåten.');
 
+        setSaveError(null);
         setPublishing(true);
 
         try {
-            let coverImageUrl = '';
+            let coverImageUrl = coverImagePreview?.startsWith('blob:') ? '' : coverImagePreview || '';
             if (coverImageFile) {
                 const imageRef = ref(
                     storage,
@@ -996,7 +1094,7 @@ const CreateRecipe = () => {
             }
 
             const stepsForDb: CookingStep[] = await Promise.all(
-                cookingSteps.map(async (s, index) => {
+                cookingSteps.filter((s) => s.description.trim()).map(async (s, index) => {
                     let imageUrl = s.imageUrl?.trim() || getStoredStepImage(s);
 
                     if (s.imageFile) {
@@ -1012,9 +1110,12 @@ const CreateRecipe = () => {
                     }
 
                     return {
-                        title: s.title,
-                        description: s.description,
+                        title: s.title.trim(),
+                        description: s.description.trim(),
                         imageUrl: imageUrl || '',
+                        ...(linkIngredients && s.ingredientMentions?.length
+                            ? { ingredientMentions: s.ingredientMentions }
+                            : {}),
                         ...(s.linkedRecipe?.id
                             ? {
                                   linkedRecipe: {
@@ -1030,41 +1131,20 @@ const CreateRecipe = () => {
             );
 
             const ingredientsDetailedForDb: Ingredient[] = ingredients
-                .map((i) => ({ name: i.name.trim(), amount: i.amount.trim() }))
+                .map((i) => ({ name: i.name.trim(), amount: normalizeIngredientAmountInput(i.amount).formatted }))
                 .filter((i) => i.name.length > 0);
-
-            const ingredientMentionsPromise = generateStepIngredientMentions({
-                ingredientsDetailed: ingredientsDetailedForDb,
-                cookingSteps: cookingSteps.map((step) => ({
-                    title: step.title,
-                    description: step.description,
-                })),
-            });
 
             const ingredientsStringsForDb: string[] = ingredientsDetailedForDb
                 .map((i) => `${i.amount} ${i.name}`.trim())
                 .filter(Boolean);
 
-            const ingredientMentionsByStep = await ingredientMentionsPromise;
-            const stepsForDbWithMentions: CookingStep[] = stepsForDb.map(
-                (step, index) => ({
-                    ...step,
-                    ...(ingredientMentionsByStep[index]?.length
-                        ? {
-                              ingredientMentions:
-                                  ingredientMentionsByStep[index],
-                          }
-                        : {}),
-                })
-            );
-
             const docRef = await addDoc(collection(firestore, 'recipes'), {
-                title,
-                description,
+                title: trimmedTitle,
+                description: description.trim(),
                 image: svgData,
                 bgColor,
                 fontStyle,
-                cookingSteps: stepsForDbWithMentions,
+                cookingSteps: stepsForDb,
                 ingredients: ingredientsStringsForDb,
                 ingredientsDetailed: ingredientsDetailedForDb,
                 temperature,
@@ -1084,23 +1164,27 @@ const CreateRecipe = () => {
                     : [],
             });
 
-            if (invitedCoAuthor) {
-                await createCoAuthorInviteNotification({
-                    actorId: user.uid,
-                    actorName:
-                        currentUser?.displayName?.trim() || 'En kokk',
-                    actorPhotoURL: currentUser?.photoURL || '',
-                    inviteeId: invitedCoAuthor.uid,
-                    recipeId: docRef.id,
-                    recipeTitle: title.trim() || 'en oppskrift',
-                });
-            }
-
             localStorage.removeItem(LOCAL_STORAGE_KEY);
             setCreatedRecipeId(docRef.id);
+            if (invitedCoAuthor) {
+                try {
+                    await createCoAuthorInviteNotification({
+                        actorId: user.uid,
+                        actorName: currentUser?.displayName?.trim() || 'En kokk',
+                        actorPhotoURL: currentUser?.photoURL || '',
+                        inviteeId: invitedCoAuthor.uid,
+                        recipeId: docRef.id,
+                        recipeTitle: trimmedTitle,
+                    });
+                } catch (error) {
+                    console.error('Could not send co-author invitation:', error);
+                    setSaveError('Oppskriften ble publisert, men invitasjonen kunne ikke sendes.');
+                }
+            }
         } catch (error) {
             console.error('Error adding recipe:', error);
-            setPublishing(false); // ✅ bare re-enable hvis det feiler
+            setSaveError(error instanceof Error ? error.message : 'Kunne ikke publisere oppskriften. Prøv igjen.');
+            setPublishing(false);
         }
     };
 
@@ -1128,46 +1212,19 @@ const CreateRecipe = () => {
 
             {/* Content */}
             <div className="mx-auto max-w-xl px-4 py-6 pb-28">
-                <div className="mb-4 flex items-center justify-end">
-                    {/*<button*/}
-                    {/*    onClick={() => router.back()}*/}
-                    {/*    className="h-10 w-10 grid place-items-center rounded-full hover:bg-slate-100"*/}
-                    {/*    aria-label="Tilbake"*/}
-                    {/*    type="button"*/}
-                    {/*>*/}
-                    {/*    <span className="material-symbols-outlined">arrow_back</span>*/}
-                    {/*</button>*/}
-
-                    <button
-                        type="submit"
-                        form="create-recipe-form"
-                        disabled={publishing}
-                        className={[
-                            'h-10 px-4 rounded-full brown-button text-sm font-semibold shadow-sm transition',
-                            publishing
-                                ? 'opacity-70 cursor-not-allowed'
-                                : 'hover:opacity-95 active:scale-[0.99]',
-                        ].join(' ')}
-                    >
-                        <span className="inline-flex items-center gap-2">
-                            {publishing ? (
-                                <span
-                                    className="inline-block h-4 w-4 rounded-full border-2 border-white/60 border-t-white animate-spin"
-                                    aria-hidden="true"
-                                />
-                            ) : null}
-                            {publishing ? 'Publiserer…' : 'Publiser'}
-                        </span>
-                    </button>
-                </div>
+                <RecipeEditorHeader step={currentStep} mode="create" onReset={resetDraft} />
 
                 <form
                     id="create-recipe-form"
-                    onSubmit={handleSubmit}
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        if (currentStep !== RECIPE_EDITOR_STEPS.length - 1) next();
+                    }}
                     className="space-y-4"
+                    noValidate
                 >
                     {/* Import from URL */}
-                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                    <div hidden={currentStep !== 0} className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                         <div className="flex items-center justify-between gap-2 mb-2">
                             <h2 className="text-base font-semibold text-slate-900">
                                 Importer fra URL
@@ -1209,49 +1266,64 @@ const CreateRecipe = () => {
                     </div>
 
                     {/* Basic info */}
-                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                    <div hidden={currentStep !== 0 && currentStep !== 5} className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                        <div hidden={currentStep !== 0}>
                         <label className="block text-sm font-semibold text-slate-900 mb-2">
-                            Tittel
+                            Navn på oppskriften
                         </label>
                         <input
                             type="text"
-                            placeholder="f.eks. Verdens beste lasagne"
+                            placeholder="F.eks. mammas lasagne"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             className="w-full p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                            required
                         />
 
                         <label className="block text-sm font-semibold text-slate-900 mt-4 mb-2">
                             Beskrivelse
                         </label>
                         <textarea
-                            placeholder="Kort og fristende…"
+                            placeholder="Fortell litt om retten..."
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             className="w-full min-h-[120px] p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                            required
                         />
+                        </div>
+
+                        <div hidden={currentStep !== 5}>
+                        <label className="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700">
+                            <div>
+                                <p className="font-semibold text-slate-900">Koble ingredienser til steg (AI)</p>
+                                <p className="mt-1 text-xs text-slate-600">Marker hvilke ingredienser hvert steg bruker.</p>
+                            </div>
+                            <input
+                                type="checkbox"
+                                checked={linkIngredients}
+                                onChange={(e) => void toggleIngredientLinks(e.target.checked)}
+                                className="h-5 w-5 accent-[#12340d]"
+                            />
+                        </label>
 
                         <label className="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700">
                             <div>
                                 <p className="font-semibold text-slate-900">
-                                    Privat oppskrift
+                                    Offentlig oppskrift
                                 </p>
                                 <p className="mt-1 text-xs text-slate-600">
-                                    Bare folk som følger deg kan se den.
-                                    Offentlige oppskrifter vises til alle.
+                                    {visibility === 'public'
+                                        ? 'Alle kan oppdage oppskriften din.'
+                                        : 'Bare du, medforfattere og følgerne dine kan se oppskriften.'}
                                 </p>
                             </div>
                             <span className="relative inline-flex items-center">
                                 <input
                                     type="checkbox"
-                                    checked={visibility === 'private'}
+                                    checked={visibility === 'public'}
                                     onChange={(e) =>
                                         setVisibility(
                                             e.target.checked
-                                                ? 'private'
-                                                : 'public'
+                                                ? 'public'
+                                                : 'private'
                                         )
                                     }
                                     className="peer sr-only"
@@ -1324,58 +1396,20 @@ const CreateRecipe = () => {
                                 </p>
                             )}
                         </div>
+                        </div>
                     </div>
 
                     {/* Cover image */}
-                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <h2 className="text-base font-semibold text-slate-900">
-                                Forsidebilde
-                            </h2>
-                            {coverImagePreview && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        revokeBlobUrl(
-                                            coverImagePreviewRef.current
-                                        );
-                                        setCoverImageFile(null);
-                                        setCoverImagePreview(null);
-                                    }}
-                                    className="text-sm text-slate-600 hover:underline"
-                                >
-                                    Fjern
-                                </button>
-                            )}
-                        </div>
-
-                        <label className="flex flex-col items-center justify-center w-full h-36 border border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 transition">
-                            <span className="material-symbols-outlined text-slate-700">
-                                upload
-                            </span>
-                            <p className="mt-2 text-sm text-slate-600">
-                                Klikk eller dra og slipp bildet ditt her
-                            </p>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={handleImageChange}
-                            />
-                        </label>
-
-                        {coverImagePreview && (
-                            <div className="relative mt-4 h-72 overflow-hidden rounded-2xl border border-slate-200">
-                                <Image
-                                    src={coverImagePreview}
-                                    alt="Image Preview"
-                                    fill
-                                    sizes="100vw"
-                                    className="object-cover"
-                                    unoptimized
-                                />
-                            </div>
-                        )}
+                    <div hidden={currentStep !== 0} className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                        <RecipeCoverPicker
+                            image={coverImagePreview}
+                            onChange={handleImageChange}
+                            onRemove={() => {
+                                revokeBlobUrl(coverImagePreviewRef.current);
+                                setCoverImageFile(null);
+                                setCoverImagePreview(null);
+                            }}
+                        />
                     </div>
 
                     {/* Ingredients + meta */}
@@ -1384,7 +1418,8 @@ const CreateRecipe = () => {
                         collisionDetection={closestCenter}
                         onDragEnd={onDragEnd}
                     >
-                        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                        <div hidden={currentStep !== 1 && currentStep !== 2} className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                            <div hidden={currentStep !== 2}>
                             <div className="flex items-center justify-between mb-3">
                                 <h2 className="text-base font-semibold text-slate-900">
                                     Ingredienser
@@ -1499,6 +1534,9 @@ const CreateRecipe = () => {
                                 </button>
                             </div>
 
+                            </div>
+                            <div hidden={currentStep !== 1}>
+                            <h2 className="mb-4 text-base font-semibold text-slate-900">Litt praktisk</h2>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-900 mb-2">
@@ -1545,10 +1583,11 @@ const CreateRecipe = () => {
                                     />
                                 </div>
                             </div>
+                            </div>
                         </div>
 
                         {/* Steps */}
-                        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                        <div hidden={currentStep !== 3} className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                             <div className="flex items-center justify-between mb-3">
                                 <h2 className="text-base font-semibold text-slate-900">
                                     Steg
@@ -1609,10 +1648,10 @@ const CreateRecipe = () => {
                     </DndContext>
 
                     {/* Tags */}
-                    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+                    <div hidden={currentStep !== 4} className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
                         <div className="flex items-center justify-between gap-2 mb-3">
                             <h2 className="text-base font-semibold text-slate-900">
-                                Tags
+                                Tagger
                             </h2>
 
                             <button
@@ -1631,7 +1670,7 @@ const CreateRecipe = () => {
                                 ) : (
                                     <span className="material-symbols-outlined text-base"></span>
                                 )}
-                                {generatingTags ? 'Genererer…' : 'Generer tags'}
+                                {generatingTags ? 'Finner tagger…' : 'Foreslå tagger med AI'}
                             </button>
                         </div>
 
@@ -1639,7 +1678,7 @@ const CreateRecipe = () => {
                             <input
                                 value={newTag}
                                 onChange={(e) => setNewTag(e.target.value)}
-                                placeholder="Legg til tag (f.eks. middag)"
+                                placeholder="Legg til egen tagg (f.eks. middag)"
                                 className="flex-1 p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-200"
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
@@ -1678,57 +1717,31 @@ const CreateRecipe = () => {
                             </div>
                         ) : (
                             <p className="mt-3 text-sm text-slate-600">
-                                Ingen tags ennå.
+                                Ingen tagger ennå.
                             </p>
                         )}
                     </div>
 
-                    <div className="justify-end flex">
-                        <button
-                            type="submit"
-                            form="create-recipe-form"
-                            disabled={publishing}
-                            className={[
-                                'h-10 px-4 rounded-full brown-button text-sm font-semibold shadow-sm transition',
-                                publishing
-                                    ? 'opacity-70 cursor-not-allowed'
-                                    : 'hover:opacity-95 active:scale-[0.99]',
-                            ].join(' ')}
-                        >
-                            <span className="inline-flex items-center gap-2">
-                                {publishing ? (
-                                    <span
-                                        className="inline-block h-4 w-4 rounded-full border-2 border-white/60 border-t-white animate-spin"
-                                        aria-hidden="true"
-                                    />
-                                ) : null}
-                                {publishing ? 'Publiserer…' : 'Publiser'}
-                            </span>
-                        </button>
-                    </div>
-
-                    {/* Bottom publish */}
-                    {/*                <div className="sm:hidden pt-2">*/}
-                    {/*                    <button*/}
-                    {/*                        type="submit"*/}
-                    {/*                        disabled={publishing}*/}
-                    {/*                        className={[*/}
-                    {/*                            'w-full rounded-full py-3 font-semibold shadow-lg brown-button transition',*/}
-                    {/*                            publishing ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-95 active:scale-[0.99]',*/}
-                    {/*                        ].join(' ')}*/}
-                    {/*                    >*/}
-                    {/*<span className="inline-flex items-center justify-center gap-2">*/}
-                    {/*    {publishing ? (*/}
-                    {/*        <span*/}
-                    {/*            className="inline-block h-5 w-5 rounded-full border-2 border-white/60 border-t-white animate-spin"*/}
-                    {/*            aria-hidden="true"*/}
-                    {/*        />*/}
-                    {/*    ) : null}*/}
-                    {/*    {publishing ? 'Publiserer…' : 'Publiser'}*/}
-                    {/*</span>*/}
-                    {/*                    </button>*/}
-                    {/*                </div>*/}
+                    {currentStep === 6 ? (
+                        <RecipeEditorReview
+                            coverImage={coverImagePreview}
+                            title={title}
+                            description={description}
+                            ingredientCount={ingredients.filter((item) => item.name.trim()).length}
+                            stepCount={cookingSteps.filter((step) => step.description.trim()).length}
+                            visibility={visibility}
+                        />
+                    ) : null}
                 </form>
+                <RecipeEditorNavigation
+                    step={currentStep}
+                    mode="create"
+                    busy={publishing}
+                    error={saveError}
+                    onBack={() => goToStep(currentStep - 1)}
+                    onNext={next}
+                    onPublish={() => void handleSubmit()}
+                />
             </div>
         </div>
     );

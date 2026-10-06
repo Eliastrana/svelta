@@ -14,4 +14,5 @@ export interface RecipeData {
     coverImage?: string;
     portions?: string;
     visibility?: RecipeVisibility;
+    tags?: string[];
 }
