@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/firebase';
 
@@ -23,6 +24,8 @@ interface CollectionDoc {
     name: string;
 }
 
+type NavKey = 'home' | 'friends' | 'create' | 'collections' | 'profile';
+
 const Navbar: React.FC = () => {
     const router = useRouter();
     const pathname = usePathname();
@@ -34,6 +37,11 @@ const Navbar: React.FC = () => {
     const [showRecommend, setShowRecommend] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [isMobileCollapsed, setIsMobileCollapsed] = useState(false);
+    const [pendingTab, setPendingTab] = useState<{
+        key: NavKey;
+        fromPath: string;
+    } | null>(null);
+    const [lastTab, setLastTab] = useState<NavKey>('home');
 
     const uid = user?.uid ?? '';
     const userData = useUserData(uid);
@@ -89,22 +97,56 @@ const Navbar: React.FC = () => {
     });
 
     // ─────────────────────────────────────────────────────────────
-    // Active markers (based on current route)
+    // Keep the selected tab responsive to taps, then reconcile it with the URL.
     // ─────────────────────────────────────────────────────────────
-    const isHomeActive = pathname === '/' || pathname === '/feed';
+    const routeTab: NavKey | null =
+        pathname === '/' || pathname === '/feed'
+            ? 'home'
+            : pathname === '/add-friends'
+              ? 'friends'
+              : pathname === '/create-recipe' || pathname.startsWith('/recipe/edit/')
+                ? 'create'
+                : pathname === '/collections' || pathname.startsWith('/collections/')
+                  ? 'collections'
+                  : uid && pathname === `/user/${uid}`
+                    ? 'profile'
+                    : null;
 
-    const isCreateActive =
-        pathname === '/create-recipe' ||
-        pathname.startsWith('/recipe/edit') ||
-        pathname.startsWith('/create');
+    const selectedTab =
+        pendingTab?.fromPath === pathname
+            ? pendingTab.key
+            : routeTab ?? lastTab;
 
-    const isFriendsActive = pathname === '/add-friends';
+    useEffect(() => {
+        setPendingTab(null);
+        if (routeTab) setLastTab(routeTab);
+        setIsMobileCollapsed(false);
+    }, [pathname, routeTab]);
 
-    // ✅ collections is route-based now
-    const isCollectionsActive =
-        pathname === '/collections' || pathname.startsWith('/collections/');
+    useEffect(() => {
+        if (!pendingTab) return;
+        const timeout = window.setTimeout(() => setPendingTab(null), 8000);
+        return () => window.clearTimeout(timeout);
+    }, [pendingTab]);
 
-    const isProfileActive = !!uid && pathname.startsWith(`/user/${uid}`);
+    const handleTabClick = (
+        event: React.MouseEvent<HTMLAnchorElement>,
+        key: NavKey,
+        href: string
+    ) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+
+        setIsMobileCollapsed(false);
+
+        if (pathname === href) {
+            event.preventDefault();
+            setPendingTab(null);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        setPendingTab({ key, fromPath: pathname });
+    };
 
     useEffect(() => {
         let lastY = window.scrollY;
@@ -141,15 +183,11 @@ const Navbar: React.FC = () => {
         };
     }, []);
 
-    useEffect(() => {
-        setIsMobileCollapsed(false);
-    }, [pathname]);
-
     // ─────────────────────────────────────────────────────────────
     // Styling helpers
     // ─────────────────────────────────────────────────────────────
     const iconBase =
-        'cursor-pointer flex items-center justify-center transition-transform duration-150 active:scale-90';
+        'flex cursor-pointer touch-manipulation items-center justify-center rounded-full transition-transform duration-100 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#365d2c] motion-reduce:transition-none';
 
     const iconWrapBg = (active: boolean) =>
         [
@@ -182,26 +220,32 @@ const Navbar: React.FC = () => {
         );
     };
 
-    const navItems = [
+    const navItems: Array<{
+        key: NavKey;
+        label: string;
+        href: string;
+        active: boolean;
+        icon: React.ReactNode;
+    }> = [
         {
             key: 'home',
             label: 'Hjem',
-            active: isHomeActive,
-            onClick: () => router.push('/feed'),
+            href: '/feed',
+            active: selectedTab === 'home',
             icon: <span className="material-symbols-outlined">home</span>,
         },
         {
             key: 'friends',
             label: 'Legg til venner',
-            active: isFriendsActive,
-            onClick: () => router.push('/add-friends'),
+            href: '/add-friends',
+            active: selectedTab === 'friends',
             icon: <span className="material-symbols-outlined">person_add</span>,
         },
         {
             key: 'create',
             label: 'Lag oppskrift',
-            active: isCreateActive,
-            onClick: () => router.push('/create-recipe'),
+            href: '/create-recipe',
+            active: selectedTab === 'create',
             icon: (
                 <span className="material-symbols-outlined bg-lime-100 p-3 rounded-full">
                     add
@@ -211,16 +255,16 @@ const Navbar: React.FC = () => {
         {
             key: 'collections',
             label: 'Samlinger',
-            active: isCollectionsActive,
-            onClick: () => router.push('/collections'),
+            href: '/collections',
+            active: selectedTab === 'collections',
             icon: <span className="material-symbols-outlined">menu_book</span>,
         },
         {
             key: 'profile',
             label: 'Profil',
-            active: isProfileActive,
-            onClick: () => uid && router.push(`/user/${uid}`),
-            icon: <UserProfileDisplay active={isProfileActive} />,
+            href: `/user/${uid}`,
+            active: selectedTab === 'profile',
+            icon: <UserProfileDisplay active={selectedTab === 'profile'} />,
         },
     ];
 
@@ -238,29 +282,30 @@ const Navbar: React.FC = () => {
                 />
             )}
 
-            <div className="fixed bottom-2 inset-x-0 z-50 px-4 md:bottom-6">
+            <nav aria-label="Hovednavigasjon" className="fixed bottom-2 inset-x-0 z-50 px-4 md:bottom-6">
                 <div className="mx-auto hidden max-w-sm items-center justify-between gap-2 rounded-full border border-slate-200 bg-white/90 px-2.5 py-2 shadow-xl backdrop-blur-lg md:flex">
                     {navItems.map((item) => (
-                        <button
+                        <Link
                             key={item.key}
-                            type="button"
-                            onClick={item.onClick}
+                            href={item.href}
+                            onClick={(event) => handleTabClick(event, item.key, item.href)}
                             className={
                                 item.key === 'profile'
-                                    ? 'flex-shrink-0'
+                                    ? `${iconBase} flex-shrink-0`
                                     : iconBase
                             }
                             aria-label={item.label}
+                            aria-current={routeTab === item.key ? 'page' : undefined}
                         >
                             {renderNavIcon(item)}
-                        </button>
+                        </Link>
                     ))}
                 </div>
 
                 <div
                     className={[
                         'mx-auto flex md:hidden items-center overflow-hidden rounded-full border border-slate-200 bg-white/90 shadow-xl backdrop-blur-lg',
-                        'transition-all duration-300 ease-out',
+                        'transition-[max-width,padding] duration-150 ease-out motion-reduce:transition-none',
                         isMobileCollapsed
                             ? 'max-w-[72px] justify-center px-2 py-2'
                             : 'max-w-sm justify-between gap-2 px-2 py-2',
@@ -272,8 +317,9 @@ const Navbar: React.FC = () => {
                             onClick={() => {
                                 setIsMobileCollapsed(false);
                             }}
-                            className="flex-shrink-0"
+                            className={`${iconBase} flex-shrink-0`}
                             aria-label="Utvid navigasjon"
+                            aria-expanded={false}
                         >
                             {renderNavIcon({
                                 ...activeNavItem,
@@ -282,20 +328,16 @@ const Navbar: React.FC = () => {
                         </button>
                     ) : (
                         navItems.map((item) => (
-                            <button
+                            <Link
                                 key={item.key}
-                                type="button"
-                                onClick={item.onClick}
-                                className={[
-                                    item.key === 'profile'
-                                        ? 'flex-shrink-0'
-                                        : iconBase,
-                                    'transition-all duration-200',
-                                ].join(' ')}
+                                href={item.href}
+                                onClick={(event) => handleTabClick(event, item.key, item.href)}
+                                className={item.key === 'profile' ? `${iconBase} flex-shrink-0` : iconBase}
                                 aria-label={item.label}
+                                aria-current={routeTab === item.key ? 'page' : undefined}
                             >
                                 {renderNavIcon(item)}
-                            </button>
+                            </Link>
                         ))
                     )}
                 </div>
@@ -303,7 +345,7 @@ const Navbar: React.FC = () => {
                 {showModal && (
                     <UserSearchModal onClose={() => setShowModal(false)} />
                 )}
-            </div>
+            </nav>
         </>
     );
 };
